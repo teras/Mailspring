@@ -33,19 +33,15 @@ module.exports = ErrorLogger = (function () {
     this.inDevMode = args.inDevMode;
     this.resourcePath = args.resourcePath;
 
-    this._startCrashReporter();
+    // DISABLED: Remote crash reporting removed for local-only client
+    // this._startCrashReporter();
 
     this._extendErrorObject();
 
     this._extendNativeConsole();
 
-    this.extensions = [
-      new RavenErrorReporter({
-        inSpecMode: args.inSpecMode,
-        inDevMode: args.inDevMode,
-        resourcePath: args.resourcePath,
-      }),
-    ];
+    // DISABLED: Sentry error reporting removed for local-only client
+    this.extensions = [];
 
     if (this.inSpecMode) {
       return;

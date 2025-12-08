@@ -4,9 +4,9 @@ import { HasTutorialTip } from 'mailspring-component-kit';
 import ModeToggle from './mode-toggle';
 
 const ToggleWithTutorialTip = HasTutorialTip(ModeToggle, {
-  title: localized('Compose with context'),
+  title: localized('Contact sidebar'),
   instructions: localized(
-    'Mailspring shows you everything about your contacts right inside your inbox. See LinkedIn profiles, Twitter bios, message history, and more.'
+    'Click to show or hide the sidebar. The sidebar displays contact information including their Gravatar photo and related threads from your conversations.'
   ),
 });
 

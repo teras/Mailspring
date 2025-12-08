@@ -110,11 +110,8 @@ class _FeatureUsageStore extends MailspringStore {
   }
 
   isUsable(feature: string) {
-    const { usedInPeriod, quota } = this._dataForFeature(feature);
-    if (!quota) {
-      return true;
-    }
-    return usedInPeriod < quota;
+    // MODIFIED: Always return true for local-only client - no quota limits
+    return true;
   }
 
   async markUsedOrUpgrade(feature: string, lexicon: FeatureLexicon) {
@@ -126,16 +123,9 @@ class _FeatureUsageStore extends MailspringStore {
   }
 
   markUsed(feature: string) {
-    const next: IIdentity = JSON.parse(JSON.stringify(IdentityStore.identity()));
-    if (!next || !next.featureUsage) return;
-
-    if (next.featureUsage[feature]) {
-      next.featureUsage[feature].usedInPeriod += 1;
-      IdentityStore.saveIdentity(next);
-    }
-    if (!UsageRecordedServerSide.includes(feature)) {
-      Actions.queueTask(new SendFeatureUsageEventTask({ feature }));
-    }
+    // DISABLED: Feature usage tracking removed for local-only client
+    // No need to track usage or send to remote server
+    return;
   }
 
   _onModalClose = async () => {

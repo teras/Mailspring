@@ -15,6 +15,7 @@ export class ContactProfilePhoto extends React.Component<{
     const hue = Utils.hueForString(contact.email);
     const bgColor = `hsl(${hue}, 50%, 45%)`;
 
+    // Gravatar lookup - queries gravatar.com directly (not Mailspring servers)
     const hash = crypto
       .createHash('sha256')
       .update((contact.email || '').toLowerCase().trim())

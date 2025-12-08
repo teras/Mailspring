@@ -39,39 +39,9 @@ export default class LinkTrackingComposerExtension extends ComposerExtension {
   }
 
   static applyTransformsForSending({ draftBodyRootNode, draft, recipient }) {
-    if (draft.plaintext) {
-      return;
-    }
-    const metadata = draft.metadataForPluginId(PLUGIN_ID);
-    if (!metadata) {
-      return;
-    }
-    const messageUid = draft.headerMessageId;
-    const links = [];
-
-    forEachATagInBody(draftBodyRootNode, el => {
-      const url = el.getAttribute('href');
-      if (!RegExpUtils.urlRegex().test(url)) {
-        return;
-      }
-      const encoded = encodeURIComponent(url);
-      const redirectUrl = `${PLUGIN_URL}/link/${draft.headerMessageId}/${links.length}?redirect=${encoded}`;
-
-      links.push({
-        url,
-        click_count: 0,
-        click_data: [],
-        redirect_url: redirectUrl,
-      });
-
-      const qr = recipient ? `&recipient=${encodeURIComponent(btoa(recipient.email))}` : '';
-      el.setAttribute('href', `${redirectUrl}${qr}`);
-    });
-
-    // save the link info to draft metadata
-    metadata.uid = messageUid;
-    metadata.links = links;
-    draft.directlyAttachMetadata(PLUGIN_ID, metadata);
+    // DISABLED: Link tracking removed for local-only client
+    // This feature requires remote server to track link clicks
+    return;
   }
 
   static onSendSuccess(draft) {

@@ -5,7 +5,7 @@
   "description": "Information about a participant",
 
   "isOptional": true,
-  "isIdentityRequired": true,
+  "isIdentityRequired": false,
 
   "main": "lib/main",
   "windowTypes": {

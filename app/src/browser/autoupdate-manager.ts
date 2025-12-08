@@ -71,59 +71,9 @@ export default class AutoUpdateManager extends EventEmitter {
   };
 
   setupAutoUpdater() {
-    if (process.platform === 'win32') {
-      const Impl = require('./autoupdate-impl-win32').default;
-      autoUpdater = new Impl();
-    } else if (process.platform === 'linux') {
-      const Impl = require('./autoupdate-impl-base').default;
-      autoUpdater = new Impl();
-    } else {
-      autoUpdater = require('electron').autoUpdater;
-    }
-
-    autoUpdater.on('error', error => {
-      if (this.specMode) return;
-      console.error(`Error Downloading Update: ${error.message}`);
-      this.setState(ErrorState);
-    });
-
-    autoUpdater.setFeedURL(this.feedURL);
-
-    autoUpdater.on('checking-for-update', () => {
-      this.setState(CheckingState);
-    });
-
-    autoUpdater.on('update-not-available', () => {
-      this.setState(NoUpdateAvailableState);
-    });
-
-    autoUpdater.on('update-available', () => {
-      this.setState(DownloadingState);
-    });
-
-    autoUpdater.on('update-downloaded', (event, releaseNotes, releaseVersion) => {
-      this.releaseNotes = releaseNotes;
-      this.releaseVersion = releaseVersion;
-      this.setState(UpdateAvailableState);
-      this.emitUpdateAvailableEvent();
-    });
-
-    if (autoUpdater.supportsUpdates && !autoUpdater.supportsUpdates()) {
-      this.setState(UnsupportedState);
-      return;
-    }
-
-    //check immediately at startup
-    this.check({ hidePopups: true });
-
-    //check every 30 minutes
-    setInterval(() => {
-      if ([UpdateAvailableState, UnsupportedState].includes(this.state)) {
-        console.log('Skipping update check... update ready to install, or updater unavailable.');
-        return;
-      }
-      this.check({ hidePopups: true });
-    }, 1000 * 60 * 30);
+    // DISABLED: Auto-update removed for local-only client
+    this.setState(UnsupportedState);
+    return;
   }
 
   emitUpdateAvailableEvent() {
