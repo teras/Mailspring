@@ -6,7 +6,8 @@ export default class WelcomePage extends React.Component {
   static displayName = 'WelcomePage';
 
   _onContinue = () => {
-    OnboardingActions.moveToPage('tutorial');
+    // Skip tutorial and authenticate pages - go directly to account setup
+    OnboardingActions.moveToPage('account-choose');
   };
 
   render() {

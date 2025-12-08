@@ -30,8 +30,7 @@ export const LocalizedErrorStrings = {
     'Connection Error - Unable to connect to the server / port you provided.'
   ),
   ErrorInvalidAccount: localized(
-    'This account is invalid or Mailspring could not find the Inbox or All Mail folder. %@',
-    'http://support.getmailspring.com/hc/en-us/articles/115001881912'
+    'This account is invalid or Mailspring could not find the Inbox or All Mail folder.'
   ),
   ErrorTLSNotAvailable: localized('TLS Not Available'),
   ErrorParse: localized('Parsing Error'),

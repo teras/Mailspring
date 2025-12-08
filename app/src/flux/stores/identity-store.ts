@@ -62,7 +62,8 @@ class _IdentityStore extends MailspringStore {
     this._onIdentityChanged();
 
     this.listenTo(Actions.logoutMailspringIdentity, this._onLogoutMailspringIdentity);
-    this._fetchAndPollRemoteIdentity();
+    // DISABLED: Remote identity polling removed for local-only client
+    // this._fetchAndPollRemoteIdentity();
   }
 
   deactivate() {
@@ -83,7 +84,8 @@ class _IdentityStore extends MailspringStore {
   }
 
   hasProFeatures() {
-    return this._identity && this._identity.stripePlanEffective !== 'Basic';
+    // MODIFIED: Always return true for local-only client - all features unlocked
+    return true;
   }
 
   _fetchAndPollRemoteIdentity() {

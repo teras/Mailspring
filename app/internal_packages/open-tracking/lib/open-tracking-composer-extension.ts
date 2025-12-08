@@ -18,37 +18,9 @@ export default class OpenTrackingComposerExtension extends ComposerExtension {
     draft: Message;
     recipient?: Contact;
   }) {
-    if (draft.plaintext) {
-      return;
-    }
-
-    // grab message metadata, if any
-    const messageUid = draft.headerMessageId;
-    const metadata = draft.metadataForPluginId(PLUGIN_ID) as OpenTrackingMetadata;
-    if (!metadata) {
-      return;
-    }
-
-    // insert a tracking pixel <img> into the message
-    const query: { [key: string]: string } = { me: draft.accountId };
-    if (recipient) query.recipient = btoa(recipient.email);
-
-    const serverUrl = `${PLUGIN_URL}/open/${draft.headerMessageId}?${qs.stringify(query)}`;
-    const imgFragment = document
-      .createRange()
-      .createContextualFragment(
-        `<img class="mailspring-open" alt="Sent from Mailspring" width="0" height="0" style="border:0; width:0; height:0;" src="${serverUrl}">`
-      );
-    const beforeEl = draftBodyRootNode.querySelector('.gmail_quote');
-    if (beforeEl) {
-      beforeEl.parentNode.insertBefore(imgFragment, beforeEl);
-    } else {
-      draftBodyRootNode.appendChild(imgFragment);
-    }
-
-    // save the uid info to draft metadata
-    metadata.uid = messageUid;
-    draft.directlyAttachMetadata(PLUGIN_ID, metadata);
+    // DISABLED: Open tracking removed for local-only client
+    // This feature requires remote server to track email opens
+    return;
   }
 
   static onSendSuccess(draft) {

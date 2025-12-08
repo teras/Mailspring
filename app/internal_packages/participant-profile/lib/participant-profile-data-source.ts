@@ -17,39 +17,13 @@ class ParticipantProfileDataSource {
   }
 
   async find(contact) {
-    const { email, name } = contact;
-
-    if (!email || Utils.likelyNonHumanEmail(email)) {
-      return {};
-    }
-
-    const data = this.getCache(email);
-    if (data) {
-      return data;
-    }
-
-    let body = null;
-
-    try {
-      body = await makeRequest({
-        server: 'identity',
-        method: 'GET',
-        path: `/api/info-for-email-v2/${email}?phrase=${encodeURIComponent(name)}`,
-      });
-    } catch (err) {
-      // we don't care about errors
-      return {};
-    }
-
-    if (!body.person) {
-      body.person = { email };
-    }
-    if (!body.company) {
-      body.company = {};
-    }
-
-    this.setCache(email, body);
-    return body;
+    // DISABLED: Remote participant profile lookup removed for local-only client
+    // Return empty data instead of querying remote server
+    const { email } = contact;
+    return {
+      person: { email },
+      company: {},
+    };
   }
 
   // LocalStorage Retrieval / Saving

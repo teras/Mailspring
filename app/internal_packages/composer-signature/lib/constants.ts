@@ -116,6 +116,7 @@ export const ResolveSignatureData = data => {
   }
 
   if (data.photoURL === 'gravatar') {
+    // Gravatar - queries gravatar.com directly (not Mailspring servers)
     const hash = crypto
       .createHash('sha256')
       .update((data.email || '').toLowerCase().trim())
@@ -124,10 +125,8 @@ export const ResolveSignatureData = data => {
   }
 
   if (data.photoURL === 'company') {
-    const domain =
-      (data.websiteURL && URL.parse(data.websiteURL).hostname) ||
-      (data.email && data.email.split('@').pop());
-    data.photoURL = `https://logo.getmailspring.com/company-logo/${domain}?msw=128&msh=128`;
+    // DISABLED: Company logo lookup removed - uses logo.getmailspring.com
+    data.photoURL = '';
   }
 
   if (data.photoURL === 'custom') {
