@@ -61,13 +61,14 @@ export default class MailspringWindow extends EventEmitter {
   constructor(settings: MailspringWindowSettings = {}) {
     super();
 
-    let frame, height, pathToOpen, resizable, title, width, autoHideMenuBar, titleBarStyle;
+    let frame, height, pathToOpen, resizable, title, width, autoHideMenuBar, titleBarStyle, hidden;
 
     ({
       frame,
       title,
       width,
       height,
+      hidden,
       // toolbar, present but passed through to client-side
       resizable,
       pathToOpen,
@@ -97,7 +98,7 @@ export default class MailspringWindow extends EventEmitter {
 
     type GetConstructorArgs<T> = T extends new (options: infer U) => any ? U : never;
     const browserWindowOptions: GetConstructorArgs<typeof BrowserWindow> = {
-      show: false,
+      show: !hidden, // Show immediately unless hidden - workaround for Electron 39 Wayland issue
       title: title || 'Mailspring',
       frame,
       width,

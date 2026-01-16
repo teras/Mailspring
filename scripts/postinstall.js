@@ -10,8 +10,8 @@ const { safeExec } = require('./utils/child-process-wrapper.js');
 const { execSync } = require('child_process');
 
 const appDependencies = require('../app/package.json').dependencies;
-const rootDependencies = require('../package.json').dependencies;
-const npmElectronTarget = rootDependencies.electron;
+const rootPackage = require('../package.json');
+const npmElectronTarget = (rootPackage.devDependencies?.electron || rootPackage.dependencies?.electron || '').replace(/^\^/, '');
 const npmEnvs = {
   system: process.env,
   electron: Object.assign({}, process.env, {
