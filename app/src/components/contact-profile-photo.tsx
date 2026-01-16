@@ -17,7 +17,7 @@ export class ContactProfilePhoto extends React.Component<{
 
     // Gravatar lookup - queries gravatar.com directly (not Mailspring servers)
     const hash = crypto
-      .createHash('sha256')
+      .createHash('md5')
       .update((contact.email || '').toLowerCase().trim())
       .digest('hex');
     const gravatarBg = `url("https://www.gravatar.com/avatar/${hash}/?s=88&msw=88&msh=88&d=blank")`;

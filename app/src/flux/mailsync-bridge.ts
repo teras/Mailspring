@@ -420,6 +420,11 @@ export default class MailsyncBridge {
         KeyManager.extractAndStoreAccountSecrets(new Account(modelJSONs[0]));
         continue;
       }
+      // Handle IMAP search results
+      if (modelClass === 'IMAPSearchResults' && modelJSONs.length) {
+        Actions.imapSearchResultsReceived(modelJSONs[0]);
+        continue;
+      }
 
       // dispatch the message to other windows
       ipcRenderer.send('mailsync-bridge-rebroadcast-to-all', msg);

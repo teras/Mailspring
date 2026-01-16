@@ -13,6 +13,7 @@ import { localized, FocusedPerspectiveStore, Utils, DateUtils } from 'mailspring
 import { ThreadArchiveQuickAction, ThreadTrashQuickAction } from './thread-list-quick-actions';
 import ThreadListParticipants from './thread-list-participants';
 import ThreadListIcon from './thread-list-icon';
+import ThreadListAvatar from './thread-list-avatar';
 
 // Get and format either last sent or last received timestamp depending on thread-list being viewed
 const ThreadListTimestamp = function({ thread }) {
@@ -210,6 +211,7 @@ const cNarrow = new ListTabular.Column({
             className="thread-injected-icons"
           />
           <MailImportantIcon thread={thread} showIfAvailableForAnyAccount={true} />
+          <ThreadListAvatar thread={thread} />
         </div>
         <div className="thread-info-column">
           <div className="participants-wrapper">
