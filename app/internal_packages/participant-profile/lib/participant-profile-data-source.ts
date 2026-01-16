@@ -1,4 +1,4 @@
-import { MailspringAPIRequest, Utils } from 'mailspring-exports';
+import { MailspringAPIRequest, Utils, ContactAvatarService } from 'mailspring-exports';
 const { makeRequest } = MailspringAPIRequest;
 
 const CACHE_SIZE = 200;
@@ -17,10 +17,13 @@ class ParticipantProfileDataSource {
   }
 
   async find(contact) {
-    // DISABLED: Remote participant profile lookup removed for local-only client
-    // Return empty data instead of querying remote server
     const { email } = contact;
+
+    // Use centralized avatar service
+    const avatarResult = await ContactAvatarService.getBestAvatar(email);
+
     return {
+      avatar: avatarResult.url,
       person: { email },
       company: {},
     };
