@@ -685,6 +685,14 @@ export default class Application extends EventEmitter {
       clipboard.writeText(selectedText, 'selection');
     });
 
+    // Forward external CardDAV sync request to main window
+    ipcMain.on('run-external-carddav-sync', (event, source) => {
+      const mainWindow = this.windowManager.get(WindowManager.MAIN_WINDOW);
+      if (mainWindow && mainWindow.browserWindow.webContents) {
+        mainWindow.browserWindow.webContents.send('run-external-carddav-sync', source);
+      }
+    });
+
     ipcMain.on('account-setup-successful', () => {
       this.windowManager.ensureWindow(WindowManager.MAIN_WINDOW);
       const onboarding = this.windowManager.get(WindowManager.ONBOARDING_WINDOW);

@@ -10,6 +10,7 @@ import { localized } from '../../intl';
 export interface ContactInfoVCF {
   vcf: string;
   href: string;
+  photo?: string;  // Base64 encoded photo or URL from VCard
 }
 
 export interface ContactInfoGoogle {

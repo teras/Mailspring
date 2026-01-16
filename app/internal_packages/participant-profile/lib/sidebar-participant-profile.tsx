@@ -258,9 +258,8 @@ export default class SidebarParticipantProfile extends React.Component<
     this._mounted = true;
 
     if (this.state.loading) {
-      // Wait until we know they've "settled" on this email to reduce the number of
-      // requests to the contact search endpoint.
-      setTimeout(this._onFindContact, 2000);
+      // Avatar lookup is local (database + gravatar cache), no need to delay
+      this._onFindContact();
     }
   }
 

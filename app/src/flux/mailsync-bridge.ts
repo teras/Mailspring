@@ -97,6 +97,18 @@ export default class MailsyncBridge {
       }
     });
 
+    // Handle external CardDAV sync requests
+    ipcRenderer.on('run-external-carddav-sync', (event, source) => {
+      // Send to the first available mailsync client
+      const clients = Object.values(this._clients);
+      if (clients.length > 0) {
+        clients[0].sendMessage({
+          type: 'sync-external-carddav',
+          source: source,
+        });
+      }
+    });
+
     Actions.queueTask.listen(this._onQueueTask, this);
     Actions.queueTasks.listen(this._onQueueTasks, this);
     Actions.cancelTask.listen(this._onCancelTask, this);
@@ -401,6 +413,12 @@ export default class MailsyncBridge {
         json = JSON.parse(msg);
       } catch (err) {
         console.log(`Sync worker sent non-JSON formatted message: ${msg}. ${err}`);
+        continue;
+      }
+
+      // Handle external CardDAV sync result
+      if (json.type === 'external-carddav-sync-result') {
+        Actions.externalCardDAVSyncResult(json);
         continue;
       }
 

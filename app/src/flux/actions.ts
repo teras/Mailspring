@@ -546,6 +546,20 @@ export const searchQueryChanged = create('searchQueryChanged', ActionScopeWindow
 export const searchCompleted = create('searchCompleted', ActionScopeWindow);
 export const imapSearchResultsReceived = create('imapSearchResultsReceived', ActionScopeWindow);
 
+/*
+  Public: Fired when external CardDAV contact fetch completes.
+
+  *Scope: Global*
+
+  Receives an {Object} with:
+  - sourceId: string
+  - sourceName: string
+  - success: boolean
+  - contactCount: number
+  - error: string (if any)
+*/
+export const externalCardDAVSyncResult = create('externalCardDAVSyncResult', ActionScopeGlobal);
+
 // Calendar
 export const focusCalendarEvent = create('focusCalendarEvent', ActionScopeWindow);
 

@@ -1,0 +1,86 @@
+@import 'ui-variables';
+
+// CardDAV Contacts Preferences
+.preferences-wrap {
+  .container-contacts {
+    min-width: 420px;
+    margin: 0 auto;
+
+    .contacts-content {
+      display: flex;
+      justify-content: center;
+
+      .contact-source-list {
+        display: flex;
+        flex-direction: column;
+        height: auto;
+        width: 400px;
+
+        .items-wrapper {
+          flex: 1;
+        }
+
+        .contact-source {
+          padding: 10px;
+          border-bottom: 1px solid @border-color-divider;
+        }
+
+        .source-name {
+          font-size: @font-size-large;
+          cursor: default;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          vertical-align: middle;
+        }
+
+        .source-subtext {
+          font-size: @font-size-small;
+          cursor: default;
+          color: @text-color-subtle;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .btn-editable-list {
+          height: 37px;
+          width: 37px;
+          line-height: 37px;
+          font-size: 1em;
+        }
+      }
+
+      .contact-source-details {
+        width: 400px;
+        padding: 20px;
+        padding-left: @spacing-standard * 2.25;
+        padding-right: @spacing-standard * 2.25;
+        background-color: @gray-lighter;
+        border-top: 1px solid @border-color-divider;
+        border-right: 1px solid @border-color-divider;
+        border-bottom: 1px solid @border-color-divider;
+
+        .empty-message {
+          color: @text-color-subtle;
+          text-align: center;
+          padding: 40px 20px;
+        }
+
+        & > h6 {
+          &:first-child {
+            margin-top: 0;
+          }
+        }
+
+        & > input {
+          font-size: 0.9em;
+          width: 100%;
+        }
+
+        input[type='checkbox'] {
+          margin: 0;
+          margin-right: 5px;
+        }
+      }
+    }
+  }
+}

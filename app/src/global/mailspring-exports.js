@@ -209,6 +209,9 @@ lazyLoadWithGetter(`APIError`, () => require('../flux/errors').APIError);
 lazyLoad(`DefaultClientHelper`, 'default-client-helper');
 lazyLoad(`SystemStartService`, 'system-start-service');
 
+// Services
+lazyLoad(`ContactAvatarService`, 'services/contact-avatar-service');
+
 // Testing
 lazyLoadWithGetter(
   `MailspringTestUtils`,

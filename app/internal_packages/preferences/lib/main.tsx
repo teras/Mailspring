@@ -27,9 +27,9 @@ export function activate() {
   );
   PreferencesUIStore.registerPreferencesTab(
     new PreferencesUIStore.TabItem({
-      tabId: 'Subscription',
-      displayName: localized('Subscription'),
-      componentClassFn: () => require('./tabs/preferences-identity').default,
+      tabId: 'Contacts',
+      displayName: localized('Contacts'),
+      componentClassFn: () => require('./tabs/preferences-contacts').default,
       order: 3,
     })
   );
