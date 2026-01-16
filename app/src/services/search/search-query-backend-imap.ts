@@ -73,6 +73,19 @@ class IMAPSearchQueryFolderFinderVisitor extends SearchQueryExpressionVisitor {
   visitHasAttachment(/* node */) {
     this._result = TOP;
   }
+
+  visitNot(node) {
+    // NOT doesn't change which folders to search
+    this._result = this.visitAndGetResult(node.e1);
+  }
+
+  visitDate(/* node */) {
+    this._result = TOP;
+  }
+
+  visitMatch(/* node */) {
+    this._result = TOP;
+  }
 }
 
 class IMAPSearchQueryExpressionVisitor extends SearchQueryExpressionVisitor {
@@ -120,7 +133,15 @@ class IMAPSearchQueryExpressionVisitor extends SearchQueryExpressionVisitor {
   }
 
   visitDate(node) {
-    throw new Error(`Function not implemented!: ${node}`);
+    const text = this.visitAndGetResult(node.text);
+    // Parse date and format for IMAP (DD-Mon-YYYY)
+    const date = new Date(text);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const imapDate = `${date.getDate()}-${months[date.getMonth()]}-${date.getFullYear()}`;
+
+    // IMAP uses BEFORE for "before" and SINCE for "after"
+    const command = node.direction === 'before' ? 'BEFORE' : 'SINCE';
+    this._result = [command, imapDate];
   }
 
   visitTo(node) {
@@ -161,6 +182,16 @@ class IMAPSearchQueryExpressionVisitor extends SearchQueryExpressionVisitor {
       ['HEADER', 'Content-Type', 'multipart/mixed'],
       ['HEADER', 'Content-Type', 'multipart/related'],
     ];
+  }
+
+  visitNot(node) {
+    const inner = this.visitAndGetResult(node.e1);
+    this._result = ['NOT', inner];
+  }
+
+  visitMatch(node) {
+    const text = this.visitAndGetResult(node.text);
+    this._result = ['TEXT', text];
   }
 }
 
