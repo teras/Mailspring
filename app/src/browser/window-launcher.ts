@@ -149,7 +149,7 @@ export default class WindowLauncher {
 
   _hotWindowOpts() {
     const hotWindowOpts = Object.assign({}, this.defaultWindowOpts);
-    hotWindowOpts.hidden = DEBUG_SHOW_HOT_WINDOW;
+    hotWindowOpts.hidden = !DEBUG_SHOW_HOT_WINDOW; // Hot window should be hidden by default
     return hotWindowOpts;
   }
 }
