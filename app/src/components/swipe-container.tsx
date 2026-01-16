@@ -110,11 +110,14 @@ export default class SwipeContainer extends React.Component<
     window.addEventListener('gesture-scroll-end', this._onScrollTouchEnd);
   }
 
-  componentWillReceiveProps() {
-    this.isEnabled = null;
-  }
+  componentDidUpdate(prevProps: SwipeContainerProps) {
+    // Reset cached isEnabled when props change
+    if (prevProps.onSwipeLeft !== this.props.onSwipeLeft ||
+        prevProps.onSwipeRight !== this.props.onSwipeRight ||
+        prevProps.shouldEnableSwipe !== this.props.shouldEnableSwipe) {
+      this.isEnabled = null;
+    }
 
-  componentDidUpdate() {
     if (this.phase === Phase.Settling) {
       window.requestAnimationFrame(() => {
         if (this.phase === Phase.Settling) {
@@ -182,7 +185,11 @@ export default class SwipeContainer extends React.Component<
       thresholdDistance = 110;
     }
 
-    const clipToMax = v => Math.max(-fullDistance, Math.min(Number(fullDistance), v));
+    // At this point, fullDistance and thresholdDistance are guaranteed to be numbers
+    const fullDist = fullDistance as number;
+    const threshDist = thresholdDistance as number;
+
+    const clipToMax = v => Math.max(-fullDist, Math.min(fullDist, v));
     const currentX = clipToMax(this.state.currentX + velocityX);
     const estimatedSettleX = clipToMax(currentX + velocityX * 8);
     const lastDragX = currentX;
@@ -193,22 +200,22 @@ export default class SwipeContainer extends React.Component<
     // center.
 
     if (this.trackingInitialTargetX === 0) {
-      if (this.props.onSwipeRight && estimatedSettleX > thresholdDistance) {
-        targetX = fullDistance;
+      if (this.props.onSwipeRight && estimatedSettleX > threshDist) {
+        targetX = fullDist;
       }
-      if (this.props.onSwipeLeft && estimatedSettleX < -thresholdDistance) {
-        targetX = -fullDistance;
+      if (this.props.onSwipeLeft && estimatedSettleX < -threshDist) {
+        targetX = -fullDist;
       }
     } else if (this.trackingInitialTargetX < 0) {
-      if (fullDistance - Math.abs(estimatedSettleX) < thresholdDistance) {
-        targetX = -fullDistance;
+      if (fullDist - Math.abs(estimatedSettleX) < threshDist) {
+        targetX = -fullDist;
       }
     } else if (this.trackingInitialTargetX > 0) {
-      if (fullDistance - Math.abs(estimatedSettleX) < thresholdDistance) {
-        targetX = fullDistance;
+      if (fullDist - Math.abs(estimatedSettleX) < threshDist) {
+        targetX = fullDist;
       }
     }
-    this.setState({ thresholdDistance, fullDistance, currentX, targetX, lastDragX });
+    this.setState({ thresholdDistance: threshDist, fullDistance: fullDist, currentX, targetX, lastDragX });
   };
 
   _onScrollTouchBegin = () => {

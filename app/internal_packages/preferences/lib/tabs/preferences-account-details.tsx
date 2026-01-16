@@ -2,7 +2,7 @@
 import fs from 'fs';
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { shell, ipcRenderer, remote } from 'electron';
+import { shell, ipcRenderer } from 'electron';
 import { EditableList } from 'mailspring-component-kit';
 import {
   localized,
@@ -68,8 +68,10 @@ class PreferencesAccountDetails extends Component<
     this.state = { account: props.account.clone() };
   }
 
-  componentWillReceiveProps(nextProps) {
-    this.setState({ account: nextProps.account.clone() });
+  componentDidUpdate(prevProps: PreferencesAccountDetailsProps) {
+    if (prevProps.account !== this.props.account) {
+      this.setState({ account: this.props.account.clone() });
+    }
   }
 
   componentWillUnmount() {

@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import { exec } from 'child_process';
-import ws from 'windows-shortcuts';
+import { shell } from 'electron';
 import { localized } from './intl';
 
 class SystemStartServiceBase {
@@ -49,12 +49,16 @@ class SystemStartServiceDarwin extends SystemStartServiceBase {
   }
 
   configureToLaunchOnSystemStart() {
-    fs.writeFile(this._plistPath(), JSON.stringify(this._launchdPlist()), err => {
-      if (err) {
-        this._displayError(err);
-      } else {
-        exec(`plutil -convert xml1 ${this._plistPath()}`);
-      }
+    fs.mkdir(this._plistDir(), { recursive: true }, err => {
+      if (err) return this._displayError(err);
+
+      fs.writeFile(this._plistPath(), JSON.stringify(this._launchdPlist()), err => {
+        if (err) {
+          this._displayError(err);
+        } else {
+          exec(`plutil -convert xml1 ${this._plistPath()}`);
+        }
+      });
     });
   }
 
@@ -81,6 +85,10 @@ class SystemStartServiceDarwin extends SystemStartServiceBase {
 
   _plistPath() {
     return path.join(process.env.HOME, 'Library', 'LaunchAgents', 'com.mailspring.plist');
+  }
+
+  _plistDir() {
+    return path.join(process.env.HOME, 'Library', 'LaunchAgents');
   }
 
   _launchdPlist() {
@@ -118,18 +126,21 @@ class SystemStartServiceWin32 extends SystemStartServiceBase {
   }
 
   configureToLaunchOnSystemStart() {
-    ws.create(
-      this._shortcutPath(),
-      {
+    // Use Electron's shell.writeShortcutLink API instead of deprecated windows-shortcuts package
+    // See: https://www.electronjs.org/docs/latest/api/shell#shellwriteshortcutlinkshortcutpath-operation-options-windows
+    try {
+      const success = shell.writeShortcutLink(this._shortcutPath(), 'create', {
         target: this._launcherPath(),
-        args: '--processStart=mailspring.exe --process-start-args=--background',
-        runStyle: ws.MIN,
-        desc: 'An extensible, open-source mail client built on the modern web.',
-      },
-      err => {
-        if (err) AppEnv.reportError(err);
+        args: '--processStart mailspring.exe --process-start-args "--background"',
+        description: 'An extensible, open-source mail client built on the modern web.',
+        appUserModelId: 'com.squirrel.mailspring.mailspring',
+      });
+      if (!success) {
+        AppEnv.reportError(new Error('Failed to create startup shortcut'));
       }
-    );
+    } catch (err) {
+      AppEnv.reportError(err);
+    }
   }
 
   dontLaunchOnSystemStart() {

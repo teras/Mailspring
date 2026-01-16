@@ -94,12 +94,12 @@ export default class MessageItemBody extends React.Component<
     this._mounted = true;
   }
 
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.message.id !== this.props.message.id) {
+  componentDidUpdate(prevProps: MessageItemBodyProps) {
+    if (this.props.message.id !== prevProps.message.id) {
       if (this._unsub) {
         this._unsub();
       }
-      this._unsub = MessageBodyProcessor.subscribe(nextProps.message, true, this._onBodyProcessed);
+      this._unsub = MessageBodyProcessor.subscribe(this.props.message, true, this._onBodyProcessed);
     }
   }
 
@@ -124,7 +124,9 @@ export default class MessageItemBody extends React.Component<
       require('@electron/remote').app.getPath('temp'),
       `${message.id}.html`
     );
-    fs.writeFileSync(filepath, message.body);
+    // Prepend charset meta tag to ensure proper encoding (fixes garbled text for non-ASCII characters)
+    const htmlWithCharset = `<meta charset="UTF-8">\n${message.body}`;
+    fs.writeFileSync(filepath, htmlWithCharset);
     const win = new BrowserWindow({
       title: `${message.subject}`,
       width: 800,

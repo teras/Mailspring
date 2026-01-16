@@ -1,5 +1,5 @@
 import React from 'react';
-import NodeEmoji from 'node-emoji';
+import * as NodeEmoji from 'node-emoji';
 import { Actions } from 'mailspring-exports';
 import { Editor, Mark } from 'slate';
 import { Rule, ComposerEditorPlugin, ComposerEditorPluginTopLevelComponentProps } from './types';
@@ -19,10 +19,21 @@ export const EMOJI_TYPE = 'emoji';
 // The size of the list of floating emoji options
 const MAX_EMOJI_SUGGESTIONS = 6;
 
+// Cache all emoji names for efficient autocomplete lookup
+let allEmojiNames: string[] | null = null;
+
+function getAllEmojiNames(): string[] {
+  if (!allEmojiNames) {
+    // In node-emoji v2, use search('') to get all emojis
+    allEmojiNames = NodeEmoji.search('').map(e => e.name).sort();
+  }
+  return allEmojiNames;
+}
+
 /* Returns the official emoji names matching the provided text. */
 export function getEmojiSuggestions(word: string) {
   const emojiOptions = [];
-  const emojiNames = Object.keys(NodeEmoji.emoji).sort();
+  const emojiNames = getAllEmojiNames();
   for (const emojiName of emojiNames) {
     if (word === emojiName.substring(0, word.length)) {
       emojiOptions.push(emojiName);
@@ -79,16 +90,18 @@ function FloatingEmojiPicker({ editor, value }: ComposerEditorPluginTopLevelComp
 
   const relativePositionedParent = target.closest('.RichEditor-content') as HTMLElement;
   const intrinsicPos = relativePositionedParent.getBoundingClientRect();
-  const targetPos = target.getBoundingClientRect() as ClientRect;
-  const relativeParentW = (relativePositionedParent as any).width;
+  const targetRect = target.getBoundingClientRect();
+  const relativeParentW = relativePositionedParent.clientWidth;
 
-  if (targetPos.left + 150 > relativeParentW) {
-    targetPos.left = relativeParentW - 150;
+  // Create mutable copy since DOMRect properties are read-only
+  let targetLeft = targetRect.left;
+  if (targetLeft + 150 > relativeParentW) {
+    targetLeft = relativeParentW - 150;
   }
 
   const delta = {
-    top: targetPos.top + targetPos.height - intrinsicPos.top,
-    left: targetPos.left - intrinsicPos.left,
+    top: targetRect.top + targetRect.height - intrinsicPos.top,
+    left: targetLeft - intrinsicPos.left,
   };
 
   // Don't display all the selections - just display a few before/after the

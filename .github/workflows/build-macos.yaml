@@ -7,8 +7,11 @@ jobs:
   build-macos:
     strategy:
       matrix:
-        # Confusingly, macos-13 is intel and macos-latest is ARM
-        os: [macos-13, macos-latest]
+        include:
+          - os: macos-latest
+            arch: arm64
+          - os: macos-15-intel
+            arch: x64
 
     runs-on: ${{ matrix.os }}
 
@@ -39,6 +42,17 @@ jobs:
           p12-file-base64: ${{ secrets.APPLE_CODESIGN_P12 }}
           p12-password: ${{ secrets.APPLE_CODESIGN_KEY_PASSWORD }}
 
+      # This is disabled because we need to codesign Mailspring with this profile, but it's
+      # presence makes Apple use it for the mailsync executable too. We need more nuanced
+      # provisioning profile configuration.
+      #
+      # - name: Setup Provisioning Profile
+      #   run: |
+      #     echo "APPLE_PROVISIONING_PROFILE_PATH=${{ runner.temp }}/Mailspring.provisionprofile" >> $GITHUB_ENV
+      #     echo $APPLE_PROVISIONING_PROFILE_B64 | base64 --decode > "${{ runner.temp }}/Mailspring.provisionprofile"
+      #   env:
+      #     APPLE_PROVISIONING_PROFILE_B64: ${{ secrets.APPLE_PROVISIONING_PROFILE_B64 }}
+
       - name: Setup AWS CLI
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -54,6 +68,7 @@ jobs:
         env:
           APPLE_ID_ASC_PROVIDER: ${{ secrets.APPLE_ID_ASC_PROVIDER }}
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE_PATH: ${{ env.APPLE_PROVISIONING_PROFILE_PATH }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
 
@@ -64,6 +79,6 @@ jobs:
 
       - name: Sync artifacts to S3 bucket
         run: |
-          aws s3 sync app/dist/ "s3://mailspring-builds/client/$(git rev-parse --short HEAD)/osx" \
+          aws s3 sync app/dist/ "s3://mailspring-builds/client/$(git rev-parse --short=8 HEAD)/osx" \
             --acl public-read \
             --exclude "*" --include *.zip

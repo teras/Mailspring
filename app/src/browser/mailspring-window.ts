@@ -31,13 +31,18 @@ export interface MailspringWindowSettings {
   bootstrapScript?: string;
   appVersion?: string;
   shellLoadTime?: number;
+  // Allow additional properties for extensibility
+  [key: string]: unknown;
 }
 
 export default class MailspringWindow extends EventEmitter {
   static includeShellLoadTime = true;
 
   public windowType: string;
-  public browserWindow: BrowserWindow = null;
+  public browserWindow: BrowserWindow & {
+    loadSettings?: MailspringWindowSettings;
+    loadSettingsChangedSinceGetURL?: boolean;
+  } = null;
   public devMode: boolean;
   public safeMode: boolean;
 
@@ -100,7 +105,7 @@ export default class MailspringWindow extends EventEmitter {
         nodeIntegration: true,
         contextIsolation: false,
         webviewTag: true,
-        enableRemoteModule: true,
+        // Note: @electron/remote is enabled via remote.initialize() in main process
       },
       autoHideMenuBar,
     };
@@ -275,8 +280,8 @@ export default class MailspringWindow extends EventEmitter {
       event.preventDefault();
     });
 
-    this.browserWindow.webContents.on('new-window', (event, url, frameName, disposition) => {
-      event.preventDefault();
+    this.browserWindow.webContents.setWindowOpenHandler(({ url, frameName, disposition }) => {
+      return { action: 'deny' };
     });
 
     this.browserWindow.on('unresponsive', () => {
@@ -301,7 +306,8 @@ export default class MailspringWindow extends EventEmitter {
       }
     });
 
-    this.browserWindow.webContents.on('crashed', (event, killed) => {
+    this.browserWindow.webContents.on('render-process-gone', (event, details) => {
+      const killed = details.reason === 'killed';
       if (killed) {
         // Killed means that the app is exiting and the browser window is being
         // forceably cleaned up. Carry on, do not try to reload the window.

@@ -2,7 +2,9 @@ import moment, { Moment } from 'moment';
 import React from 'react';
 import {
   Actions,
+  DatabaseStore,
   DateUtils,
+  Event,
   SyncbackEventTask,
   localized,
   RegExpUtils,
@@ -18,6 +20,15 @@ import {
 import { EventAttendeesInput } from './event-attendees-input';
 import { EventOccurrence } from './calendar-data-source';
 import { EventTimerangePicker } from './event-timerange-picker';
+import { EventPropertyRow } from './event-property-row';
+import { CalendarColorPicker } from './calendar-color-picker';
+import { LocationVideoInput } from './location-video-input';
+import { AllDayToggle } from './all-day-toggle';
+import { RepeatSelector, RepeatOption } from './repeat-selector';
+import { AlertSelector, AlertTiming } from './alert-selector';
+import { ShowAsSelector, ShowAsOption } from './show-as-selector';
+import { EventPopoverActions } from './event-popover-actions';
+import { TimeZoneSelector } from './timezone-selector';
 
 interface CalendarEventPopoverProps {
   event: EventOccurrence;
@@ -31,12 +42,24 @@ interface CalendarEventPopoverState {
   attendees: any[];
   editing: boolean;
   title: string;
+  // New fields for enhanced editing
+  allDay: boolean;
+  repeat: RepeatOption;
+  alert: AlertTiming;
+  showAs: ShowAsOption;
+  calendarColor: string;
+  timezone: string;
+  showInvitees: boolean;
+  showNotes: boolean;
 }
 
 export class CalendarEventPopover extends React.Component<
   CalendarEventPopoverProps,
   CalendarEventPopoverState
 > {
+  private attendeesInputRef = React.createRef<EventAttendeesInput>();
+  private notesTextareaRef = React.createRef<HTMLTextAreaElement>();
+
   constructor(props) {
     super(props);
     const { description, start, end, location, attendees, title } = this.props.event;
@@ -49,13 +72,46 @@ export class CalendarEventPopover extends React.Component<
       title,
       editing: false,
       attendees,
+      // Initialize new fields with defaults
+      allDay: false,
+      repeat: 'none',
+      alert: '10min',
+      showAs: 'busy',
+      calendarColor: '#419bf9',
+      timezone: DateUtils.timeZone,
+      showInvitees: attendees && attendees.length > 0,
+      showNotes: !!description,
     };
   }
 
-  componentWillReceiveProps = nextProps => {
-    const { description, start, end, location, attendees, title } = nextProps.event;
-    this.setState({ description, start, end, location, attendees, title });
-  };
+  componentDidUpdate(
+    prevProps: CalendarEventPopoverProps,
+    prevState: CalendarEventPopoverState
+  ) {
+    // Update state when event prop changes
+    if (prevProps.event !== this.props.event) {
+      const { description, start, end, location, attendees, title } = this.props.event;
+      this.setState({ description, start, end, location, attendees, title });
+    }
+
+    // Autofocus invitees input when section is expanded
+    // Use requestAnimationFrame to ensure DOM is ready
+    if (this.state.showInvitees && !prevState.showInvitees) {
+      requestAnimationFrame(() => {
+        if (this.attendeesInputRef.current) {
+          this.attendeesInputRef.current.focus();
+        }
+      });
+    }
+    // Autofocus notes textarea when section is expanded
+    if (this.state.showNotes && !prevState.showNotes) {
+      requestAnimationFrame(() => {
+        if (this.notesTextareaRef.current) {
+          this.notesTextareaRef.current.focus();
+        }
+      });
+    }
+  }
 
   onEdit = () => {
     this.setState({ editing: true });
@@ -64,22 +120,27 @@ export class CalendarEventPopover extends React.Component<
   getStartMoment = () => moment(this.state.start * 1000);
   getEndMoment = () => moment(this.state.end * 1000);
 
-  saveEdits = () => {
-    const event = this.props.event.clone();
-    const keys = ['title', 'description', 'location', 'attendees'];
-    for (const key of keys) {
-      event[key] = this.state[key];
+  saveEdits = async () => {
+    // Extract the real event ID from the occurrence ID (format: `${eventId}-e${idx}`)
+    const occurrenceId = this.props.event.id;
+    const eventId = occurrenceId.replace(/-e\d+$/, '');
+
+    // Fetch the actual Event from the database
+    const event = await DatabaseStore.find<Event>(Event, eventId);
+    if (!event) {
+      console.error(`Could not find event with id ${eventId} to update`);
+      this.setState({ editing: false });
+      return;
     }
 
-    // TODO, this component shouldn't save the event here, we should expose an
-    // `onEditEvent` or similar callback
-    // TODO: How will this affect the event if the when object was originally
-    //   a datespan, with start_date and end_date attributes?
-    event.when.start_time = this.state.start;
-    event.when.end_time = this.state.end;
+    // TODO: This component shouldn't save the event here, we should expose an
+    // `onEditEvent` or similar callback that properly updates the ICS data.
+    // For now, we update the recurrence times and queue the syncback task.
+    event.recurrenceStart = this.state.start;
+    event.recurrenceEnd = this.state.end;
 
-    this.setState({ editing: false }); // TODO: where's the best place to put this?
-    const task = new SyncbackEventTask(event.id);
+    this.setState({ editing: false });
+    const task = SyncbackEventTask.forUpdating({ event });
     Actions.queueTask(task);
   };
 
@@ -96,60 +157,143 @@ export class CalendarEventPopover extends React.Component<
   };
 
   renderEditable = () => {
-    const { title, description, start, end, location, attendees } = this.state;
+    const {
+      title,
+      description,
+      start,
+      end,
+      location,
+      attendees,
+      allDay,
+      repeat,
+      alert,
+      showAs,
+      calendarColor,
+      timezone,
+      showInvitees,
+      showNotes,
+    } = this.state;
 
     const notes = extractNotesFromDescription(description);
 
     return (
-      <div className="calendar-event-popover" tabIndex={0}>
+      <div className="calendar-event-popover editing" tabIndex={0}>
         <TabGroupRegion>
+          {/* Title row with color picker */}
           <div className="title-wrapper">
             <input
               className="title"
               type="text"
+              placeholder={localized('New Event')}
               value={title}
-              onChange={e => {
-                this.updateField('title', e.target.value);
-              }}
+              onChange={e => this.updateField('title', e.target.value)}
+            />
+            <CalendarColorPicker
+              color={calendarColor}
+              onChange={color => this.updateField('calendarColor', color)}
             />
           </div>
-          <input
-            className="location"
-            type="text"
+
+          {/* Location with video call toggle */}
+          <LocationVideoInput
             value={location}
-            onChange={e => {
-              this.updateField('location', e.target.value);
+            onChange={value => this.updateField('location', value)}
+            onVideoToggle={() => {
+              // Placeholder: could add video call link
             }}
           />
-          <div className="section">
-            <EventTimerangePicker
-              start={start}
-              end={end}
-              onChange={({ start, end }) => this.setState({ start, end })}
-            />
-          </div>
-          <div className="section">
-            <div className="label">{localized(`Invitees`)}:</div>
-            <EventAttendeesInput
-              className="event-participant-field"
-              attendees={attendees}
-              change={val => {
-                this.updateField('attendees', val);
-              }}
-            />
-          </div>
-          <div className="section">
-            <div className="label">{localized(`Notes`)}:</div>
-            <input
-              type="text"
-              value={notes}
-              onChange={e => {
-                this.updateField('description', e.target.value);
-              }}
-            />
-          </div>
-          <span onClick={this.saveEdits}>{localized(`Save`)}</span>
-          <span onClick={() => Actions.closePopover()}>{localized(`Cancel`)}</span>
+
+          {/* All-day toggle */}
+          <AllDayToggle
+            checked={allDay}
+            onChange={checked => this.updateField('allDay', checked)}
+          />
+
+          {/* Start/End times using property rows */}
+          <EventPropertyRow label={localized('starts:')}>
+            <DatePicker value={start * 1000} onChange={ts => this.updateField('start', ts / 1000)} />
+            {!allDay && (
+              <TimePicker
+                value={start * 1000}
+                onChange={ts => this.updateField('start', ts / 1000)}
+              />
+            )}
+          </EventPropertyRow>
+
+          <EventPropertyRow label={localized('ends:')}>
+            <DatePicker value={end * 1000} onChange={ts => this.updateField('end', ts / 1000)} />
+            {!allDay && (
+              <TimePicker value={end * 1000} onChange={ts => this.updateField('end', ts / 1000)} />
+            )}
+          </EventPropertyRow>
+
+          {/* Time zone selector */}
+          <TimeZoneSelector
+            value={timezone}
+            onChange={value => this.updateField('timezone', value)}
+          />
+
+          {/* Repeat selector */}
+          <RepeatSelector
+            value={repeat}
+            onChange={value => this.updateField('repeat', value)}
+          />
+
+          {/* Alert selector */}
+          <AlertSelector value={alert} onChange={value => this.updateField('alert', value)} />
+
+          {/* Show as selector */}
+          <ShowAsSelector value={showAs} onChange={value => this.updateField('showAs', value)} />
+
+          {/* Invitees section - collapsible */}
+          {showInvitees ? (
+            <div className="expanded-section">
+              <div className="section-header">
+                <span className="section-title">{localized('Invitees')}</span>
+                <span
+                  className="section-close"
+                  onClick={() => this.setState({ showInvitees: false })}
+                >
+                  ×
+                </span>
+              </div>
+              <EventAttendeesInput
+                ref={this.attendeesInputRef}
+                className="event-participant-field"
+                attendees={attendees}
+                change={val => this.updateField('attendees', val)}
+              />
+            </div>
+          ) : (
+            <div className="action-link" onClick={() => this.setState({ showInvitees: true })}>
+              {localized('Add Invitees')}
+            </div>
+          )}
+
+          {/* Notes section - collapsible */}
+          {showNotes ? (
+            <div className="expanded-section">
+              <div className="section-header">
+                <span className="section-title">{localized('Notes')}</span>
+                <span className="section-close" onClick={() => this.setState({ showNotes: false })}>
+                  ×
+                </span>
+              </div>
+              <textarea
+                ref={this.notesTextareaRef}
+                value={notes}
+                placeholder={localized('Add notes or URL...')}
+                onChange={e => this.updateField('description', e.target.value)}
+              />
+            </div>
+          ) : (
+            <div className="action-link" onClick={() => this.setState({ showNotes: true })}>
+              {localized('Add Notes or URL')}
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <EventPopoverActions onSave={this.saveEdits} onCancel={() => Actions.closePopover()} />
         </TabGroupRegion>
       </div>
     );
@@ -236,7 +380,7 @@ class CalendarEventPopoverUnenditable extends React.Component<{
           <div className="label">{localized(`Invitees`)}: </div>
           <div>
             {attendees.map((a, idx) => (
-              <div key={idx}> {a.cn}</div>
+              <div key={idx}> {a.name || a.email}</div>
             ))}
           </div>
         </ScrollRegion>

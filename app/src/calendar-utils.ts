@@ -1,9 +1,11 @@
 import { AccountStore } from 'mailspring-exports';
 
-type ICALComponent = typeof import('ical.js').Component;
-type ICALEvent = typeof import('ical.js').Event;
+type ICAL = typeof import('ical.js').default;
+type ICALComponent = InstanceType<ICAL['Component']>;
+type ICALProperty = InstanceType<ICAL['Property']>;
+type ICALEvent = InstanceType<ICAL['Event']>;
 
-let ICAL: typeof import('ical.js') = null;
+let ICAL: ICAL = null;
 
 export type ICSParticipantStatus =
   | 'NEEDS-ACTION'
@@ -18,7 +20,7 @@ export interface ICSParticipant {
   email: string | null;
   role: 'CHAIR' | 'REQ-PARTICIPANT' | 'OPT-PARTICIPANT' | 'NON-PARTICIPANT';
   status: ICSParticipantStatus;
-  component: ICALComponent;
+  component: ICALProperty;
 }
 
 function fixJCalDatesWithoutTimes(jCal) {
@@ -65,12 +67,9 @@ export function emailFromParticipantURI(uri: string) {
 export function cleanParticipants(icsEvent: ICALEvent): ICSParticipant[] {
   return icsEvent.attendees.map(a => ({
     component: a,
-    status: a.getParameter('partstat'),
-    role: a.getParameter('role'),
-    email: a
-      .getValues()
-      .map(emailFromParticipantURI)
-      .find(v => !!v),
+    status: (a.getParameter('partstat') || 'NEEDS-ACTION') as ICSParticipantStatus,
+    role: (a.getParameter('role') || 'REQ-PARTICIPANT') as ICSParticipant['role'],
+    email: a.getValues().map(emailFromParticipantURI).find(v => !!v) || null,
   }));
 }
 

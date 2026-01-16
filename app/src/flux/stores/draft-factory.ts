@@ -1,5 +1,5 @@
 import _ from 'underscore';
-const { v4: uuidv4 } = require('uuid');
+import { v4 as uuidv4 } from 'uuid';
 import * as Actions from '../actions';
 import DatabaseStore from './database-store';
 import { AccountStore } from './account-store';
@@ -14,7 +14,7 @@ import * as Utils from '../models/utils';
 import InlineStyleTransformer from '../../services/inline-style-transformer';
 import SanitizeTransformer from '../../services/sanitize-transformer';
 import DOMUtils from '../../dom-utils';
-import { Thread } from '../models/Thread';
+import { Thread } from '../models/thread';
 import { convertToPlainText, convertFromHTML } from '../../components/composer-editor/conversion';
 import {
   wrapPlaintext,

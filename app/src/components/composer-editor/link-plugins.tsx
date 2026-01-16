@@ -56,6 +56,7 @@ function renderMark({ mark, children, targetIsHTML }, editor: Editor = null, nex
       <span
         className="link"
         title={href}
+        spellCheck={false}
         onClick={e => {
           if (e.ctrlKey || e.metaKey || e.altKey) {
             AppEnv.windowEventHandler.openLink({ href, metaKey: e.metaKey });
@@ -105,7 +106,7 @@ const BaseLinkPlugin: ComposerEditorPlugin = {
       placeholder: 'http://',
     }),
   ],
-  onPaste,
+  onPaste: onPaste as any,
   onKeyDown: function onKeyDown(event: React.KeyboardEvent, editor: Editor, next: () => void) {
     // ensure space and enter always terminate links
     if (!['Space', 'Enter', ' ', 'Return'].includes(event.key)) {

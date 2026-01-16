@@ -3,7 +3,6 @@
 global.shellStartTime = Date.now();
 const util = require('util');
 
-// TODO: Remove when upgrading to Electron 4
 const fs = require('fs');
 fs.statSyncNoException = function(...args) {
   try {
@@ -91,6 +90,7 @@ const declareOptions = argv => {
   // if mailspring is already running.
   options.boolean('enable-crashpad');
   options.boolean('allow-file-access-from-files');
+  options.boolean('source-app-id');
   options
     .alias('h', 'help')
     .boolean('h')
@@ -243,37 +243,40 @@ const extractMailtoLink = mailtoLink => {
 };
 
 /*
- * "Squirrel will spawn your app with command line flags on first run, updates,]
+ * "Squirrel will spawn your app with command line flags on first run, updates,
  * and uninstalls."
  *
  * Read: https://github.com/electron-archive/grunt-electron-installer#handling-squirrel-events
  * Read: https://github.com/electron/electron/blob/master/docs/api/auto-updater.md#windows
+ *
+ * IMPORTANT: Squirrel.Windows has a 15-second timeout for hooks (10 seconds for uninstall).
+ * If the app doesn't exit within that time, Squirrel cancels with OperationCanceledException.
+ * We must handle events quickly and exit immediately - spawning any long-running processes
+ * in detached mode so they continue after the main process exits.
+ *
+ * See: https://github.com/Squirrel/Squirrel.Windows/issues/501
+ * See: https://github.com/Squirrel/Squirrel.Windows/issues/1145
  */
 const handleStartupEventWithSquirrel = () => {
   if (process.platform !== 'win32') {
     return false;
   }
-  const options = {
-    allowEscalation: false,
-    registerDefaultIfPossible: false,
-  };
 
   const WindowsUpdater = require('./windows-updater');
   const squirrelCommand = process.argv[1];
 
   switch (squirrelCommand) {
     case '--squirrel-install':
-      WindowsUpdater.createRegistryEntries(options, () =>
-        WindowsUpdater.createShortcuts(() =>
-          WindowsUpdater.installVisualElementsXML(() => app.quit())
-        )
-      );
+      // Handle install with fast exit - spawns detached processes and quits immediately
+      WindowsUpdater.handleSquirrelInstall(app);
       return true;
     case '--squirrel-updated':
+      // Restart the app after update
       WindowsUpdater.restartMailspring(app);
       return true;
     case '--squirrel-uninstall':
-      WindowsUpdater.removeShortcuts(() => app.quit());
+      // Handle uninstall with fast exit - spawns detached processes and quits immediately
+      WindowsUpdater.handleSquirrelUninstall(app);
       return true;
     case '--squirrel-obsolete':
       app.quit();
@@ -285,11 +288,44 @@ const handleStartupEventWithSquirrel = () => {
 
 const start = () => {
   app.setAppUserModelId('com.squirrel.mailspring.mailspring');
+
+  // Set the app name explicitly for Linux to ensure the system tray icon
+  // gets a unique ID. Without this, all Electron apps share the same
+  // StatusNotifierItem ID on Linux, causing their tray visibility settings
+  // to be synchronized. See: https://github.com/electron/electron/issues/40936
+  if (process.platform === 'linux') {
+    app.setName('Mailspring');
+  }
+
   if (handleStartupEventWithSquirrel()) {
     return;
   }
 
+  // On Windows, register the AppUserModelId with a display name so notifications
+  // show "Mailspring" instead of "com.squirrel.mailspring.mailspring".
+  // Also register mailto: protocol handler so Windows knows Mailspring can handle
+  // mailto: links (this doesn't make it the default, just registers it as an option).
+  // This handles existing installations and ensures registration completes even if
+  // the Squirrel install hook's detached processes didn't finish in time.
+  if (process.platform === 'win32') {
+    const WindowsUpdater = require('./windows-updater');
+    if (WindowsUpdater.existsSync()) {
+      WindowsUpdater.registerAppUserModelId();
+      // Register mailto: protocol without elevation or setting as default
+      WindowsUpdater.createRegistryEntries(
+        { allowEscalation: false, registerDefaultIfPossible: false },
+        () => {}
+      );
+    }
+  }
+
   require('@electron/remote/main').initialize();
+
+  // Configure Chromium command line switches before app ready event.
+  // These must be set before the ready event for them to take effect.
+  // Reference: https://www.electronjs.org/docs/latest/api/command-line-switches
+  app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
+  app.commandLine.appendSwitch('js-flags', '--harmony');
 
   const options = parseCommandLine(process.argv);
   global.errorLogger = setupErrorLogger(options);
@@ -335,7 +371,7 @@ const start = () => {
       urls: ['*://login.microsoftonline.com/*'],
     };
 
-    session.defaultSession
+    session.defaultSession.extensions
       .loadExtension(
         path
           .join(options.resourcePath, 'static', 'extensions', 'chrome-i18n')

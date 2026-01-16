@@ -9,6 +9,7 @@ import {
   DatabaseStore,
   localized,
   DatabaseChangeRecord,
+  TaskFactory,
 } from 'mailspring-exports';
 
 const WAIT_FOR_CHANGES_DELAY = 400;
@@ -72,7 +73,7 @@ export class Notifier {
     }
 
     if (!AppEnv.inSpecMode()) {
-      await new Promise(resolve => {
+      await new Promise<void>(resolve => {
         // wait a couple hundred milliseconds and collect any updates to these
         // new messages. This gets us message bodies, messages impacted by mail rules, etc.
         // while ensuring notifications are never too delayed.
@@ -109,10 +110,19 @@ export class Notifier {
     });
   }
 
-  _notifyAll() {
-    NativeNotifications.displayNotification({
-      title: `${this.unnotifiedQueue.length} ${localized('Unread Messages')}`,
-      tag: 'unread-update',
+  async _notifyAll() {
+    // Extract unique sender names from the queue
+    const senders = [
+      ...new Set(
+        this.unnotifiedQueue
+          .map(({ message }) => (message.from[0] ? message.from[0].displayName() : null))
+          .filter(Boolean)
+      ),
+    ] as string[];
+
+    await NativeNotifications.displaySummaryNotification({
+      count: this.unnotifiedQueue.length,
+      senders,
       onActivate: () => {
         AppEnv.displayWindow();
       },
@@ -120,7 +130,7 @@ export class Notifier {
     this.unnotifiedQueue = [];
   }
 
-  _notifyOne({ message, thread }) {
+  async _notifyOne({ message, thread }) {
     const from = message.from[0] ? message.from[0].displayName() : 'Unknown';
     const title = from;
     let subtitle = null;
@@ -133,25 +143,38 @@ export class Notifier {
       body = null;
     }
 
-    const notification = NativeNotifications.displayNotification({
+    const notification = await NativeNotifications.displayNotification({
       title: title,
       subtitle: subtitle,
       body: body,
+      tag: `thread-${thread.id}`,
+      threadId: thread.id,
+      messageId: message.id,
+
+      // macOS inline reply
       canReply: true,
-      tag: 'unread-update',
-      onActivate: ({ response, activationType }) => {
+      replyPlaceholder: localized('Reply to %@...', from),
+
+      // macOS action buttons
+      actions: [
+        { type: 'button', text: localized('Mark as Read') },
+        { type: 'button', text: localized('Archive') },
+      ],
+
+      onActivate: ({ response, activationType, actionIndex }) => {
         if (activationType === 'replied' && response && typeof response === 'string') {
           Actions.sendQuickReply({ thread, message }, response);
-        } else {
+        } else if (activationType === 'action') {
+          this._handleNotificationAction(actionIndex, thread);
+        } else if (activationType === 'clicked') {
           AppEnv.displayWindow();
+          if (!thread) {
+            AppEnv.showErrorDialog(`Can't find that thread`);
+            return;
+          }
+          Actions.ensureCategoryIsFocused('inbox', thread.accountId);
+          Actions.setFocus({ collection: 'thread', item: thread });
         }
-
-        if (!thread) {
-          AppEnv.showErrorDialog(`Can't find that thread`);
-          return;
-        }
-        Actions.ensureCategoryIsFocused('inbox', thread.accountId);
-        Actions.setFocus({ collection: 'thread', item: thread });
       },
     });
 
@@ -164,11 +187,35 @@ export class Notifier {
     }
   }
 
-  _notifyMessages() {
+  _handleNotificationAction(actionIndex: number, thread: Thread) {
+    AppEnv.displayWindow();
+
+    switch (actionIndex) {
+      case 0: // Mark as Read
+        Actions.queueTask(
+          TaskFactory.taskForSettingUnread({
+            threads: [thread],
+            unread: false,
+            source: 'Notification Action',
+          })
+        );
+        break;
+      case 1: // Archive
+        Actions.queueTasks(
+          TaskFactory.tasksForArchiving({
+            threads: [thread],
+            source: 'Notification Action',
+          })
+        );
+        break;
+    }
+  }
+
+  async _notifyMessages() {
     if (this.unnotifiedQueue.length >= 5) {
-      this._notifyAll();
+      await this._notifyAll();
     } else if (this.unnotifiedQueue.length > 0) {
-      this._notifyOne(this.unnotifiedQueue.shift());
+      await this._notifyOne(this.unnotifiedQueue.shift());
     }
 
     this.hasScheduledNotify = false;
@@ -181,7 +228,6 @@ export class Notifier {
   _playNewMailSound = _.debounce(
     () => {
       if (!AppEnv.config.get('core.notifications.sounds')) return;
-      if (NativeNotifications.doNotDisturb()) return;
       SoundRegistry.playSound('new-mail');
     },
     5000,
