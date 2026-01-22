@@ -46,6 +46,13 @@ class SystemTrayIconStore {
     nativeTheme.on('updated', () => {
       this._updateIcon();
     });
+
+    // Update icon when user changes the tray theme preference
+    this._unsubscribers.push(
+      AppEnv.config.onDidChange('core.workspace.traySystemTheme', () => {
+        this._updateIcon();
+      })
+    );
   }
 
   deactivate() {
