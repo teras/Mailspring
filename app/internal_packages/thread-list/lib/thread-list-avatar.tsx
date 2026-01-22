@@ -11,6 +11,8 @@ import {
 
 interface Props {
   thread: Thread;
+  size?: number;
+  style?: React.CSSProperties;
 }
 
 interface State {
@@ -128,9 +130,18 @@ export default class ThreadListAvatar extends React.Component<Props, State> {
     const { contact, avatarUrl } = this.state;
     if (!contact?.email) return null;
 
+    const { size = 24, style: extraStyle } = this.props;
     const email = contact.email.toLowerCase().trim();
     const hue = Utils.hueForString(email);
     const initials = contact.nameAbbreviation ? contact.nameAbbreviation() : email[0].toUpperCase();
+
+    const baseStyle: React.CSSProperties = {
+      width: size,
+      height: size,
+      minWidth: size,
+      borderRadius: '50%',
+      ...extraStyle,
+    };
 
     // Show avatar if available, otherwise show initials
     if (avatarUrl) {
@@ -138,10 +149,7 @@ export default class ThreadListAvatar extends React.Component<Props, State> {
         <div
           className="thread-list-avatar"
           style={{
-            width: 24,
-            height: 24,
-            borderRadius: '50%',
-            marginTop: 4,
+            ...baseStyle,
             backgroundImage: `url("${avatarUrl}")`,
             backgroundSize: 'cover',
           }}
@@ -153,15 +161,12 @@ export default class ThreadListAvatar extends React.Component<Props, State> {
       <div
         className="thread-list-avatar"
         style={{
-          width: 24,
-          height: 24,
-          borderRadius: '50%',
+          ...baseStyle,
           backgroundColor: `hsl(${hue}, 50%, 45%)`,
-          marginTop: 4,
-          fontSize: 11,
+          fontSize: Math.round(size * 0.46),
           fontWeight: 500,
           color: 'white',
-          lineHeight: '24px',
+          lineHeight: `${size}px`,
           textAlign: 'center',
         }}
       >
