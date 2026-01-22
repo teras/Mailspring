@@ -88,20 +88,19 @@ const c2 = new ListTabular.Column({
   width: 200,
   resolver: thread => {
     const hasDraft = (thread.__messages || []).find(m => m.draft);
-    if (hasDraft) {
-      return (
-        <div style={{ display: 'flex' }}>
-          <ThreadListParticipants thread={thread} />
+    return (
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <ThreadListAvatar thread={thread} size={20} style={{ marginLeft: -12, marginRight: 6 }} />
+        <ThreadListParticipants thread={thread} />
+        {hasDraft && (
           <RetinaImg
             name="icon-draft-pencil.png"
             className="draft-icon"
             mode={RetinaImg.Mode.ContentPreserve}
           />
-        </div>
-      );
-    } else {
-      return <ThreadListParticipants thread={thread} />;
-    }
+        )}
+      </div>
+    );
   },
 });
 
@@ -211,7 +210,7 @@ const cNarrow = new ListTabular.Column({
             className="thread-injected-icons"
           />
           <MailImportantIcon thread={thread} showIfAvailableForAnyAccount={true} />
-          <ThreadListAvatar thread={thread} />
+          <ThreadListAvatar thread={thread} style={{ marginTop: 4 }} />
         </div>
         <div className="thread-info-column">
           <div className="participants-wrapper">
