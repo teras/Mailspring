@@ -159,6 +159,12 @@ const WorkspaceSection = props => {
       />
 
       <ConfigSchemaItem
+        configSchema={props.configSchema.properties.workspace.properties.systemTrayTheme}
+        keyPath="core.workspace.systemTrayTheme"
+        config={props.config}
+      />
+
+      <ConfigSchemaItem
         configSchema={props.configSchema.properties.workspace.properties.showImportant}
         keyPath="core.workspace.showImportant"
         config={props.config}

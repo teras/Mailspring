@@ -40,6 +40,17 @@ export default {
               'On Linux you need to restart Mailspring for the tray icon to disappear.'
             ),
           },
+          systemTrayTheme: {
+            type: 'string',
+            default: 'system',
+            enum: ['light', 'dark', 'system'],
+            enumLabels: [
+              localized('Light (Black icon)'),
+              localized('Dark (White icon)'),
+              localized('System Default'),
+            ],
+            title: localized('Tray icon theme'),
+          },
           showImportant: {
             type: 'boolean',
             default: true,

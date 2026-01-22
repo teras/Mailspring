@@ -48,7 +48,14 @@ class SystemTrayIconStore {
     // If the theme changes from bright to dark mode or vice versa, we need to update the tray icon
     nativeTheme.on('updated', () => {
       this._updateIcon();
-    })
+    });
+
+    // Update icon when user changes the tray theme preference
+    this._unsubscribers.push(
+      AppEnv.config.onDidChange('core.workspace.systemTrayTheme', () => {
+        this._updateIcon();
+      })
+    );
   }
 
   deactivate() {
@@ -67,22 +74,34 @@ class SystemTrayIconStore {
     this._updateIcon();
   };
 
-  // This implementation is windows only.
-  // On Mac the icon color is automatically inverted
-  // Linux ships with the icons used for a dark tray only
-  _dark = () => {
-    if (nativeTheme.shouldUseDarkColors && process.platform === 'win32') {
-      return "-dark";
+  // Returns the appropriate icon suffix based on theme settings
+  // - Windows: "-dark" suffix for dark tray (light icons), no suffix for light tray (dark icons)
+  // - Linux: "-light" suffix for light tray (dark icons), no suffix for dark tray (light icons)
+  // - macOS: icon color is automatically inverted by the system
+  _getIconSuffix = () => {
+    const themePreference = AppEnv.config.get('core.workspace.systemTrayTheme') || 'system';
+
+    let useDarkTray: boolean;
+    if (themePreference === 'system') {
+      useDarkTray = nativeTheme.shouldUseDarkColors;
+    } else {
+      useDarkTray = themePreference === 'dark';
+    }
+
+    if (process.platform === 'win32') {
+      return useDarkTray ? "-dark" : "";
+    } else if (process.platform === 'linux') {
+      return useDarkTray ? "" : "-light";
     }
     return "";
   }
 
   inboxZeroIcon = () => {
-    return path.join(__dirname, '..', 'assets', platform, `MenuItem-Inbox-Zero${this._dark()}.png`);
+    return path.join(__dirname, '..', 'assets', platform, `MenuItem-Inbox-Zero${this._getIconSuffix()}.png`);
   }
 
   inboxFullIcon = () => {
-    return path.join(__dirname, '..', 'assets', platform, `MenuItem-Inbox-Full${this._dark()}.png`);
+    return path.join(__dirname, '..', 'assets', platform, `MenuItem-Inbox-Full${this._getIconSuffix()}.png`);
   }
 
   inboxFullNewIcon = () => {
@@ -91,7 +110,7 @@ class SystemTrayIconStore {
       '..',
       'assets',
       platform,
-      `MenuItem-Inbox-Full-NewItems${this._dark()}.png`
+      `MenuItem-Inbox-Full-NewItems${this._getIconSuffix()}.png`
     );
   }
 
@@ -101,7 +120,7 @@ class SystemTrayIconStore {
       '..',
       'assets',
       platform,
-      `MenuItem-Inbox-Full-UnreadItems${this._dark()}.png`
+      `MenuItem-Inbox-Full-UnreadItems${this._getIconSuffix()}.png`
     );
   }
 
