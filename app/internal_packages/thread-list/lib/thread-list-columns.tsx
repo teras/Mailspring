@@ -90,7 +90,7 @@ const c2 = new ListTabular.Column({
     const hasDraft = (thread.__messages || []).find(m => m.draft);
     return (
       <div style={{ display: 'flex', alignItems: 'center' }}>
-        <ThreadListAvatar thread={thread} size={20} style={{ marginLeft: -12, marginRight: 6 }} />
+        <ThreadListAvatar thread={thread} size={20} style={{ marginLeft: -20, marginRight: 6 }} />
         <ThreadListParticipants thread={thread} />
         {hasDraft && (
           <RetinaImg
