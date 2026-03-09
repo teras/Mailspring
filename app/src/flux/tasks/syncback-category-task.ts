@@ -1,4 +1,4 @@
-import utf7 from 'utf7';
+import utf7 from '../../utf7';
 import { Task } from './task';
 import * as Attributes from '../attributes';
 import { localized } from '../../intl';

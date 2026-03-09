@@ -1,5 +1,5 @@
 import React from 'react';
-import utf7 from 'utf7';
+import utf7 from '../../../src/utf7';
 import {
   RetinaImg,
   DropdownMenu,

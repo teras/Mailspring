@@ -1,4 +1,4 @@
-import utf7 from 'utf7';
+import utf7 from '../../../../src/utf7';
 import React from 'react';
 import { localized, AccountStore, PropTypes } from 'mailspring-exports';
 
