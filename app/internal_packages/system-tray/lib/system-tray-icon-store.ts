@@ -48,11 +48,10 @@ class SystemTrayIconStore {
     });
 
     // Update icon when user changes the tray theme preference
-    this._unsubscribers.push(
-      AppEnv.config.onDidChange('core.workspace.traySystemTheme', () => {
-        this._updateIcon();
-      })
-    );
+    const disposable = AppEnv.config.onDidChange('core.workspace.traySystemTheme', () => {
+      this._updateIcon();
+    });
+    this._unsubscribers.push(() => disposable.dispose());
   }
 
   deactivate() {

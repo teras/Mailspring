@@ -252,6 +252,9 @@ export * from '../default-client-helper';
 export type SystemStartService = typeof import('../system-start-service').default;
 export const SystemStartService: SystemStartService;
 
+export type ContactAvatarService = typeof import('../services/contact-avatar-service');
+export const ContactAvatarService: ContactAvatarService;
+
 // Testing
 export type MailspringTestUtils = typeof import('../../spec/mailspring-test-utils').default;
 export const MailspringTestUtils: MailspringTestUtils;

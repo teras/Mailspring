@@ -1,7 +1,89 @@
+import fs from 'fs';
+import os from 'os';
 import path from 'path';
-import { Tray, Menu, nativeImage, nativeTheme } from 'electron';
+import { spawnSync } from 'child_process';
+import { app, BrowserWindow, Tray, Menu, nativeImage, nativeTheme } from 'electron';
 import { localized } from '../intl';
 import Application from './application';
+
+const _qdbusCache: { binary: string | null | undefined } = { binary: undefined };
+function _findQdbus(): string | null {
+  if (_qdbusCache.binary !== undefined) return _qdbusCache.binary;
+  for (const binary of ['qdbus6', 'qdbus-qt6', 'qdbus', 'qdbus-qt5']) {
+    const r = spawnSync('which', [binary], { encoding: 'utf8' });
+    if (r.status === 0) {
+      _qdbusCache.binary = binary;
+      return binary;
+    }
+  }
+  _qdbusCache.binary = null;
+  return null;
+}
+
+function _isKDEWayland(): boolean {
+  return (
+    process.platform === 'linux' &&
+    process.env.XDG_SESSION_TYPE === 'wayland' &&
+    /KDE|plasma/i.test(process.env.XDG_CURRENT_DESKTOP || '')
+  );
+}
+
+// KDE Wayland blocks Electron's focus()/show() from raising a window because
+// libappindicator tray clicks don't carry an xdg-activation token. Bypass this
+// by loading a tiny KWin script over D-Bus, which runs with the compositor's
+// privileges and can activate the window directly, preserving geometry.
+function _kwinActivateByPid(targetPid: number): boolean {
+  const qdbus = _findQdbus();
+  if (!qdbus) return false;
+
+  const scriptPath = path.join(os.tmpdir(), `mailspring-activate-${targetPid}.js`);
+  const scriptBody = `
+(function () {
+  var pid = ${targetPid};
+  try {
+    var list = workspace.windowList ? workspace.windowList() : workspace.clientList();
+    for (var i = 0; i < list.length; i++) {
+      var w = list[i];
+      if (w.pid === pid && w.normalWindow) {
+        if ('activeWindow' in workspace) {
+          workspace.activeWindow = w;
+        } else if (typeof workspace.activateClient === 'function') {
+          workspace.activateClient(w);
+        } else {
+          workspace.activeClient = w;
+        }
+        break;
+      }
+    }
+  } catch (e) {}
+})();
+`.trim();
+  try {
+    fs.writeFileSync(scriptPath, scriptBody);
+  } catch (e) {
+    return false;
+  }
+
+  const pluginName = `mailspring-activate-${Date.now()}`;
+  const load = spawnSync(
+    qdbus,
+    ['org.kde.KWin', '/Scripting', 'org.kde.kwin.Scripting.loadScript', scriptPath, pluginName],
+    { timeout: 1000, encoding: 'utf8' }
+  );
+  if (load.status !== 0) return false;
+  const scriptId = (load.stdout || '').trim();
+  if (!scriptId || !/^\d+$/.test(scriptId)) return false;
+
+  const run = spawnSync(
+    qdbus,
+    ['org.kde.KWin', `/Scripting/Script${scriptId}`, 'org.kde.kwin.Script.run'],
+    { timeout: 1000 }
+  );
+  spawnSync(qdbus, ['org.kde.KWin', `/Scripting/Script${scriptId}`, 'org.kde.kwin.Script.stop'], {
+    timeout: 1000,
+  });
+  return run.status === 0;
+}
 
 function _getMenuTemplate(platform: string, application: Application) {
   const template = [
@@ -54,6 +136,8 @@ class SystemTrayManager {
     this._platform = platform;
     this._application = application;
     this.initTray();
+
+    app.on('browser-window-blur', this._onBrowserWindowBlur);
 
     this._application.config.onDidChange('core.workspace.systemTray', ({ newValue }) => {
       if (newValue === false) {
@@ -110,15 +194,44 @@ class SystemTrayManager {
     }
   }
 
+  _lastBlurAt = 0;
+
   _onClick = () => {
-    if (this._platform !== 'darwin') {
-      if (this._application.windowManager.getVisibleWindowCount() === 0) {
-        this._application.emit('application:show-main-window');
-      } else {
-        const visibleWindows = this._application.windowManager.getVisibleWindows();
-        visibleWindows.forEach((window) => window.hide());
+    if (this._platform === 'darwin') return;
+
+    const visibleWindows = this._application.windowManager.getVisibleWindows();
+    if (visibleWindows.length === 0) {
+      this._application.emit('application:show-main-window');
+      return;
+    }
+
+    // On Wayland, clicking the tray removes keyboard focus from the app
+    // before this handler fires, so BrowserWindow.getFocusedWindow() reports
+    // null even when the window visually had focus. Treat a very recent blur
+    // as "had focus" so we can still distinguish the two cases.
+    const FOCUS_GRACE_MS = 250;
+    const hadFocus =
+      !!BrowserWindow.getFocusedWindow() || Date.now() - this._lastBlurAt < FOCUS_GRACE_MS;
+
+    if (hadFocus) {
+      visibleWindows.forEach((window) => window.hide());
+    } else {
+      // On Wayland the client can't raise itself or restore position after
+      // hide/show. On KDE we bypass the focus-stealing prevention via a KWin
+      // script over D-Bus (preserves geometry). Everywhere else, fall back to
+      // focus()/show() which works on X11 / GNOME.
+      const activated = _isKDEWayland() && _kwinActivateByPid(process.pid);
+      if (!activated) {
+        visibleWindows.forEach((window) => {
+          window.show();
+          window.focus();
+        });
       }
     }
+  };
+
+  _onBrowserWindowBlur = () => {
+    this._lastBlurAt = Date.now();
   };
 
   updateTraySettings(iconPath: string, unreadString: string) {

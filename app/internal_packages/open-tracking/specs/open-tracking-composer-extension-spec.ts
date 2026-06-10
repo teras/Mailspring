@@ -1,18 +1,14 @@
 import { Message } from 'mailspring-exports';
-import OpenTrackingComposerExtension, {
-  encodeOpenTrackingToken,
-} from '../lib/open-tracking-composer-extension';
+import OpenTrackingComposerExtension from '../lib/open-tracking-composer-extension';
 import { PLUGIN_ID, PLUGIN_URL } from '../lib/open-tracking-constants';
 
 const accountId = 'fake-accountId';
 const clientId = 'local-31d8df57-1442';
 const beforeBody = `TEST_BODY <blockquote class="gmail_quote" style="margin:0 0 0 .8ex;border-left:1px #ccc solid;padding-left:1ex;"> On Feb 25 2016, at 3:38 pm, Drew &lt;drew@mailspring.com&gt; wrote: <br> twst </blockquote>`;
 
-// Build the expected pixel URL using the same token-encoding logic the
-// extension uses at send time. The img tag intentionally has no class,
-// dimensions, or branded alt text to avoid tracking-pixel blockers.
-const expectedToken = encodeOpenTrackingToken({ messageId: clientId, accountId });
-const afterBody = `TEST_BODY <img alt="" src="${PLUGIN_URL}/o/${expectedToken}.png"><blockquote class="gmail_quote" style="margin:0 0 0 .8ex;border-left:1px #ccc solid;padding-left:1ex;"> On Feb 25 2016, at 3:38 pm, Drew &lt;drew@mailspring.com&gt; wrote: <br> twst </blockquote>`;
+// Open tracking has been disabled (phone-home removal), so the extension
+// no longer injects a pixel. The "after" body is identical to the "before" body.
+const afterBody = beforeBody;
 
 const nodeForHTML = (html) => {
   const fragment = document.createDocumentFragment();

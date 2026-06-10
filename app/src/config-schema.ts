@@ -57,11 +57,15 @@ export default {
             type: 'string',
             default: 'blue',
             enum: ['blue', 'red', 'none'],
+            enumLabels: [localized('Blue'), localized('Red'), localized('No icon color')],
+            title: localized('Tray icon style'),
           },
           traySystemTheme: {
             type: 'string',
             default: 'automatic',
             enum: ['automatic', 'light', 'dark'],
+            enumLabels: [localized('Automatic'), localized('Light'), localized('Dark')],
+            title: localized('Tray icon theme'),
           },
           showImportant: {
             type: 'boolean',

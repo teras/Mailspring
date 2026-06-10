@@ -39,9 +39,9 @@ export async function getAvatarForEmail(email: string): Promise<AvatarResult> {
 
   // Look up contact in database
   try {
-    const dbContacts = await DatabaseStore.findAll<Contact>(Contact)
-      .where({ email: normalizedEmail })
-      .then();
+    const dbContacts = await DatabaseStore.findAll<Contact>(Contact).where(
+      Contact.attributes.email.equal(normalizedEmail)
+    );
 
     for (const dbContact of dbContacts) {
       if (dbContact?.info) {

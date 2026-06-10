@@ -40,6 +40,7 @@ class ConfigSchemaItem extends React.Component<ConfigSchemaItemProps> {
   };
 
   render() {
+    if (!this.props.configSchema) return false;
     if (!this._appliesToPlatform()) return false;
 
     // In the future, we may add an option to reveal "advanced settings"

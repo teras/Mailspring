@@ -266,7 +266,7 @@ export default class SidebarParticipantProfile extends React.Component<
       if (!this._mounted) {
         return;
       }
-      this.setState(Object.assign({ loading: false, loaded: true }, result));
+      this.setState({ loading: false, loaded: true, ...result } as any);
     });
   };
 
