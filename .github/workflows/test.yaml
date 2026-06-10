@@ -14,8 +14,40 @@ jobs:
         with:
           # Check out the mailsync submodule so postinstall doesn't try to
           # download a prebuilt mailsync binary from upstream S3 (our fork's
-          # submodule commits don't exist there).
+          # submodule commits don't exist there). The spec runner needs a real
+          # mailsync binary (it runs `mailsync --mode migrate` at startup), so
+          # we build it from the submodule below, cached per submodule commit.
           submodules: true
+
+      - name: Get mailsync revision
+        id: mailsync-rev
+        run: echo "rev=$(git rev-parse HEAD:mailsync)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache mailsync build
+        id: mailsync-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            app/mailsync
+            app/mailsync.bin
+            app/*.so*
+          key: mailsync-${{ runner.os }}-ubuntu2204-${{ steps.mailsync-rev.outputs.rev }}
+
+      - name: Install mailsync build dependencies
+        if: steps.mailsync-cache.outputs.cache-hit != 'true'
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            autoconf automake build-essential cmake libtool pkg-config \
+            libc-ares-dev libctemplate-dev libcurl4-openssl-dev libglib2.0-dev \
+            libicu-dev libsasl2-dev libsasl2-modules libssl-dev libtidy-dev \
+            libxml2-dev uuid-dev
+
+      - name: Build mailsync
+        if: steps.mailsync-cache.outputs.cache-hit != 'true'
+        run: ./mailsync/build.sh
 
       - name: Install system dependencies
         env:
