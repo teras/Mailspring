@@ -11,6 +11,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Check out the mailsync submodule so postinstall doesn't try to
+          # download a prebuilt mailsync binary from upstream S3 (our fork's
+          # submodule commits don't exist there).
+          submodules: true
 
       - name: Install system dependencies
         env:
