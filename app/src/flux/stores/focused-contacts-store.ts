@@ -6,6 +6,7 @@ import * as Utils from '../models/utils';
 import { Thread } from '../models/thread';
 import * as Actions from '../actions';
 import { Contact } from '../models/contact';
+import { Message } from '../models/message';
 import { MessageStore } from './message-store';
 import { AccountStore } from './account-store';
 import DatabaseStore from './database-store';
@@ -64,8 +65,10 @@ class FocusedContactsStore extends MailspringStore {
     this._scoreAllParticipants();
     // Sort ascending then reverse to match the tie-breaking behavior of
     // _.sortBy().reverse() — ties appear in reverse insertion order.
-    const sorted = Object.values(this._contactScores).sort((a, b) => a.score - b.score).reverse();
-    this._currentContacts = sorted.map(obj => obj.contact);
+    const sorted = Object.values(this._contactScores)
+      .sort((a, b) => a.score - b.score)
+      .reverse();
+    this._currentContacts = sorted.map((obj) => obj.contact);
     return this._onFocusContact(this._currentContacts[0]);
   }
 
@@ -81,7 +84,7 @@ class FocusedContactsStore extends MailspringStore {
     this._currentThread = null;
   }
 
-  _onFocusContact = contact => {
+  _onFocusContact = (contact: Contact | null) => {
     if (this._unsubFocusedContact) {
       this._unsubFocusedContact.dispose();
       this._unsubFocusedContact = null;
@@ -92,7 +95,7 @@ class FocusedContactsStore extends MailspringStore {
         accountId: this._currentThread.accountId,
         email: contact.email,
       });
-      this._unsubFocusedContact = Rx.Observable.fromQuery(query).subscribe(match => {
+      this._unsubFocusedContact = Rx.Observable.fromQuery(query).subscribe((match) => {
         if (match) {
           match.name = contact.name; // always show the name from the current email
         }
@@ -114,10 +117,15 @@ class FocusedContactsStore extends MailspringStore {
     const myEmail = account ? account.emailAddress : undefined;
     const myEmailIsCommonDomain = Utils.emailHasCommonDomain(myEmail);
 
-    const score = (message, msgNum, field, multiplier) => {
+    const score = (message: Message, msgNum: number, field: string, multiplier: number) => {
       (message[field] || []).forEach((contact, j) => {
         const bonus = message[field].length - j;
-        this._assignScore(contact, (msgNum + 1) * multiplier + bonus, myEmail, myEmailIsCommonDomain);
+        this._assignScore(
+          contact,
+          (msgNum + 1) * multiplier + bonus,
+          myEmail,
+          myEmailIsCommonDomain
+        );
       });
     };
 
@@ -138,7 +146,7 @@ class FocusedContactsStore extends MailspringStore {
   }
 
   // Self always gets a score of 0
-  _assignScore(contact, score = 0, myEmail?: string, myEmailIsCommonDomain?: boolean) {
+  _assignScore(contact: Contact, score = 0, myEmail?: string, myEmailIsCommonDomain?: boolean) {
     if (!contact || !contact.email) {
       return;
     }
@@ -156,7 +164,12 @@ class FocusedContactsStore extends MailspringStore {
     }
   }
 
-  _calculatePenalties(contact, score, myEmail?: string, myEmailIsCommonDomain?: boolean) {
+  _calculatePenalties(
+    contact: Contact,
+    score: number,
+    myEmail?: string,
+    myEmailIsCommonDomain?: boolean
+  ) {
     let penalties = 0;
     const email = contact.email.toLowerCase().trim();
 

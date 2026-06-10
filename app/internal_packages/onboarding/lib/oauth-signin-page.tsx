@@ -1,6 +1,6 @@
-import { shell, clipboard } from 'electron';
+import { shell } from 'electron';
 import React from 'react';
-import { localized, localizedReactFragment, PropTypes, Account } from 'mailspring-exports';
+import { localized, localizedReactFragment, Account } from 'mailspring-exports';
 import { RetinaImg } from 'mailspring-component-kit';
 import http from 'http';
 import url from 'url';
@@ -9,12 +9,30 @@ import FormErrorMessage from './form-error-message';
 import { LOCAL_SERVER_PORT } from './onboarding-constants';
 import AccountProviders from './account-providers';
 
+/**
+ * Extract the OAuth authorization code from a redirect URL's query string.
+ * Uses decodeURIComponent instead of querystring.parse to preserve `+` as
+ * a literal character (RFC 3986) rather than decoding it as a space
+ * (application/x-www-form-urlencoded).
+ */
+export function extractOAuthCodeFromUrl(requestUrl: string): string | null {
+  const parsedUrl = url.parse(requestUrl);
+  const rawQuery = parsedUrl.query || '';
+  const codeMatch = rawQuery.match(/(?:^|&)code=([^&]*)/);
+  if (!codeMatch) return null;
+  try {
+    return decodeURIComponent(codeMatch[1]);
+  } catch {
+    return null;
+  }
+}
+
 interface OAuthSignInPageProps {
   providerAuthPageUrl: string;
   buildAccountFromAuthResponse: (rep: any) => Account | Promise<Account>;
   onSuccess: (account: Account) => void;
   onTryAgain: () => void;
-  providerConfig: typeof AccountProviders[0];
+  providerConfig: (typeof AccountProviders)[0];
   serviceName: string;
 }
 
@@ -22,6 +40,7 @@ interface OAuthSignInPageState {
   authStage: string;
   showAlternative: boolean;
   errorMessage?: string;
+  errorLog?: string;
   pressed?: boolean;
 }
 
@@ -30,20 +49,6 @@ export default class OAuthSignInPage extends React.Component<
   OAuthSignInPageState
 > {
   static displayName = 'OAuthSignInPage';
-
-  static propTypes = {
-    /**
-     * Step 1: Open a webpage in the user's browser letting them login on
-     * the native provider's website. We pass along a key and a redirect
-     * url to a Mailspring-owned server
-     */
-    providerAuthPageUrl: PropTypes.string,
-    buildAccountFromAuthResponse: PropTypes.func,
-    onSuccess: PropTypes.func,
-    onTryAgain: PropTypes.func,
-    iconName: PropTypes.string,
-    serviceName: PropTypes.string,
-  };
 
   _server?: http.Server;
   _startTimer: NodeJS.Timeout;
@@ -71,16 +76,16 @@ export default class OAuthSignInPage extends React.Component<
     // launch a web server
     this._server = http.createServer((request, response) => {
       if (!this._mounted) return;
-      const { query } = url.parse(request.url, true);
-      if (query.code) {
-        this._onReceivedCode(query.code);
+      const code = extractOAuthCodeFromUrl(request.url);
+      if (code) {
+        this._onReceivedCode(code);
         response.writeHead(302, { Location: 'https://id.getmailspring.com/oauth/finished' });
         response.end();
       } else {
         response.end('Unknown Request');
       }
     });
-    this._server.once('error', err => {
+    this._server.once('error', (err) => {
       AppEnv.showErrorDialog({
         title: localized('Unable to Start Local Server'),
         message: localized(
@@ -108,6 +113,7 @@ export default class OAuthSignInPage extends React.Component<
             'A network error occurred. Please check your internet connection and try again.'
           )
         : err.message,
+      errorLog: err.rawLog,
     });
     if (!isNetworkError) {
       AppEnv.reportError(err);
@@ -160,11 +166,13 @@ export default class OAuthSignInPage extends React.Component<
     }
 
     // Error
+    const { note } = this.props.providerConfig;
     return (
       <div>
         <h2>{localized('Sorry, we had trouble logging you in')}</h2>
         <div className="error-region">
-          <FormErrorMessage message={this.state.errorMessage} />
+          <FormErrorMessage message={this.state.errorMessage} log={this.state.errorLog} />
+          {note && <div className="message empty note">{note}</div>}
           <div className="btn" style={{ marginTop: 20 }} onClick={this.props.onTryAgain}>
             {localized('Try Again')}
           </div>
@@ -193,7 +201,11 @@ export default class OAuthSignInPage extends React.Component<
           />
           <div
             className="copy-to-clipboard"
-            onClick={() => clipboard.writeText(this.props.providerAuthPageUrl)}
+            onClick={() =>
+              navigator.clipboard
+                .writeText(this.props.providerAuthPageUrl)
+                .catch((err) => console.error('Failed to copy to clipboard:', err))
+            }
             onMouseDown={() => this.setState({ pressed: true })}
             onMouseUp={() => this.setState({ pressed: false })}
           >
@@ -202,6 +214,13 @@ export default class OAuthSignInPage extends React.Component<
         </div>
       </div>
     );
+  }
+
+  _renderNote() {
+    if (this.state.authStage === 'error') return null;
+    const { note } = this.props.providerConfig;
+    if (!note) return null;
+    return <div className="message empty note">{note}</div>;
   }
 
   render() {
@@ -216,6 +235,7 @@ export default class OAuthSignInPage extends React.Component<
           />
         </div>
         {this._renderHeader()}
+        {this._renderNote()}
         {this._renderAlternative()}
       </div>
     );

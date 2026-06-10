@@ -1,7 +1,6 @@
 import _ from 'underscore';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { Disposable } from 'rx-core';
 import { CommandCallback } from '../registries/command-registry';
@@ -104,13 +103,7 @@ export class KeyCommandsRegion extends React.Component<
 > {
   static displayName = 'KeyCommandsRegion';
 
-  static propTypes = {
-    className: PropTypes.string,
-    localHandlers: PropTypes.object,
-    globalHandlers: PropTypes.object,
-    onFocusIn: PropTypes.func,
-    onFocusOut: PropTypes.func,
-  };
+  static ownPropKeys = ['className', 'localHandlers', 'globalHandlers', 'onFocusIn', 'onFocusOut'];
 
   static defaultProps = {
     className: '',
@@ -210,8 +203,8 @@ export class KeyCommandsRegion extends React.Component<
     this.setState({ focused: false });
   };
 
-  _onFocusIn = event => {
-    this._lastFocusElement = event.target;
+  _onFocusIn = (event: FocusEvent) => {
+    this._lastFocusElement = event.target as HTMLElement;
     this._losingFocusToElement = null;
     if (this.state.focused === false) {
       this.props.onFocusIn(event);
@@ -219,9 +212,9 @@ export class KeyCommandsRegion extends React.Component<
     this.setState({ focused: true });
   };
 
-  _onFocusOut = event => {
-    this._lastFocusElement = event.target;
-    this._losingFocusToElement = event.relatedTarget;
+  _onFocusOut = (event: FocusEvent) => {
+    this._lastFocusElement = event.target as HTMLElement;
+    this._losingFocusToElement = event.relatedTarget as HTMLElement;
 
     // Focus could be lost for a moment and programatically restored. To support
     // old machines with slow CPUs, it's important we wait N frames rather than X
@@ -283,7 +276,7 @@ export class KeyCommandsRegion extends React.Component<
       'key-commands-region': true,
       focused: this.state.focused,
     });
-    const otherProps = _.omit(this.props, Object.keys(KeyCommandsRegion.propTypes));
+    const otherProps = _.omit(this.props, KeyCommandsRegion.ownPropKeys);
 
     return (
       <div className={`${classname} ${this.props.className}`} {...otherProps}>

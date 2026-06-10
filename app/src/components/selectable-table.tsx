@@ -6,7 +6,6 @@ import compose from './decorators/compose';
 import AutoFocuses from './decorators/auto-focuses';
 import ListensToMovementKeys from './decorators/listens-to-movement-keys';
 import Table, { TableProps, TableRowProps, TableRow, TableCell } from './table/table';
-import PropTypes from 'prop-types';
 import TableDataSource from './table/table-data-source';
 
 /*
@@ -90,15 +89,6 @@ type SelectableTableCellProps = {
 };
 
 export class SelectableTableCell extends Component<SelectableTableCellProps> {
-  static propTypes = {
-    className: PropTypes.string,
-    tableDataSource: Table.propTypes.tableDataSource,
-    rowIdx: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-    colIdx: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-    selection: PropTypes.object,
-    onSetSelection: PropTypes.func.isRequired,
-  };
-
   static defaultProps = {
     className: '',
   };
@@ -198,19 +188,6 @@ interface SelectableTableProps extends TableProps {
 class SelectableTable extends Component<SelectableTableProps> {
   static displayName = 'SelectableTable';
 
-  static propTypes = {
-    tableDataSource: Table.propTypes.tableDataSource,
-    extraProps: PropTypes.object,
-    RowRenderer: Table.propTypes.RowRenderer,
-    CellRenderer: Table.propTypes.CellRenderer,
-    selection: PropTypes.shape({
-      rowIdx: PropTypes.number,
-      colIdx: PropTypes.number,
-    }).isRequired,
-    onSetSelection: PropTypes.func.isRequired,
-    onShiftSelection: PropTypes.func.isRequired,
-  };
-
   static defaultProps = {
     extraProps: {},
     RowRenderer: SelectableTableRow,
@@ -270,14 +247,8 @@ class SelectableTable extends Component<SelectableTableProps> {
   }
 
   render() {
-    const {
-      selection,
-      onSetSelection,
-      onShiftSelection,
-      extraProps,
-      RowRenderer,
-      CellRenderer,
-    } = this.props;
+    const { selection, onSetSelection, onShiftSelection, extraProps, RowRenderer, CellRenderer } =
+      this.props;
     const selectionProps = {
       selection,
       onSetSelection,
@@ -295,6 +266,6 @@ class SelectableTable extends Component<SelectableTableProps> {
   }
 }
 
-export default compose(SelectableTable, ListensToMovementKeys, Comp =>
+export default compose(SelectableTable, ListensToMovementKeys, (Comp) =>
   AutoFocuses(Comp, { onUpdate: false })
 );

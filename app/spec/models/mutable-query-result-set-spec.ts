@@ -54,11 +54,11 @@ describe('MutableQueryResultSet', function MutableQueryResultSetSpecs() {
         _ids: ['A', 'B', 'C', 'D', 'E'],
         _offset: 5,
         _modelsHash: {
-          A: { id: 'A' },
-          B: { id: 'B' },
-          C: { id: 'C' },
-          D: { id: 'D' },
-          E: { id: 'E' },
+          A: { id: 'A' } as any,
+          B: { id: 'B' } as any,
+          C: { id: 'C' } as any,
+          D: { id: 'D' } as any,
+          E: { id: 'E' } as any,
         },
       });
 
@@ -86,11 +86,11 @@ describe('MutableQueryResultSet', function MutableQueryResultSetSpecs() {
           _ids: ['A', 'B', 'C', 'D', 'E'],
           _offset: 5,
           _modelsHash: {
-            A: { id: 'A' },
-            B: { id: 'B' },
-            C: { id: 'C' },
-            D: { id: 'D' },
-            E: { id: 'E' },
+            A: { id: 'A' } as any,
+            B: { id: 'B' } as any,
+            C: { id: 'C' } as any,
+            D: { id: 'D' } as any,
+            E: { id: 'E' } as any,
           },
         });
       });
@@ -159,7 +159,7 @@ describe('MutableQueryResultSet', function MutableQueryResultSetSpecs() {
 
   describe('updateModel', () => {
     beforeEach(() => {
-      this.mockModel = id => {
+      this.mockModel = (id) => {
         return {
           id: id,
           constructor: {

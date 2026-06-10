@@ -47,17 +47,17 @@ const _findCorrespondingThread = (
   ]);
 };
 
-const _onOpenThreadFromWeb = (event, mailspringUrl: string) => {
+const _onOpenThreadFromWeb = (event: Electron.IpcRendererEvent, mailspringUrl: string) => {
   const params = _parseOpenThreadUrl(mailspringUrl);
 
   _findCorrespondingThread(params)
-    .then(thread => {
+    .then((thread) => {
       if (!thread) {
         throw new Error('Thread not found');
       }
       Actions.popoutThread(thread);
     })
-    .catch(error => {
+    .catch((error) => {
       AppEnv.reportError(error);
       AppEnv.showErrorDialog(
         localized(`The thread %@ does not exist in your mailbox!`, params.subject)

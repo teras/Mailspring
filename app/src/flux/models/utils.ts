@@ -5,7 +5,7 @@
  * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
  */
 import _ from 'underscore';
-import fs from 'fs-plus';
+import fs from 'fs';
 import path from 'path';
 
 let ResourcePath = null;
@@ -14,7 +14,7 @@ import DatabaseObjectRegistry from '../../registries/database-object-registry';
 export function waitFor(latch, options: { timeout?: number } = {}) {
   const timeout = options.timeout || 400;
   const expire = Date.now() + timeout;
-  return new Promise<void>(function(resolve, reject) {
+  return new Promise<void>(function (resolve, reject) {
     const attempt = () => {
       if (Date.now() > expire) {
         return reject(new Error(`Utils.waitFor hit timeout (${timeout}ms) without firing.`));
@@ -28,14 +28,14 @@ export function waitFor(latch, options: { timeout?: number } = {}) {
   });
 }
 
-export function showIconForAttachments(files) {
+export function showIconForAttachments(files: any[]) {
   if (!(files instanceof Array)) {
     return false;
   }
   // TODO BG: This code has been duplicated into the mailsync core. The
   // Thread.attachmentCount property is now the number of attachments that
   // meet these two criteria so this function can be removed soon.
-  return files.find(f => !f.contentId || f.size > 12 * 1024);
+  return files.find((f) => !f.contentId || f.size > 12 * 1024);
 }
 
 export function extractTextFromHtml(html, param: { maxLength?: number } = {}) {
@@ -47,12 +47,12 @@ export function extractTextFromHtml(html, param: { maxLength?: number } = {}) {
     html = html.slice(0, maxLength);
   }
   const body = new DOMParser().parseFromString(html, 'text/html').body;
-  body.querySelectorAll('style').forEach(el => el.remove());
-  body.querySelectorAll('script').forEach(el => el.remove());
+  body.querySelectorAll('style').forEach((el) => el.remove());
+  body.querySelectorAll('script').forEach((el) => el.remove());
   return body.textContent.trim();
 }
 
-export function modelTypesReviver(k, v) {
+export function modelTypesReviver(k: string, v: any) {
   const type = v != null ? v.__cls : undefined;
   if (!type) {
     return v;
@@ -65,7 +65,7 @@ export function modelTypesReviver(k, v) {
   return v;
 }
 
-export function convertToModel(json) {
+export function convertToModel(json: any) {
   if (!json) {
     return null;
   }
@@ -78,7 +78,7 @@ export function convertToModel(json) {
   return DatabaseObjectRegistry.deserialize(json.__cls, json);
 }
 
-export function fastOmit(props, without) {
+export function fastOmit(props: Record<string, any>, without: string[]) {
   const otherProps = Object.assign({}, props);
   for (const w of without) {
     delete otherProps[w];
@@ -86,11 +86,11 @@ export function fastOmit(props, without) {
   return otherProps;
 }
 
-export function isHash(object) {
+export function isHash(object: any) {
   return _.isObject(object) && !_.isFunction(object) && !_.isArray(object);
 }
 
-export function escapeRegExp(str) {
+export function escapeRegExp(str: string) {
   return str.replace(/[-[\]/{}()*+?.\\^$|]/g, '\\$&');
 }
 
@@ -105,22 +105,25 @@ export function range(left, right, inclusive = true) {
 }
 
 // Generates a new RegExp that is great for basic search fields. It
-// checks if the test string is at the start of words
+// checks if the test string is at the start of words.
+//
+// Note: the `g` flag is intentionally NOT set. Callers use this regex
+// with `.test()` (which mutates `lastIndex` on global regexes, leading
+// to subtle bugs when a single instance is reused across items) and
+// with `String.prototype.split()` (which does not require `g` to split
+// on every occurrence). Adding `g` here would silently re-introduce
+// the lastIndex hazard for future callers.
 //
 // See regex explanation and test here:
 // https://regex101.com/r/zG7aW4/2
 export function wordSearchRegExp(str = '') {
-  return new RegExp(`((?:^|\\W|$)${escapeRegExp(str.trim())})`, 'ig');
+  return new RegExp(`((?:^|\\W|$)${escapeRegExp(str.trim())})`, 'i');
 }
 
 // Takes an optional customizer. The customizer is passed the key and the
 // new cloned value for that key. The customizer is expected to either
 // modify the value and return it or simply be the identity function.
-export function deepClone<T>(
-  object: T,
-  customizer?,
-  _circularRefs: Map<any, any> = new Map()
-): T {
+export function deepClone<T>(object: T, customizer?, _circularRefs: Map<any, any> = new Map()): T {
   let newObject;
   if (!_.isObject(object)) {
     return object;
@@ -159,7 +162,7 @@ export function deepClone<T>(
   return newObject;
 }
 
-export function toSet(arr = []) {
+export function toSet(arr: any[] = []) {
   const set = {};
   for (const item of arr) {
     set[item] = true;
@@ -191,9 +194,9 @@ export function shouldDisplayAsImage(
 // See their specs here:
 // https://github.com/angular/angular.js/blob/master/test/ngSanitize/sanitizeSpec.js
 // And the original source here: https://github.com/angular/angular.js/blob/master/src/ngSanitize/sanitize.js#L451
-export function encodeHTMLEntities(value) {
+export function encodeHTMLEntities(value: string) {
   const SURROGATE_PAIR_REGEXP = /[\uD800-\uDBFF][\uDC00-\uDFFF]/g;
-  const pairFix = function(value) {
+  const pairFix = function (value) {
     const hi = value.charCodeAt(0);
     const low = value.charCodeAt(1);
     return `&#${(hi - 0xd800) * 0x400 + (low - 0xdc00) + 0x10000};`;
@@ -201,7 +204,7 @@ export function encodeHTMLEntities(value) {
 
   // Match everything outside of normal chars and " (quote character)
   const NON_ALPHANUMERIC_REGEXP = /([^#-~| |!])/g;
-  const alphaFix = value => `&#${value.charCodeAt(0)};`;
+  const alphaFix = (value) => `&#${value.charCodeAt(0)};`;
 
   return value
     .replace(/&/g, '&amp;')
@@ -227,7 +230,7 @@ export function generateContentId() {
   return `mcid-${s4()}${s4()}-${s4()}`;
 }
 
-export function isTempId(id) {
+export function isTempId(id: string) {
   if (!id || !_.isString(id)) {
     return false;
   }
@@ -256,7 +259,9 @@ function ensureImageCacheReady() {
     }
 
     const imagesPath = path.join(ResourcePath, 'static', 'images');
-    const files = fs.listTreeSync(imagesPath);
+    const files = (fs.readdirSync(imagesPath, { recursive: true }) as string[]).map((f) =>
+      path.join(imagesPath, f)
+    );
     for (let file of files) {
       // On Windows, we get paths like C:\images\compose.png, but
       // Chromium doesn't accept the backward slashes. Convert to
@@ -319,7 +324,7 @@ export function imageNamed(fullname: string) {
   return null;
 }
 
-export function subjectWithPrefix(subject, prefix) {
+export function subjectWithPrefix(subject: string, prefix: string) {
   if (subject.search(/fwd:/i) === 0) {
     return subject.replace(/fwd:/i, prefix);
   } else if (subject.search(/re:/i) === 0) {
@@ -335,37 +340,27 @@ export function emailsHaveSameDomain(...args: string[]) {
     return false;
   }
   const domains = args.map((email = '') => {
-    return _.last(
-      email
-        .toLowerCase()
-        .trim()
-        .split('@')
-    );
+    return email.toLowerCase().trim().split('@').at(-1);
   });
   const toMatch = domains[0];
-  return _.every(domains, domain => domain.length > 0 && toMatch === domain);
+  return _.every(domains, (domain) => domain.length > 0 && toMatch === domain);
 }
 
 export function emailHasCommonDomain(email = '') {
-  const domain = _.last(
-    email
-      .toLowerCase()
-      .trim()
-      .split('@')
-  );
+  const domain = email.toLowerCase().trim().split('@').at(-1);
   return commonDomains[domain] != null ? commonDomains[domain] : false;
 }
 
 // This looks for and removes plus-ing, it taks a VERY liberal approach
 // to match an email address. We'd rather let false positives through.
-export function toEquivalentEmailForm(email) {
+export function toEquivalentEmailForm(email: string) {
   // https://regex101.com/r/iS7kD5/3
   // eslint-disable-next-line
   const [ignored, user, domain] = /^([^+]+).*@(.+)$/gi.exec(email) || [null, '', ''];
   return `${user}@${domain}`.trim().toLowerCase();
 }
 
-export function emailIsEquivalent(email1, email2) {
+export function emailIsEquivalent(email1: string, email2: string) {
   if (email1 == null) {
     email1 = '';
   }
@@ -382,7 +377,10 @@ export function emailIsEquivalent(email1, email2) {
   return email1 === email2;
 }
 
-export function rectVisibleInRect(r1, r2) {
+export function rectVisibleInRect(
+  r1: { left: number; right: number; top: number; bottom: number },
+  r2: { left: number; right: number; top: number; bottom: number }
+) {
   return !(r2.left > r1.right || r2.right < r1.left || r2.top > r1.bottom || r2.bottom < r1.top);
 }
 
@@ -499,7 +497,8 @@ export function _isEqual(
         _.isFunction(bCtor) &&
         bCtor instanceof bCtor
       ) &&
-      ('constructor' in a && 'constructor' in b)
+      'constructor' in a &&
+      'constructor' in b
     ) {
       return false;
     }
@@ -754,7 +753,7 @@ export function hueForString(str: string | null) {
   return (
     str
       .split('')
-      .map(c => c.charCodeAt(0))
+      .map((c) => c.charCodeAt(0))
       .reduce((n, a) => n + a, 0) % 360
   );
 }
@@ -764,18 +763,14 @@ export function hueForString(str: string | null) {
 //
 // Also emails that are really long are likely computer-generated email
 // strings used for bcc-based automated teasks.
-export function likelyNonHumanEmail(email) {
+export function likelyNonHumanEmail(email: string) {
   // simple catch for long emails that are almost always autoreplies
   if (email.length > 48) {
     return true;
   }
 
   // simple catch for things like hex sequences in prefixes
-  const digitCount =
-    email
-      .split('@')
-      .shift()
-      .split(/[0-9]/g).length - 1;
+  const digitCount = email.split('@').shift().split(/[0-9]/g).length - 1;
   if (digitCount >= 6) {
     return true;
   }
@@ -826,6 +821,9 @@ export function likelyNonHumanEmail(email) {
 // Does the several tests you need to determine if a test range is within
 // a bounds. Expects both objects to have `start` and `end` keys.
 // Compares any values with <= and >=.
-export function overlapsBounds(bounds, test) {
+export function overlapsBounds(
+  bounds: { start: number; end: number },
+  test: { start: number; end: number }
+) {
   return test.start <= bounds.end && test.end >= bounds.start;
 }

@@ -3,7 +3,7 @@ import _ from 'underscore';
 
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { localized, PropTypes, Utils, RegExpUtils } from 'mailspring-exports';
+import { localized, Utils, RegExpUtils } from 'mailspring-exports';
 import { Menu } from 'mailspring-component-kit';
 
 import { RetinaImg } from './retina-img';
@@ -91,19 +91,6 @@ interface TokenProps<T> {
 class Token<T> extends React.Component<TokenProps<T>, TokenState> {
   static displayName = 'Token';
 
-  static propTypes = {
-    className: PropTypes.string,
-    selected: PropTypes.bool,
-    valid: PropTypes.bool,
-    item: PropTypes.object,
-    onClick: PropTypes.func.isRequired,
-    onDragStart: PropTypes.func.isRequired,
-    onEdited: PropTypes.func,
-    onAction: PropTypes.func,
-    disabled: PropTypes.bool,
-    onEditMotion: PropTypes.func,
-  };
-
   static defaultProps = {
     className: '',
   };
@@ -139,7 +126,7 @@ class Token<T> extends React.Component<TokenProps<T>, TokenState> {
         value={this.state.editing !== null ? this.state.editing : this.props.item.toString()}
         onKeyDown={this._onEditKeydown}
         onBlur={this._onEditFinished}
-        onChange={event => this.setState({ editing: event.currentTarget.value })}
+        onChange={(event) => this.setState({ editing: event.currentTarget.value })}
       />
     );
   }
@@ -164,6 +151,9 @@ class Token<T> extends React.Component<TokenProps<T>, TokenState> {
 
     return (
       <div
+        role="option"
+        aria-selected={this.props.selected}
+        aria-label={this.props.item ? this.props.item.toString() : undefined}
         className={`${classes} ${this.props.className}`}
         onDragStart={this._onDragStart}
         onDragEnd={this._onDragEnd}
@@ -177,7 +167,7 @@ class Token<T> extends React.Component<TokenProps<T>, TokenState> {
     );
   }
 
-  _onDragStart = event => {
+  _onDragStart = (event: React.DragEvent<HTMLDivElement>) => {
     if (this.props.disabled) return;
     this.props.onDragStart(event, this.props.item);
     this.setState({ dragging: true });
@@ -188,7 +178,7 @@ class Token<T> extends React.Component<TokenProps<T>, TokenState> {
     this.setState({ dragging: false });
   };
 
-  _onClick = event => {
+  _onClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (this.props.disabled) return;
     this.props.onClick(event, this.props.item);
   };
@@ -203,7 +193,7 @@ class Token<T> extends React.Component<TokenProps<T>, TokenState> {
     }
   };
 
-  _onEditKeydown = event => {
+  _onEditKeydown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (this.props.disabled) return;
     if (event.key === 'Enter' && this.props.selected && this.props.onEditMotion) {
       this.props.onEditMotion(this.props.item);
@@ -221,7 +211,7 @@ class Token<T> extends React.Component<TokenProps<T>, TokenState> {
     this.setState({ editing: null });
   };
 
-  _onAction = event => {
+  _onAction = (event: React.MouseEvent<HTMLButtonElement>) => {
     if (this.props.disabled) return;
     this.props.onAction(this.props.item);
     event.preventDefault();
@@ -234,27 +224,121 @@ class Token<T> extends React.Component<TokenProps<T>, TokenState> {
 
 type TokenizingTextFieldProps<T> = {
   className?: string;
+
   disabled?: boolean;
+
   placeholder?: React.ReactNode;
+
+  /**
+   * An array of current tokens. A token is usually an object type like a `Contact`.
+   * The set of tokens is stored as a prop instead of `state`, so when the set of
+   * tokens needs to change it is the parent's responsibility to make that change.
+   */
   tokens?: T[];
+
+  /**
+   * The maximum number of tokens allowed. When null (the default) an unlimited
+   * number of tokens may be given.
+   */
   maxTokens?: number;
+
+  /** A string to pre-fill the input with when the tokens are empty. */
   defaultValue?: string;
+
+  /**
+   * Given an object used for tokens, returns a unique id (key) for that object.
+   * Necessary for React to assign each of the subitems a unique key.
+   */
   tokenKey: (token: T) => any;
+
+  /**
+   * Given a token, returns true if the token is valid and false otherwise. Useful
+   * if your implementation of onAdd allows invalid tokens to be added to the field
+   * (e.g. malformed email addresses). Optional.
+   */
   tokenIsValid?: (token: T) => any;
+
+  /**
+   * What each token looks like. Passed an object and should return React elements
+   * to display that individual token.
+   */
   tokenRenderer: (props: { token: T }) => any;
+
   tokenClassNames?: (token: T) => any;
+
+  /**
+   * Provides a list of possible options given the current input. Takes the current
+   * input as a value and should return an array of candidate objects (same type as
+   * are passed to the `tokens` prop). May return tokens directly or a Promise that
+   * resolves with the requested tokens.
+   */
   onRequestCompletions: (...args: any[]) => T[] | Promise<T[]>;
+
+  /**
+   * What each suggestion looks like. Passed through to the Menu component's
+   * `itemContent` prop. See components/menu for more info.
+   */
   completionNode: (...args: any[]) => any;
+
+  /**
+   * Called when we're ready to add whatever it is we're completing. Either passed
+   * an array of objects (the same ones used to render tokens), OR passed the string
+   * currently in the input field (the string case happens on paste and blur). It
+   * doesn't need to return anything but is generally responsible for mutating the
+   * parent's state in a way that eventually updates this component's `tokens` prop.
+   */
   onAdd: (...args: any[]) => any;
+
+  /**
+   * Fired when the user tries to submit a query with a break character (tab, comma,
+   * semicolon, etc). Lets the caller determine how to best deal with available
+   * options. If not implemented we pick the first available option in the completions.
+   */
   onInputTrySubmit?: (...args: any[]) => any;
+
+  /**
+   * If implemented, lets the caller determine when to cut a token based on the
+   * current input value and the current keydown.
+   */
   shouldBreakOnKeydown?: (...args: any[]) => any;
+
+  /**
+   * Called when we remove a token. Passed an array of objects (the same ones used
+   * to render tokens). It doesn't need to return anything but is generally
+   * responsible for mutating the parent's state in a way that eventually updates
+   * this component's `tokens` prop.
+   */
   onRemove: (...args: any[]) => any;
+
+  /**
+   * Called when an existing token is double-clicked and edited. Do not provide this
+   * method if you want to disable editing. Passed a token index and the new text
+   * typed in that location. It doesn't need to return anything but is generally
+   * responsible for mutating the parent's state in a way that eventually updates
+   * this component's `tokens` prop.
+   */
   onEdit?: (...args: any[]) => any;
+
+  /**
+   * Slightly different than onEdit — onEditMotion fires if the user does an
+   * editing-like action on a Token (double clicking, etc). Useful when you don't
+   * want the text of the tokens themselves to be editable but want to perform some
+   * action when the tokens are double clicked.
+   */
   onEditMotion?: (...args: any[]) => any;
+
+  /** Called when we remove and there's nothing left to remove. */
   onEmptied?: (...args: any[]) => any;
+
+  /** Called when the secondary action of the token gets invoked. */
   onTokenAction?: ((...args: any[]) => any) | false;
+
+  /** Called when the input is focused. */
   onFocus?: (...args: any[]) => any;
+
+  /** A prompt used in the head of the menu. */
   label?: string;
+
   tabIndex?: number;
 };
 type TokenizingTextFieldState<T> = {
@@ -262,6 +346,7 @@ type TokenizingTextFieldState<T> = {
   focus: boolean;
   completions: T[];
   selectedKeys: string[];
+  activeDescendantId: string | null;
 };
 
 /*
@@ -284,137 +369,6 @@ export class TokenizingTextField<T> extends React.Component<
 
   static Token = Token;
 
-  static propTypes = {
-    className: PropTypes.string,
-
-    disabled: PropTypes.bool,
-
-    placeholder: PropTypes.node,
-
-    // An array of current tokens.
-    //
-    // A token is usually an object type like a `Contact`. The set of
-    // tokens is stored as a prop instead of `state`. This means that when
-    // the set of tokens needs to be changed, it is the parent's
-    // responsibility to make that change.
-    tokens: PropTypes.arrayOf(PropTypes.object),
-
-    // The maximum number of tokens allowed. When null (the default) and
-    // unlimited number of tokens may be given
-    maxTokens: PropTypes.number,
-
-    // A string to pre-fill the input with when the tokens are empty.
-    defaultValue: PropTypes.string,
-
-    // A function that, given an object used for tokens, returns a unique
-    // id (key) for that object.
-    //
-    // This is necessary for React to assign each of the subitems and
-    // unique key.
-    tokenKey: PropTypes.func.isRequired,
-
-    // A function that, given a token, returns true if the token is valid
-    // and false if the token is invalid. Useful if your implementation of
-    // onAdd allows invalid tokens to be added to the field (ie malformed
-    // email addresses.) Optional.
-    //
-    tokenIsValid: PropTypes.func,
-
-    // What each token looks like
-    //
-    // A function that is passed an object and should return React elements
-    // to display that individual token.
-    tokenRenderer: PropTypes.func.isRequired,
-
-    tokenClassNames: PropTypes.func,
-
-    // The function responsible for providing a list of possible options
-    // given the current input.
-    //
-    // It takes the current input as a value and should return an array of
-    // candidate objects. These objects must be the same type as are passed
-    // to the `tokens` prop.
-    //
-    // The function may either directly return tokens, or may return a
-    // Promise, that resolves with the requested tokens
-    onRequestCompletions: PropTypes.func.isRequired,
-
-    // What each suggestion looks like.
-    //
-    // This is passed through to the Menu component's `itemContent` prop.
-    // See components/menu.cjsx for more info.
-    completionNode: PropTypes.func.isRequired,
-
-    // Gets called when we we're ready to add whatever it is we're
-    // completing
-    //
-    // It's either passed an array of objects (the same ones used to
-    // render tokens)
-    //
-    // OR
-    //
-    // It's passed the string currently in the input field. The string case
-    // happens on paste and blur.
-    //
-    // The function doesn't need to return anything, but it is generally
-    // responible for mutating the parent's state in a way that eventually
-    // updates this component's `tokens` prop.
-    onAdd: PropTypes.func.isRequired,
-
-    // This gets fired when people try and submit a query with a break
-    // character (tab, comma, semicolon, etc). It lets us the caller
-    // determine how to best deal with available options.
-
-    // If this method is not implemented we'll pick the first available
-    // option in the completions
-    onInputTrySubmit: PropTypes.func,
-
-    // If implemented lets the caller determine when to cut a token based
-    // on the current input value and the current keydown.
-    shouldBreakOnKeydown: PropTypes.func,
-
-    // Gets called when we remove a token
-    //
-    // It's passed an array of objects (the same ones used to render
-    // tokens)
-    //
-    // The function doesn't need to return anything, but it is generally
-    // responible for mutating the parent's state in a way that eventually
-    // updates this component's `tokens` prop.
-    onRemove: PropTypes.func.isRequired,
-
-    // Gets called when an existing token is double-clicked and edited.
-    // Do not provide this method if you want to disable editing.
-    //
-    // It's passed a token index, and the new text typed in that location.
-    //
-    // The function doesn't need to return anything, but it is generally
-    // responible for mutating the parent's state in a way that eventually
-    // updates this component's `tokens` prop.
-    onEdit: PropTypes.func,
-
-    // This is slightly different than onEdit. onEditMotion gets fired if
-    // the user does an editing-like action on a Token. Double clicking,
-    // etc. This is usefulf for when you don't want the text of the tokens
-    // themselves to be editable, but want to perform some action when the
-    // tokens are double clicked.
-    onEditMotion: PropTypes.func,
-
-    // Called when we remove and there's nothing left to remove
-    onEmptied: PropTypes.func,
-
-    // Called when the secondary action of the token gets invoked.
-    onTokenAction: PropTypes.oneOfType([PropTypes.func, PropTypes.bool]),
-
-    // Called when the input is focused
-    onFocus: PropTypes.func,
-
-    // A Prompt used in the head of the menu
-    label: PropTypes.string,
-
-    tabIndex: PropTypes.number,
-  };
-
   static defaultProps = {
     tokens: [],
     className: '',
@@ -432,6 +386,7 @@ export class TokenizingTextField<T> extends React.Component<
       inputValue: props.defaultValue || '',
       completions: [],
       selectedKeys: [],
+      activeDescendantId: null,
     };
   }
 
@@ -445,7 +400,11 @@ export class TokenizingTextField<T> extends React.Component<
   }
 
   componentDidUpdate(prevProps: TokenizingTextFieldProps<T>) {
-    if (prevProps.tokens.length === 0 && this.props.tokens.length === 0 && this.state.inputValue.length === 0) {
+    if (
+      prevProps.tokens.length === 0 &&
+      this.props.tokens.length === 0 &&
+      this.state.inputValue.length === 0
+    ) {
       if (prevProps.defaultValue !== this.props.defaultValue) {
         const newDefaultValue = this.props.defaultValue || '';
         this.setState({ inputValue: newDefaultValue });
@@ -462,11 +421,23 @@ export class TokenizingTextField<T> extends React.Component<
 
   // Maintaining Input State
 
-  _onClick = event => {
+  _onClick = (event: React.MouseEvent<HTMLDivElement>) => {
     // Don't focus if the focus is already on an input within our field,
     // like an editable token's input
-    if (event.target.tagName === 'INPUT' && ReactDOM.findDOMNode(this).contains(event.target)) {
+    if (
+      event.target instanceof HTMLElement &&
+      event.target.tagName === 'INPUT' &&
+      ReactDOM.findDOMNode(this).contains(event.target)
+    ) {
+      this.setState({ selectedKeys: [] });
       return;
+    }
+
+    // Clicking a token is handled by _onClickToken which manages selectedKeys.
+    // For clicks on empty space, clear the token selection.
+    const isTokenClick = event.target instanceof HTMLElement && event.target.closest('.token');
+    if (!isTokenClick) {
+      this.setState({ selectedKeys: [] });
     }
 
     // We will focus on the field when they type the first character,
@@ -475,7 +446,7 @@ export class TokenizingTextField<T> extends React.Component<
     this.focus({ preventScroll: true });
   };
 
-  _onDrop = event => {
+  _onDrop = (event: React.DragEvent<HTMLDivElement>) => {
     if (!event.dataTransfer.types.includes('mailspring-token-items')) {
       return;
     }
@@ -484,7 +455,7 @@ export class TokenizingTextField<T> extends React.Component<
     this._onAddItemsFromJSON(data);
   };
 
-  _onAddItemsFromJSON = json => {
+  _onAddItemsFromJSON = (json) => {
     let items = null;
 
     try {
@@ -512,7 +483,7 @@ export class TokenizingTextField<T> extends React.Component<
     }
   };
 
-  _onInputKeydown = event => {
+  _onInputKeydown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (['Backspace', 'Delete'].includes(event.key)) {
       this._removeTokens(this._selectedTokens());
     } else if (['Escape'].includes(event.key)) {
@@ -548,14 +519,14 @@ export class TokenizingTextField<T> extends React.Component<
 
   _onSelectAll = () => {
     const { tokens, tokenKey } = this.props;
-    this.setState({ selectedKeys: tokens.map(t => tokenKey(t)) });
+    this.setState({ selectedKeys: tokens.map((t) => tokenKey(t)) });
   };
 
   _onSelectNone = () => {
     this.setState({ selectedKeys: [] });
   };
 
-  _onShiftSelection = (delta, event) => {
+  _onShiftSelection = (delta: number, event: React.KeyboardEvent<HTMLInputElement>) => {
     const multiselectModifierPresent = event.shiftKey || event.metaKey;
     const { tokenKey, tokens } = this.props;
     const { selectedKeys } = this.state;
@@ -565,14 +536,14 @@ export class TokenizingTextField<T> extends React.Component<
     // select the last token on left arrow press if no tokens are selected
     if (selectedKeys.length === 0) {
       if (delta === -1) {
-        const key = tokenKey(_.last(tokens));
+        const key = tokenKey(tokens.at(-1));
         this.setState({ selectedKeys: [key] });
       }
       return;
     }
 
-    const headKey = _.last(selectedKeys);
-    const headIdx = tokens.map(t => tokenKey(t)).indexOf(headKey);
+    const headKey = selectedKeys.at(-1);
+    const headIdx = tokens.map((t) => tokenKey(t)).indexOf(headKey);
     const nextToken = tokens[headIdx + delta];
 
     if (multiselectModifierPresent) {
@@ -586,13 +557,13 @@ export class TokenizingTextField<T> extends React.Component<
         // If the user is "walking back" their selection, deselect the head item
         // Ex: Shift+Left, Shift+Right undoes prev. Shift+left.
         this.setState({
-          selectedKeys: selectedKeys.filter(t => t !== headKey),
+          selectedKeys: selectedKeys.filter((t) => t !== headKey),
         });
       } else {
         // If the user is expanding their selection, always filter then add to
         // ensure the last item in the array is the most recently selected.
         this.setState({
-          selectedKeys: selectedKeys.filter(t => t !== nextKey).concat([nextKey]),
+          selectedKeys: selectedKeys.filter((t) => t !== nextKey).concat([nextKey]),
         });
       }
     } else {
@@ -602,7 +573,7 @@ export class TokenizingTextField<T> extends React.Component<
     }
   };
 
-  _onInputTrySubmit = event => {
+  _onInputTrySubmit = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if ((this.state.inputValue || '').trim().length === 0) {
       return;
     }
@@ -633,7 +604,7 @@ export class TokenizingTextField<T> extends React.Component<
     }
   };
 
-  _onInputChanged = event => {
+  _onInputChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
     const val = event.target.value.trimLeft();
     this.setState({
       selectedKeys: [],
@@ -643,7 +614,7 @@ export class TokenizingTextField<T> extends React.Component<
     this._refreshCompletions(val);
   };
 
-  _onInputBlurred = event => {
+  _onInputBlurred = (event: React.FocusEvent<HTMLInputElement>) => {
     // Not having a relatedTarget can happen when the whole app blurs. When
     // this happens we want to leave the field as-is
     if (!event.relatedTarget) {
@@ -684,7 +655,7 @@ export class TokenizingTextField<T> extends React.Component<
     this._clearInput();
   };
 
-  _onClickToken = (event, token: T) => {
+  _onClickToken = (event: React.MouseEvent<HTMLDivElement>, token: T) => {
     const { tokenKey, tokens } = this.props;
     let { selectedKeys } = this.state;
 
@@ -692,8 +663,8 @@ export class TokenizingTextField<T> extends React.Component<
       // Expand selection from the currently selected item to the one the user
       // has clicked. We must walk the items in order so selectedKeys is
       // an ordered list.
-      let headKey = _.last(selectedKeys);
-      let headIdx = tokens.map(t => tokenKey(t)).indexOf(headKey);
+      let headKey = selectedKeys.at(-1);
+      let headIdx = tokens.map((t) => tokenKey(t)).indexOf(headKey);
       const clickedIdx = tokens.indexOf(token);
 
       if (clickedIdx === -1 || clickedIdx === headIdx) {
@@ -706,14 +677,14 @@ export class TokenizingTextField<T> extends React.Component<
         headIdx += step;
         headKey = tokenKey(tokens[headIdx]);
         // eslint-disable-next-line
-        selectedKeys = selectedKeys.filter(t => t !== headKey).concat([headKey]);
+        selectedKeys = selectedKeys.filter((t) => t !== headKey).concat([headKey]);
       } while (headIdx !== clickedIdx);
     } else if (event.metaKey) {
       // Expand the selection to include the clicked item, without selecting
       // the items in between. If the item is already selected, deselect it.
       const key = tokenKey(token);
       if (selectedKeys.includes(key)) {
-        selectedKeys = selectedKeys.filter(t => t !== key);
+        selectedKeys = selectedKeys.filter((t) => t !== key);
       } else {
         selectedKeys = selectedKeys.concat([key]);
       }
@@ -725,30 +696,32 @@ export class TokenizingTextField<T> extends React.Component<
     this.setState({ selectedKeys });
   };
 
-  _onDragToken = (event, token) => {
+  _onDragToken = (event: React.DragEvent<HTMLDivElement>, token: T) => {
     let tokens = this._selectedTokens();
     if (tokens.length === 0) {
       tokens = [token];
     }
     const json = JSON.stringify(tokens);
     event.dataTransfer.setData('mailspring-token-items', json);
-    event.dataTransfer.setData('text/plain', tokens.map(t => t.toString()).join(', '));
+    event.dataTransfer.setData('text/plain', tokens.map((t) => t.toString()).join(', '));
     event.dataTransfer.dropEffect = 'move';
     event.dataTransfer.effectAllowed = 'move';
   };
 
   _selectedTokens() {
-    return this.props.tokens.filter(t => this.state.selectedKeys.includes(this.props.tokenKey(t)));
+    return this.props.tokens.filter((t) =>
+      this.state.selectedKeys.includes(this.props.tokenKey(t))
+    );
   }
 
-  _addToken = token => {
+  _addToken = (token: T) => {
     if (!token) {
       return;
     }
     this._addTokens([token]);
   };
 
-  _addTokens = tokens => {
+  _addTokens = (tokens: T[]) => {
     this.props.onAdd(tokens);
     // It's possible for `_addTokens` to be fired by the menu
     // asynchronously. When the tokenizing text field is in a popover it's
@@ -759,7 +732,7 @@ export class TokenizingTextField<T> extends React.Component<
     }
   };
 
-  _removeTokens = tokensToDelete => {
+  _removeTokens = (tokensToDelete: T[]) => {
     const { inputValue, selectedKeys } = this.state;
     const { onEmptied, onRemove, tokens, tokenKey } = this.props;
 
@@ -768,23 +741,23 @@ export class TokenizingTextField<T> extends React.Component<
     }
 
     if (tokensToDelete.length) {
-      const tokensToDeleteKeys = tokensToDelete.map(t => tokenKey(t));
+      const tokensToDeleteKeys = tokensToDelete.map((t) => tokenKey(t));
       onRemove(tokensToDelete);
       this.setState({
-        selectedKeys: selectedKeys.filter(k => !tokensToDeleteKeys.includes(k)),
+        selectedKeys: selectedKeys.filter((k) => !tokensToDeleteKeys.includes(k)),
       });
     } else {
-      const lastToken = _.last(tokens);
+      const lastToken = tokens.at(-1);
       if (lastToken) {
         const lastTokenKey = tokenKey(lastToken);
         this.setState({
-          selectedKeys: selectedKeys.filter(k => k !== lastTokenKey).concat([lastTokenKey]),
+          selectedKeys: selectedKeys.filter((k) => k !== lastTokenKey).concat([lastTokenKey]),
         });
       }
     }
   };
 
-  _showDefaultTokenMenu = token => {
+  _showDefaultTokenMenu = (token: T) => {
     const menu = require('@electron/remote').Menu();
     menu.append(
       require('@electron/remote').MenuItem({
@@ -806,7 +779,7 @@ export class TokenizingTextField<T> extends React.Component<
 
   // Copy and Paste
 
-  _onCut = event => {
+  _onCut = (event: React.ClipboardEvent<HTMLDivElement>) => {
     if (this.state.selectedKeys.length) {
       this._onAttachToClipboard(event);
       // clear the tokens which were selected
@@ -816,14 +789,14 @@ export class TokenizingTextField<T> extends React.Component<
     }
   };
 
-  _onCopy = event => {
+  _onCopy = (event: React.ClipboardEvent<HTMLDivElement>) => {
     if (this.state.selectedKeys.length) {
       this._onAttachToClipboard(event);
       event.preventDefault();
     }
   };
 
-  _onAttachToClipboard = event => {
+  _onAttachToClipboard = (event: React.ClipboardEvent<HTMLDivElement>) => {
     const text = this.state.selectedKeys.join(', ');
     if (event.clipboardData) {
       const json = JSON.stringify(this._selectedTokens());
@@ -841,7 +814,7 @@ export class TokenizingTextField<T> extends React.Component<
     event.preventDefault();
   };
 
-  _onPaste = event => {
+  _onPaste = (event: React.ClipboardEvent<HTMLDivElement>) => {
     const json = event.clipboardData.getData('mailspring-token-items');
     const inputValue = event.clipboardData.getData('mailspring-token-input');
     if (json) {
@@ -873,8 +846,8 @@ export class TokenizingTextField<T> extends React.Component<
   // `onRequestCompletions` returns.
   _refreshCompletions = (val = this.state.inputValue, { clear }: { clear?: boolean } = {}) => {
     const usedKeys = this.props.tokens.map(this.props.tokenKey);
-    const removeUsedTokens = tokens => {
-      return tokens.filter(t => !usedKeys.includes(this.props.tokenKey(t)));
+    const removeUsedTokens = (tokens) => {
+      return tokens.filter((t) => !usedKeys.includes(this.props.tokenKey(t)));
     };
 
     const tokensOrPromise = this.props.onRequestCompletions(val, { clear });
@@ -882,7 +855,7 @@ export class TokenizingTextField<T> extends React.Component<
     if (_.isArray(tokensOrPromise)) {
       this.setState({ completions: removeUsedTokens(tokensOrPromise) });
     } else if (tokensOrPromise instanceof Promise) {
-      tokensOrPromise.then(tokens => {
+      tokensOrPromise.then((tokens) => {
         if (!this._mounted) {
           return;
         }
@@ -898,8 +871,22 @@ export class TokenizingTextField<T> extends React.Component<
 
   // Rendering
 
+  _completionsId() {
+    return `${this._inputId}-completions`;
+  }
+
+  _valueDescriptionId() {
+    return `${this._inputId}-value`;
+  }
+
+  _onActiveDescendantChange = (id: string | null) => {
+    this.setState({ activeDescendantId: id });
+  };
+
   _inputComponent() {
-    const props = {
+    const hasCompletions = this.state.completions.length > 0;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const props: any = {
       onCopy: this._onCopy,
       onCut: this._onCut,
       onPaste: this._onPaste,
@@ -911,13 +898,21 @@ export class TokenizingTextField<T> extends React.Component<
       tabIndex: this.props.tabIndex || 0,
       value: this.state.inputValue,
       className: '',
+      role: 'combobox',
+      'aria-expanded': hasCompletions,
+      'aria-haspopup': 'listbox',
+      'aria-autocomplete': 'list',
+      'aria-controls': this._completionsId(),
+      'aria-label': this.props.label || undefined,
+      'aria-describedby': this._valueDescriptionId(),
+      'aria-activedescendant': this.state.activeDescendantId || undefined,
     };
 
     // If we can't accept additional tokens, override the events that would
     // enable additional items to be inserted
     if (this._atMaxTokens()) {
       props.className = 'noop-input';
-      props.onFocus = e => this._onInputFocused(e, { noCompletions: true });
+      props.onFocus = (e) => this._onInputFocused(e, { noCompletions: true });
       props.onPaste = () => 'noop-input';
       props.onChange = () => 'noop';
       props.value = '';
@@ -941,7 +936,7 @@ export class TokenizingTextField<T> extends React.Component<
       onEdit,
     } = this.props;
 
-    return tokens.map(item => {
+    return tokens.map((item) => {
       const key = tokenKey(item);
       const valid = tokenIsValid ? tokenIsValid(item) : true;
 
@@ -973,6 +968,9 @@ export class TokenizingTextField<T> extends React.Component<
       'tokenizing-field-input': true,
       'at-max-tokens': this._atMaxTokens(),
     });
+    // Build a screen-reader-only description of current token values so that
+    // when the user focuses the input, the AT announces what is already in the field.
+    const tokenDescription = this.props.tokens.map((t) => t.toString()).join(', ');
     return (
       <KeyCommandsRegion
         key="field-component"
@@ -989,10 +987,18 @@ export class TokenizingTextField<T> extends React.Component<
             {`${this.props.label}:`}
           </label>
         )}
+        {/* Visually hidden span read by screen readers via aria-describedby on the input.
+            Describes the current token values so the field doesn't appear empty. */}
+        <span
+          id={this._valueDescriptionId()}
+          style={{ position: 'absolute', left: -9999, width: 1, height: 1, overflow: 'hidden' }}
+        >
+          {tokenDescription}
+        </span>
         <div className={fieldClasses}>
           {this.state.inputValue.length > 0 ||
-            this.props.placeholder === undefined ||
-            this.props.tokens.length > 0 ? (
+          this.props.placeholder === undefined ||
+          this.props.tokens.length > 0 ? (
             false
           ) : (
             <div className="placeholder">{this.props.placeholder}</div>
@@ -1018,13 +1024,15 @@ export class TokenizingTextField<T> extends React.Component<
         className={classes}
         ref="completions"
         items={this.state.completions}
-        itemKey={item => item.id}
+        itemKey={(item) => item.id}
         itemContext={{ inputValue: this.state.inputValue }}
         itemContent={this.props.completionNode}
         headerComponents={[this._fieldComponent()]}
         onFocus={this._onInputFocused}
         onBlur={this._onInputBlurred}
         onSelect={this._addToken}
+        onActiveDescendantChange={this._onActiveDescendantChange}
+        listboxId={this._completionsId()}
       />
     );
   }

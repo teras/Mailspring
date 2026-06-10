@@ -1,12 +1,11 @@
 import React from 'react';
-import utf7 from '../../../src/utf7';
 import {
   RetinaImg,
   DropdownMenu,
   LabelColorizer,
   BoldedSearchResult,
 } from 'mailspring-component-kit';
-import { localized, Label, Utils, PropTypes } from 'mailspring-exports';
+import { localized, Label, Utils, imapUtf7 } from 'mailspring-exports';
 
 interface CategorySelectionProps {
   allowLabels: boolean;
@@ -30,13 +29,6 @@ export default class CategorySelection extends React.Component<
   CategorySelectionProps,
   CategorySelectionState
 > {
-  static propTypes = {
-    allowLabels: PropTypes.bool,
-    all: PropTypes.array,
-    current: PropTypes.object,
-    onSelect: PropTypes.func,
-  };
-
   _categories = [];
 
   state = {
@@ -44,10 +36,12 @@ export default class CategorySelection extends React.Component<
   };
 
   _itemsForCategories(): CategoryItem[] {
+    // Compile the search regex once and reuse it across the .filter below.
+    const searchRe = Utils.wordSearchRegExp(this.state.searchValue);
     return this.props.all
       .sort((a, b) => {
-        const pathA = utf7.imap.decode(a.path).toUpperCase();
-        const pathB = utf7.imap.decode(b.path).toUpperCase();
+        const pathA = imapUtf7.decode(a.path).toUpperCase();
+        const pathB = imapUtf7.decode(b.path).toUpperCase();
         if (pathA < pathB) {
           return -1;
         }
@@ -56,14 +50,14 @@ export default class CategorySelection extends React.Component<
         }
         return 0;
       })
-      .filter(c => Utils.wordSearchRegExp(this.state.searchValue).test(utf7.imap.decode(c.path)))
-      .map(c => {
+      .filter((c) => searchRe.test(imapUtf7.decode(c.path)))
+      .map((c) => {
         c.backgroundColor = LabelColorizer.backgroundColorDark(c);
         return c;
       });
   }
 
-  _onSearchValueChange = event => {
+  _onSearchValueChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     this.setState({ searchValue: event.target.value });
   };
 
@@ -82,7 +76,7 @@ export default class CategorySelection extends React.Component<
       );
     }
 
-    const displayPath = utf7.imap.decode(item.path);
+    const displayPath = imapUtf7.decode(item.path);
 
     return (
       <div className="category-item">
@@ -118,7 +112,7 @@ export default class CategorySelection extends React.Component<
           headerComponents={headerComponents}
           footerComponents={[]}
           items={this._itemsForCategories()}
-          itemKey={item => item.id}
+          itemKey={(item) => item.id}
           itemContent={this._renderItem}
           defaultSelectedIndex={this.state.searchValue === '' ? -1 : 0}
           {...this.props}

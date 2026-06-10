@@ -4,7 +4,8 @@ import * as Immutable from 'immutable';
 import { Editor, Value, Operation, Range, Block, Text } from 'slate';
 import { Editor as SlateEditorComponent, EditorProps, Plugin } from 'slate-react';
 import { clipboard as ElectronClipboard } from 'electron';
-import { InlineStyleTransformer } from 'mailspring-exports';
+import { InlineStyleTransformer, SanitizeTransformer } from 'mailspring-exports';
+import os from 'os';
 import path from 'path';
 import fs from 'fs';
 import { debounce } from 'underscore';
@@ -30,14 +31,16 @@ function getDocumentBrokenReason(value: Value): string | null {
   // their own text and only the collapsed quoted-text blockquote remains). Placing the cursor
   // inside those nodes would land in hidden/read-only content.
   const ancestors = document.getAncestors(firstText.key);
-  if (ancestors.some(a => a.object === 'block' && (isQuoteNode(a) || a.type === UNEDITABLE_TYPE))) {
+  if (
+    ancestors.some((a) => a.object === 'block' && (isQuoteNode(a) || a.type === UNEDITABLE_TYPE))
+  ) {
     return 'first text node is inside quoted/uneditable content';
   }
 
   return null;
 }
 
-const AEditor = (SlateEditorComponent as any) as React.ComponentType<
+const AEditor = SlateEditorComponent as any as React.ComponentType<
   EditorProps & { ref: any; propsForPlugins: any }
 >;
 
@@ -77,11 +80,11 @@ export class ComposerEditor extends React.Component<ComposerEditorProps, Compose
     // Note that we cache these between renders so we don't remove and re-add them
     // every render.
     this._pluginKeyHandlers = {};
-    plugins.forEach(plugin => {
+    plugins.forEach((plugin) => {
       if (!plugin.appCommands) return;
       Object.entries(plugin.appCommands).forEach(
         ([command, handler]: [string, (event: any, val: any) => any]) => {
-          this._pluginKeyHandlers[command] = event => {
+          this._pluginKeyHandlers[command] = (event: CustomEvent) => {
             if (!this._mounted) return;
             handler(event, this.editor);
           };
@@ -118,10 +121,7 @@ export class ComposerEditor extends React.Component<ComposerEditorProps, Compose
   }
 
   focus = () => {
-    this.editor
-      .focus()
-      .moveToRangeOfDocument()
-      .moveToStart();
+    this.editor.focus().moveToRangeOfDocument().moveToStart();
   };
 
   focusEndReplyText = () => {
@@ -134,10 +134,7 @@ export class ComposerEditor extends React.Component<ComposerEditorProps, Compose
 
   focusEndAbsolute = () => {
     window.requestAnimationFrame(() => {
-      this.editor
-        .moveToRangeOfDocument()
-        .moveToEnd()
-        .focus();
+      this.editor.moveToRangeOfDocument().moveToEnd().focus();
     });
   };
 
@@ -145,11 +142,11 @@ export class ComposerEditor extends React.Component<ComposerEditorProps, Compose
     removeQuotedText(this.editor);
   };
 
-  insertInlineAttachment = file => {
+  insertInlineAttachment = (file) => {
     InlineAttachmentChanges.insert(this.editor, file);
   };
 
-  onFocusIfBlurred = event => {
+  onFocusIfBlurred = (_event: React.MouseEvent<HTMLDivElement>) => {
     if (!this.props.value.selection.isFocused) {
       this.focus();
     }
@@ -165,14 +162,32 @@ export class ComposerEditor extends React.Component<ComposerEditorProps, Compose
     // processing, resulting in "swallowed" keystrokes (especially Enter and Backspace).
     // By deferring to the next frame, we ensure the key event is fully processed
     // before React re-renders and changes the spellCheck attribute.
-    if (!this.state.isTyping) {
+    //
+    // Navigation keys (Home, End, arrow keys, etc.) do not produce text and do not
+    // benefit from disabling spellcheck. More importantly, toggling spellCheck on a
+    // contenteditable causes Chromium to reset the cursor/selection, which means the
+    // first Home/End press after 800ms of inactivity would be "eaten" by the spellCheck
+    // re-render. We skip the isTyping transition for these keys to avoid that.
+    const isNavigationKey = [
+      'Home',
+      'End',
+      'ArrowLeft',
+      'ArrowRight',
+      'ArrowUp',
+      'ArrowDown',
+      'PageUp',
+      'PageDown',
+    ].includes(event.key);
+    if (!isNavigationKey && !this.state.isTyping) {
       requestAnimationFrame(() => {
         if (this._mounted && !this.state.isTyping) {
           this.setState({ isTyping: true });
         }
       });
     }
-    this._onDoneTyping();
+    if (!isNavigationKey) {
+      this._onDoneTyping();
+    }
     return next();
   };
 
@@ -189,7 +204,7 @@ export class ComposerEditor extends React.Component<ComposerEditorProps, Compose
 
     event.preventDefault();
 
-    const range = (editor.value.selection as any) as Range;
+    const range = editor.value.selection as any as Range;
     const fragment = editor.value.document.getFragmentAtRange(range);
     const value = Value.create({ document: fragment });
     const text = convertToPlainText(value);
@@ -233,6 +248,11 @@ export class ComposerEditor extends React.Component<ComposerEditorProps, Compose
     let html = event.clipboardData.getData('text/html');
 
     if (html) {
+      // Strip event handlers and disallowed tags before any DOM parsing or rendering — the
+      // composer runs with nodeIntegration so an <img onerror=...> in pasted HTML would
+      // execute with full Node access once it lands inside an uneditable block.
+      html = SanitizeTransformer.runSync(html);
+
       // Unfortuantely, pasting HTML requires an synchronous hop through our main process style
       // transfomer. This ensures that we inline styles and preserve as much as possible.
       // (eg: pasting tables from Excel).
@@ -287,7 +307,7 @@ export class ComposerEditor extends React.Component<ComposerEditorProps, Compose
   render() {
     const { className, onBlur, onDrop, value, propsForPlugins } = this.props;
 
-    const PluginTopComponents = this.editor ? plugins.filter(p => p.topLevelComponent) : [];
+    const PluginTopComponents = this.editor ? plugins.filter((p) => p.topLevelComponent) : [];
 
     return (
       <KeyCommandsRegion
@@ -303,7 +323,7 @@ export class ComposerEditor extends React.Component<ComposerEditorProps, Compose
               <p.topLevelComponent key={idx} value={value} editor={this.editor} />
             ))}
           <AEditor
-            ref={editor => (this.editor = editor)}
+            ref={(editor) => (this.editor = editor)}
             schema={schema}
             value={value}
             onChange={this.onChange}
@@ -320,7 +340,7 @@ export class ComposerEditor extends React.Component<ComposerEditorProps, Compose
             onCopy={this.onCopy as any}
             onPaste={this.onPaste as any}
             spellCheck={!this.state.isTyping && AppEnv.config.get('core.composing.spellcheck')}
-            plugins={(plugins as any) as Plugin[]}
+            plugins={plugins as any as Plugin[]}
             propsForPlugins={propsForPlugins}
           />
         </div>
@@ -342,7 +362,6 @@ export function handleFilePasted(event: ClipboardEvent, onFileReceived: (path: s
     // If the pasteboard has a file on it, stream it to a temporary
     // file and fire our `onFilePaste` event.
     if (item.kind === 'file') {
-      const temp = require('temp');
       const blob = item.getAsFile();
       const ext =
         {
@@ -354,7 +373,7 @@ export function handleFilePasted(event: ClipboardEvent, onFileReceived: (path: s
       const reader = new FileReader();
       reader.addEventListener('loadend', () => {
         const buffer = Buffer.from(new Uint8Array(reader.result as any));
-        const tmpFolder = temp.path('-mailspring-attachment');
+        const tmpFolder = path.join(os.tmpdir(), `-mailspring-attachment-${crypto.randomUUID()}`);
         const tmpPath = path.join(tmpFolder, `Pasted File${ext}`);
         fs.mkdir(tmpFolder, () => {
           fs.writeFile(tmpPath, buffer, () => {
@@ -374,9 +393,9 @@ export function handleFilePasted(event: ClipboardEvent, onFileReceived: (path: s
   );
   const xdgCopiedFiles = (ElectronClipboard.read('text/uri-list') || '')
     .split('\r\n') // yes, really
-    .filter(path => path.startsWith('file://'))
-    .map(path => path.replace('file://', ''))
-    .filter(path => path.length);
+    .filter((path) => path.startsWith('file://'))
+    .map((path) => path.replace('file://', ''))
+    .filter((path) => path.length);
   if (macCopiedFile.length || winCopiedFile.length) {
     onFileReceived(macCopiedFile || winCopiedFile);
     return true;

@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import PropTypes from 'prop-types';
 import { RetinaImg } from 'mailspring-component-kit';
 import moment from 'moment';
 
@@ -15,14 +14,9 @@ interface SendRemindersThreadTimestampProps {
 class SendRemindersThreadTimestamp extends Component<SendRemindersThreadTimestampProps> {
   static displayName = 'SendRemindersThreadTimestamp';
 
-  static propTypes = {
-    thread: PropTypes.object,
-    fallback: PropTypes.func,
-  };
-
   static containerRequired = false;
 
-  onRemoveReminder(thread) {
+  onRemoveReminder(thread: Thread) {
     updateReminderMetadata(thread, {});
   }
 

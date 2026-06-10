@@ -14,6 +14,7 @@ body.platform-win32 {
 .mailspring-calendar {
   height: 100%;
   display: flex;
+  color: @text-color;
 
   .calendar-source-list {
     display: flex;
@@ -178,7 +179,7 @@ body.platform-win32 {
         color: @text-color-inverse;
       }
       &:before {
-        background: darken(@accent-primary, 15%);
+        background: color-mix(in srgb, @accent-primary, black 15%);
       }
     }
 
@@ -252,7 +253,7 @@ body.platform-win32 {
         top: 2px;
         right: 2px;
         font-size: 8px;
-        font-weight: 600;
+        font-weight: @font-weight-semi-bold;
         text-transform: uppercase;
         background: var(--event-band-color, rgba(0, 0, 0, 0.2));
         color: rgba(255, 255, 255, 0.9);
@@ -288,8 +289,8 @@ body.platform-win32 {
     // Drag preview - synthetic event styling
     &.drag-preview {
       opacity: 0.7;
-      border: 2px dashed;
-      border-color: var(--event-band-color, inherit);
+      outline: 2px dashed var(--event-band-color, inherit);
+      outline-offset: -2px;
       pointer-events: none;
       z-index: 1000;
 
@@ -394,7 +395,7 @@ body.platform-win32 {
       width: @legend-width;
       position: relative;
       border-bottom: 1px solid @border-color-divider;
-      box-shadow: 0 1px 2.5px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 1px 2.5px @standard-shadow-color;
       z-index: 3;
       .legend-text {
         bottom: 7px;
@@ -438,7 +439,7 @@ body.platform-win32 {
       flex: 1;
       overflow: auto;
       background: @background-primary;
-      box-shadow: inset 0 1px 2.5px rgba(0, 0, 0, 0.15);
+      box-shadow: inset 0 1px 2.5px @standard-shadow-color;
       height: 100%;
     }
     .event-grid {
@@ -455,6 +456,9 @@ body.platform-win32 {
       z-index: 2;
     }
     .event-grid-bg-wrap {
+      --grid-line-minor: fade(@text-color, 5%);
+      --grid-line-major: fade(@text-color, 12%);
+
       .event-grid-bg {
         position: absolute;
         top: 0;
@@ -657,7 +661,7 @@ body.platform-win32 {
       }
 
       &:hover {
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 1px 4px @standard-shadow-color;
       }
 
       &:focus {
@@ -674,26 +678,20 @@ body.platform-win32 {
         }
 
         &:before {
-          background: darken(@accent-primary, 15%);
+          background: color-mix(in srgb, @accent-primary, black 15%);
         }
       }
 
       // Tentative/pending events: hatched diagonal stripes pattern
       &.pending {
-        background-image: repeating-linear-gradient(
-          45deg,
-          transparent,
-          transparent 3px,
-          var(--event-band-color, rgba(0, 0, 0, 0.1)) 3px,
-          var(--event-band-color, rgba(0, 0, 0, 0.1)) 4px
-        );
+        background-image: ~"repeating-linear-gradient(45deg, transparent, transparent 3px, color-mix(in srgb, var(--event-band-color, rgba(0, 0, 0, 0.1)), transparent 80%) 3px, color-mix(in srgb, var(--event-band-color, rgba(0, 0, 0, 0.1)), transparent 80%) 4px)";
         background-size: auto;
       }
 
       &.drag-preview {
         opacity: 0.7;
-        border: 2px dashed;
-        border-color: var(--event-band-color, inherit);
+        outline: 2px dashed var(--event-band-color, inherit);
+        outline-offset: -2px;
         pointer-events: none;
         position: relative;
 
@@ -797,11 +795,11 @@ body.platform-win32 {
       right: 10px;
       border-radius: @border-radius-base;
       box-shadow:
-        0 0.5px 0 rgba(0, 0, 0, 0.15),
-        0 -0.5px 0 rgba(0, 0, 0, 0.15),
-        0.5px 0 0 rgba(0, 0, 0, 0.15),
-        -0.5px 0 0 rgba(0, 0, 0, 0.15),
-        0 0.5px 1px rgba(0, 0, 0, 0.15);
+        0 0.5px 0 @btn-border-color,
+        0 -0.5px 0 @btn-border-color,
+        0.5px 0 0 @btn-border-color,
+        -0.5px 0 0 @btn-border-color,
+        0 0.5px 1px @btn-border-color;
       overflow: hidden;
 
       .view-btn {
@@ -903,7 +901,7 @@ body.platform-win32 {
 
       .agenda-day-name {
         font-size: 14px;
-        font-weight: 600;
+        font-weight: @font-weight-semi-bold;
         color: @text-color;
       }
 
@@ -914,7 +912,7 @@ body.platform-win32 {
 
       .agenda-today-badge {
         font-size: 11px;
-        font-weight: 600;
+        font-weight: @font-weight-semi-bold;
         color: @accent-primary;
         text-transform: uppercase;
         letter-spacing: 0.3px;

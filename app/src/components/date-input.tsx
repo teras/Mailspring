@@ -1,7 +1,6 @@
 import classnames from 'classnames';
 import React, { Component } from 'react';
 import { localized, DateUtils } from 'mailspring-exports';
-import PropTypes from 'prop-types';
 
 type DateInputProps = {
   className?: string;
@@ -14,13 +13,6 @@ type DateInputState = { inputValue: string; inputDate: null } & any;
 
 class DateInput extends Component<DateInputProps, DateInputState> {
   static displayName = 'DateInput';
-
-  static propTypes = {
-    className: PropTypes.string,
-    dateFormat: PropTypes.string.isRequired,
-    onDateInterpreted: PropTypes.func,
-    onDateSubmitted: PropTypes.func,
-  };
 
   static defaultProps = {
     onDateInterpreted: () => {},
@@ -45,11 +37,9 @@ class DateInput extends Component<DateInputProps, DateInputState> {
     this._mounted = false;
   }
 
-  onInputKeyDown = event => {
-    const {
-      key,
-      target: { value },
-    } = event;
+  onInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    const key = event.key;
+    const value = (event.target as HTMLInputElement).value;
     if (value.length > 0 && ['Enter', 'Return'].includes(key)) {
       // This prevents onInputChange from being fired
       event.stopPropagation();
@@ -58,7 +48,7 @@ class DateInput extends Component<DateInputProps, DateInputState> {
     }
   };
 
-  onInputChange = event => {
+  onInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const {
       target: { value },
     } = event;

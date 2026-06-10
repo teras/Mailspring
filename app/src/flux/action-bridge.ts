@@ -31,7 +31,7 @@ class ActionBridge {
   initiatorId = AppEnv.getWindowType();
   role = AppEnv.isMainWindow() ? Role.MAIN : Role.SECONDARY;
 
-  constructor(ipc) {
+  constructor(ipc: Electron.IpcRenderer) {
     this.ipc = ipc;
 
     AppEnv.onBeforeUnload(this.onBeforeUnload);
@@ -40,23 +40,29 @@ class ActionBridge {
     this.ipc.on('action-bridge-message', this.onIPCMessage);
 
     // Observe all global actions and re-broadcast them to other windows
-    Actions.globalActions.forEach(action => {
-      const callback = (...args) => this.onRebroadcast(TargetWindows.ALL, action.actionName, args);
+    Actions.globalActions.forEach((action) => {
+      const callback = (...args: unknown[]) =>
+        this.onRebroadcast(TargetWindows.ALL, action.actionName, args);
       return action.listen(callback, this);
     });
 
     if (this.role !== Role.MAIN) {
       // Observe actions for the main window fired in this window and re-broadcast
       // them to the main window.
-      Actions.mainWindowActions.forEach(action => {
-        const callback = (...args) =>
+      Actions.mainWindowActions.forEach((action) => {
+        const callback = (...args: unknown[]) =>
           this.onRebroadcast(TargetWindows.MAIN, action.actionName, args);
         return action.listen(callback, this);
       });
     }
   }
 
-  onIPCMessage = (event, initiatorId, name, json) => {
+  onIPCMessage = (
+    event: Electron.IpcRendererEvent,
+    initiatorId: string,
+    name: string,
+    json: string
+  ) => {
     if (AppEnv.isEmptyWindow()) {
       throw new Error("Empty windows shouldn't receive IPC messages");
     }
@@ -84,14 +90,14 @@ class ActionBridge {
     }, 0);
   };
 
-  onRebroadcast = (target, name, args) => {
+  onRebroadcast = (target: string, name: string, args: unknown[]) => {
     if (Actions[name] && Actions[name].firing) {
       Actions[name].firing = false;
       return;
     }
 
-    const params = [];
-    args.forEach(arg => {
+    const params: unknown[] = [];
+    args.forEach((arg) => {
       if (arg instanceof Function) {
         throw new Error(
           'ActionBridge cannot forward action argument of type `function` to another window.'
@@ -110,7 +116,7 @@ class ActionBridge {
     this.ipcLastSendTime = Date.now();
   };
 
-  onBeforeUnload = readyToUnload => {
+  onBeforeUnload = (readyToUnload: () => void) => {
     // Unfortunately, if you call ipc.send and then immediately close the window,
     // Electron won't actually send the message. To work around this, we wait an
     // arbitrary amount of time before closing the window after the last IPC event

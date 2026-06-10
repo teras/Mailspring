@@ -16,7 +16,10 @@ export class ObservableListDataSource extends ListTabular.DataSource {
   _setRetainedRange: (args: { start: number; end: number }) => void;
   _subscription?: Rx.Disposable;
 
-  constructor(resultSetObservable, setRetainedRange) {
+  constructor(
+    resultSetObservable: Rx.Observable<any>,
+    setRetainedRange: (args: { start: number; end: number }) => void
+  ) {
     super();
     this._$resultSetObservable = resultSetObservable;
     this._setRetainedRange = setRetainedRange;
@@ -25,7 +28,7 @@ export class ObservableListDataSource extends ListTabular.DataSource {
   }
 
   _attach = () => {
-    this._subscription = this._$resultSetObservable.subscribe(nextResultSet => {
+    this._subscription = this._$resultSetObservable.subscribe((nextResultSet) => {
       if (nextResultSet.range().end === this._resultDesiredLast) {
         this._countEstimate = Math.max(this._countEstimate, nextResultSet.range().end);
       } else {
@@ -69,28 +72,28 @@ export class ObservableListDataSource extends ListTabular.DataSource {
     return !this._resultSet || this._resultSet.empty();
   };
 
-  get = offset => {
+  get = (offset: number) => {
     if (!this._resultSet) {
       return null;
     }
     return this._resultSet.modelAtOffset(offset);
   };
 
-  getById(id) {
+  getById(id: string) {
     if (!this._resultSet) {
       return null;
     }
     return this._resultSet.modelWithId(id);
   }
 
-  indexOfId(id) {
+  indexOfId(id: string) {
     if (!this._resultSet || !id) {
       return -1;
     }
     return this._resultSet.offsetOfId(id);
   }
 
-  itemsCurrentlyInViewMatching(matchFn) {
+  itemsCurrentlyInViewMatching(matchFn: (item: any) => boolean) {
     if (!this._resultSet) {
       return [];
     }

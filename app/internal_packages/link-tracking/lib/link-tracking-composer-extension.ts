@@ -1,7 +1,16 @@
-import { ComposerExtension, RegExpUtils, FeatureUsageStore } from 'mailspring-exports';
+import {
+  ComposerExtension,
+  RegExpUtils,
+  FeatureUsageStore,
+  Message,
+  Contact,
+} from 'mailspring-exports';
 import { PLUGIN_ID, PLUGIN_URL } from './link-tracking-constants';
 
-function forEachATagInBody(draftBodyRootNode, callback) {
+function forEachATagInBody(
+  draftBodyRootNode: HTMLElement,
+  callback: (el: HTMLAnchorElement) => void
+) {
   const treeWalker = document.createTreeWalker(draftBodyRootNode, NodeFilter.SHOW_ELEMENT, {
     acceptNode: (node: HTMLElement) => {
       if (node.classList.contains('gmail_quote')) {
@@ -12,7 +21,7 @@ function forEachATagInBody(draftBodyRootNode, callback) {
   });
 
   while (treeWalker.nextNode()) {
-    callback(treeWalker.currentNode);
+    callback(treeWalker.currentNode as HTMLAnchorElement);
   }
 }
 
@@ -34,17 +43,25 @@ function forEachATagInBody(draftBodyRootNode, callback) {
  * their own link tracks.
  */
 export default class LinkTrackingComposerExtension extends ComposerExtension {
-  static needsPerRecipientBodies(draft) {
+  static needsPerRecipientBodies(draft: Message) {
     return !draft.plaintext && !!draft.metadataForPluginId(PLUGIN_ID);
   }
 
-  static applyTransformsForSending({ draftBodyRootNode, draft, recipient }) {
+  static applyTransformsForSending({
+    draftBodyRootNode,
+    draft,
+    recipient,
+  }: {
+    draftBodyRootNode: HTMLElement;
+    draft: Message;
+    recipient?: Contact;
+  }) {
     // DISABLED: Link tracking removed for local-only client
     // This feature requires remote server to track link clicks
     return;
   }
 
-  static onSendSuccess(draft) {
+  static onSendSuccess(draft: Message) {
     const metadata = draft.metadataForPluginId(PLUGIN_ID);
     if (metadata) {
       FeatureUsageStore.markUsed(PLUGIN_ID);

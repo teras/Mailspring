@@ -1,6 +1,5 @@
-import utf7 from '../../../../src/utf7';
 import React from 'react';
-import { localized, AccountStore, PropTypes } from 'mailspring-exports';
+import { localized, AccountStore, imapUtf7 } from 'mailspring-exports';
 
 interface SyncActivityProps {
   syncState: {
@@ -11,10 +10,6 @@ interface SyncActivityProps {
 }
 export class SyncActivity extends React.Component<SyncActivityProps> {
   static displayName = 'ExpandedSyncActivity';
-
-  static propTypes = {
-    syncState: PropTypes.object,
-  };
 
   renderFolderProgress(folderPath, { bodyProgress, scanProgress, busy }) {
     let status = 'complete';
@@ -31,7 +26,7 @@ export class SyncActivity extends React.Component<SyncActivityProps> {
       }
     }
 
-    const folderDisplayPath = utf7.imap.decode(folderPath);
+    const folderDisplayPath = imapUtf7.decode(folderPath);
 
     return (
       <div className={`folder-progress ${status}`} key={folderPath}>

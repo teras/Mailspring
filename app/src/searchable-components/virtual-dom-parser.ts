@@ -1,4 +1,3 @@
-import _ from 'underscore';
 import React from 'react';
 import { VirtualDOMUtils } from 'mailspring-exports';
 
@@ -7,7 +6,7 @@ import UnifiedDOMParser from './unified-dom-parser';
 
 export default class VirtualDOMParser extends UnifiedDOMParser {
   getWalker(dom): Iterable<HTMLElement> {
-    const pruneFn = node => {
+    const pruneFn = (node) => {
       return node.type === 'style';
     };
     return VirtualDOMUtils.walk({
@@ -26,7 +25,7 @@ export default class VirtualDOMParser extends UnifiedDOMParser {
     return element.length;
   }
 
-  textNodeContents(textNode) {
+  textNodeContents(textNode: { element: string }) {
     return textNode.element;
   }
 
@@ -35,7 +34,7 @@ export default class VirtualDOMParser extends UnifiedDOMParser {
       return false;
     }
     const blockTypes = ['br', 'p', 'blockquote', 'div', 'table', 'iframe'];
-    if (_.isFunction(element.type)) {
+    if (typeof element.type === 'function') {
       return true;
     } else if (blockTypes.indexOf(element.type) >= 0) {
       return true;
@@ -43,8 +42,8 @@ export default class VirtualDOMParser extends UnifiedDOMParser {
     return false;
   }
 
-  getRawFullString(fullString) {
-    return _.pluck(fullString, 'element').join('');
+  getRawFullString(fullString: Array<{ element: string }>) {
+    return fullString.map((x) => x.element).join('');
   }
 
   removeMatchesAndNormalize(element: any) {
@@ -58,10 +57,10 @@ export default class VirtualDOMParser extends UnifiedDOMParser {
       }
     };
 
-    if (React.isValidElement(element) || _.isArray(element)) {
+    if (React.isValidElement(element) || Array.isArray(element)) {
       let children;
 
-      if (_.isArray(element)) {
+      if (Array.isArray(element)) {
         children = element;
       } else {
         children = (element.props as any).children;
@@ -92,14 +91,14 @@ export default class VirtualDOMParser extends UnifiedDOMParser {
 
       resetAccumulator();
 
-      if (_.isArray(element)) {
+      if (Array.isArray(element)) {
         return newChildren;
       }
       return React.cloneElement(element, {}, newChildren);
     }
     return element;
   }
-  _isSearchElement(element) {
+  _isSearchElement(element: React.ReactElement) {
     return element.type === SearchMatch;
   }
 
@@ -110,16 +109,16 @@ export default class VirtualDOMParser extends UnifiedDOMParser {
     const className = isCurrentMatch ? 'current-match' : '';
     return React.createElement(SearchMatch, { className, regionId, renderIndex }, matchText);
   }
-  textNodeKey(textElement) {
+  textNodeKey(textElement: { parentNode: unknown }) {
     return textElement.parentNode;
   }
 
   highlightSearch(element, matchNodeMap) {
-    if (React.isValidElement(element) || _.isArray(element)) {
+    if (React.isValidElement(element) || Array.isArray(element)) {
       let newChildren = [];
       let children;
 
-      if (_.isArray(element)) {
+      if (Array.isArray(element)) {
         children = element;
       } else {
         children = (element.props as any).children;
@@ -158,7 +157,7 @@ export default class VirtualDOMParser extends UnifiedDOMParser {
         }
       }
 
-      if (_.isArray(element)) {
+      if (Array.isArray(element)) {
         return newChildren;
       }
       return React.cloneElement(element, {}, newChildren);

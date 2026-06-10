@@ -1,6 +1,5 @@
 import moment from 'moment';
 import React from 'react';
-import PropTypes from 'prop-types';
 import { localized } from 'mailspring-exports';
 import { DropdownMenu, Menu } from 'mailspring-component-kit';
 import { getTimespanOptions } from './timespan';
@@ -10,16 +9,11 @@ export default class TimespanSelector extends React.Component<{
   timespan: Timespan;
   onChange: (id: string) => void;
 }> {
-  static propTypes = {
-    timespan: PropTypes.object,
-    onChange: PropTypes.func,
-  };
-
   render() {
     const { id, startDate, endDate } = this.props.timespan;
 
     const options = getTimespanOptions();
-    const itemIdx = options.findIndex(item => item.id === id);
+    const itemIdx = options.findIndex((item) => item.id === id);
 
     const longFormat = id.startsWith('month')
       ? localized('MMMM Do, h:mmA')
@@ -37,9 +31,9 @@ export default class TimespanSelector extends React.Component<{
           headerComponents={[]}
           footerComponents={[]}
           items={options}
-          itemKey={item => item.id}
-          itemContent={item => (item.divider ? <Menu.Item key="divider" divider /> : item.name)}
-          onSelect={item => this.props.onChange(item.id)}
+          itemKey={(item) => item.id}
+          itemContent={(item) => (item.divider ? <Menu.Item key="divider" divider /> : item.name)}
+          onSelect={(item) => this.props.onChange(item.id)}
         />
       </div>
     );

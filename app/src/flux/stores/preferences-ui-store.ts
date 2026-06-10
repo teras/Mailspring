@@ -80,7 +80,7 @@ class _PreferencesUIStore extends MailspringStore {
     }
   };
 
-  switchPreferencesTab = (tabId, options: { accountId?: string } = {}) => {
+  switchPreferencesTab = (tabId: string, options: { accountId?: string } = {}) => {
     this._selection.tabId = tabId;
     if (options.accountId) {
       this._selection.accountId = options.accountId;
@@ -111,8 +111,8 @@ class _PreferencesUIStore extends MailspringStore {
     this._triggerDebounced();
   };
 
-  unregisterPreferencesTab = tabItemOrId => {
-    this._tabs = this._tabs.filter(s => s.tabId !== tabItemOrId && s !== tabItemOrId);
+  unregisterPreferencesTab = (tabItemOrId: string | PreferencesUIStoreTab) => {
+    this._tabs = this._tabs.filter((s) => s.tabId !== tabItemOrId && s !== tabItemOrId);
     this._triggerDebounced();
   };
 }

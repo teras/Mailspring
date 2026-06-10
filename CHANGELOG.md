@@ -1,5 +1,244 @@
 # Mailspring Changelog
 
+## 1.21.1 (5/19/2026)
+
+Bug Fixes:
+
+- Fixed dark mode visual issues with transitions and small CSS nits.
+- Fixed `activeMarks` access errors in the composer editor. (#2714)
+- Fixed thread list scroll indicator not sliding through time when dragging the scroll handle. (#2716)
+- Fixed `contains` error when parentFilter receives a non-Element node. (#2712)
+- Fixed secrets potentially appearing in the connection error detail modal. (#2717)
+- Fixed package name validation rejecting names with uppercase letters. (#2718)
+- Fixed sync engine crash during many-account sync by increasing SQLite busy timeout.
+- Fixed message importance headers not normalized for compatibility with some providers. (mailsync#113)
+
+Improvements:
+
+- Improved error logging for empty or malformed error objects. (#2713)
+- Optimized search regex compilation in category and label pickers. (#2715)
+- Improved sync engine performance by reducing unnecessary SQLite writes and moving parsing outside transactions.
+
+Developer:
+
+- Upgraded Electron from 41.5.0 to 41.6.1.
+- Upgraded React and React DOM to v17. (#2725)
+- Upgraded react-transition-group from 1.2 to 4.4.5.
+- Replaced deprecated `componentWillMount` with `componentDidMount`. (#2724)
+- Replaced legacy context API with React Context. (#2722, #2723)
+- Refactored class components to functional components with React.memo. (#2720)
+- Removed PropTypes, replaced with TypeScript types. (#2710)
+- Added missing TypeScript types to function declarations across many files.
+- Renamed remaining package spec directories to `specs`, converted JSX to TSX. (#2711)
+- Added Playwright tests for composer interactions.
+- Fixed lint CI step that was performing fixes instead of validation. (#2719)
+- Removed unused CircleCI configuration.
+- Set C++ standard to C++17 across all platforms. (mailsync#114)
+- Various CMake and build improvements for mailsync. (mailsync#108, mailsync#109, mailsync#110, mailsync#111, mailsync#112) Thanks @LinusDierheimer!
+
+## 1.21.0 (5/5/2026)
+
+Features:
+
+- Added Reply-To field to the composer header, allowing you to specify a different reply address when composing messages. (#2691) Thanks @Argjend12345!
+
+- Added bulk RFC2822 message export functionality to the sync engine. (#107)
+
+Bug Fixes:
+
+- Fixed HTTP/2 framing errors that could crash the sync engine during metadata streaming. (#103)
+
+- Prevented global keyboard shortcuts from firing when focus is in the composer. (#2693)
+
+- Strictly validate accent color hex values from system preferences to prevent errors. (#2692)
+
+Claude Security Audit:
+
+- Tightened validation to prevent file:// URIs in email content. (#2699)
+
+- Limited path traversal in protocol handler. (#2700)
+
+- Added allowlist validation for IPC window and webcontents methods. (#2701)
+
+- Improved HTML sanitization in the composer when pasting content. (#2702)
+
+- mailto links no longer support the ?attach= query parameter. (#2703)
+
+- Improved attachment name sanitization for security and compatibility. (#2705)
+
+- Improved email sanitization to block CSS @import tracking vectors. (#2706)
+
+- Added package name validation to prevent path traversal attacks. (#2698)
+
+- Added URL validation to the autoupdate handler. (#2697)
+
+- Show a notice about plugin trust when installing third-party plugins.
+
+Improvements:
+
+- When a detailed error log is available during OAuth sign-in, it is now displayed to help with troubleshooting.
+
+- Used `exec` in mailsync wrapper script for direct signal delivery. (#105)
+
+Developer:
+
+- Migrated build system from Grunt to a standalone Node.js script. (#2704)
+
+- Added option to skip installer creation in the build script. (#2707) Thanks @LinusDierheimer!
+
+- Dropped .map files from distribution packages. (#2686) Thanks @ReillyBrogan!
+
+- Replaced long-deprecated Raven with native Sentry envelope implementation and send sourcemaps during build. (#2694)
+
+- Upgraded TypeScript target from es2017 to es2024.
+
+- Refactored TypeScript compilation cache and only enable in dev mode. (#2695)
+
+- Removed macOS Touch Bar support. (#2696)
+
+- Updated ESLint and Prettier, and reference local versions in VS Code settings.
+
+- Added missing TypeScript types to function declarations across many files.
+
+- Upgraded Electron 41.2.1 to Electron 41.5.0.
+
+- Added Playwright tests for pre-release verification.
+
+- Added tests covering VCF/EML business logic and other utilities.
+
+## 1.20.1 (4/20/2026)
+
+Fixes:
+
+- Resolves an issue with the inline composer's key handling that could cause Gmail-style shortcuts to activate while you were typing into the subject line or recipients.
+
+## 1.20.0 (4/18/2026)
+
+Features:
+
+- Added an "Automatic" theme (the new default) that follows system light/dark mode.
+
+- Added system accent color support — the standard light and dark themes now use your OS accent color by default and this can be disabled from Preferences > Appearance. (#2682)
+
+- Improved the UX around creating folders and labels in the left sidebar - it's much easier to create nested items. (#2655)
+
+- A new "•••" menu on items in the left sidebar makes features (including the new EML export option) more discoverable.
+
+- Added EML export functionality for messages and folders. You can save selected messages as EML by right-clicking or from the app's menu, and export entire folders by right clicking in the left navigation. (#2652)
+
+Improvements:
+
+- Improved password storage error handling and reporting. (#2669)
+
+- Fixed a race condition causing Windows notification "Archive" and "Mark as Read" buttons to be unreliable.
+
+- Added Microsoft Office 365 / Outlook account setup guidance and troubleshooting documentation. (#2656)
+
+- Replaced text symbols with SVG icons in the toolbar. (#2658)
+
+- Refinements to EML export task in the sidebar.
+
+- Fixed the Wayland app_id after Electron 41 (Thanks @ReillyBrogan!)
+
+Bug Fixes:
+
+- Fixed an undefined `@font-weight-semi-bold` error in the ui-less-is-more theme. (#2684)
+
+- Fixed a crash in quick preview when the capture window is destroyed. (#2671)
+
+- Fixed an unhandled EPIPE error when writing to a dead mailsync process stdin. (#2673)
+
+- Fixed race conditions in draft expiration and changeset handling. (#2678)
+
+- Fixed broken IMAP UTF-7 encoding by replacing the broken `utf7` package with a custom implementation. (#2672)
+
+- Fixed printToPDF errors being incorrectly sent to Sentry. (#2677)
+
+- Fixed an issue where launch options and URLs were processed before app initialization was complete. (#2675)
+
+- Fixed a crash caused by null values in draft field change detection. (#2676)
+
+- Fixed an issue where metadata attachment could fail for newly sent messages. (#2664)
+
+- Fixed autoupdate error handling. (#2670)
+
+- Fixed error handling for ICS parsing in the EventHeader component. (#2668)
+
+- Fixed crash when navigating to 'All' with accounts that have no archive category. (#2666)
+
+- Fixed null reference crash in ContactDetail on update. (#2661)
+
+- Fixed MacOS notifications showing a second copy of the app's icon
+
+- Fixed null range crash in the email composer. (#2662)
+
+- Fixed a race condition in EmailFrame that could deliver a null `doc.body` to message extensions. (#2665)
+
+- Fixed OAuth code parsing to handle `+` characters correctly. (#2654)
+
+- Fixed the `core:pop-sheet` shortcut being blocked in the message list with an open reply composer. (#2653)
+
+- On Windows, fixed font-weight rendering by using CSS variables. (#2650)
+
+- On Linux, fixed xdg-mime 'not found' error not being caught on dash-based shells. (#2667)
+
+- Added error handling for `shell.openExternal` calls to prevent crashes on unsupported URLs. (#2679)
+
+
+Developer:
+
+- Fixed ability to declare platform-specific options via config-schema. (#2681)
+
+- Moved `appdata.xml` to the `metainfo` directory for proper Linux packaging. (#2659) Thanks @BlueManCZ!
+
+- Replaced direct `Electron dialog.showErrorBox` calls with `AppEnv.showErrorDialog`. (#2680)
+
+- Improved plugin activation error handling and TypeScript compilation. (#2674)
+
+- Suppressed LESS parse errors from Sentry reporting. (#2663)
+
+## 1.19.1 (4/6/2026)
+
+Bug Fixes:
+
+- On Windows, fixed notification click handling and removed a redundant window display call. (#2648)
+
+- Fixed the custom port input not updating in IMAP onboarding. (#2646)
+
+- Fixed VoiceOver handling on email composer token inputs (To, CC, BCC, etc.).
+
+Improvements:
+
+- Additional accessibility improvements: arrow key navigation and roving tabindex between messages in the message list, keyboard focus improvements in the account sidebar, email frame ARIA target for read-all support, and focus management fixes for modals and preferences.
+
+- On Linux, added Wayland session detection and a fallback menu button for window managers that don't support the system tray. (#2647)
+
+- Improved handling of navigation keys (arrow keys, etc.) in the composer typing state. (#2644) Thanks @ejbiker93ss!
+
+- Improved contact details panel styling.
+
+Developer:
+
+- Updated to Electron 41 (Chromium 146, Node.js 24.14), up from Electron 39 (Chromium 142, Node.js 22). (#2643)
+  - Chromium updated from 142 → 146, bringing security patches and modern web standard support
+  - Fixed white flash when opening app windows
+  - Reduced GPU memory usage on macOS
+  - On Windows: fixed a crash with UTF-8 file paths and a hang in native notification delivery
+  - On macOS: fixed menu items incorrectly staying disabled after being re-enabled
+  - On Windows: fixed window fullscreen state not being preserved correctly
+  - On Windows: system notifications now support action buttons and inline reply inputs
+  - On Linux/Wayland: frameless windows now display GTK drop shadows and support extended resize borders
+  - Fixed keyboard shortcut accelerators not working after toggling a menu item's enabled state
+  - Replaced the deprecated Electron clipboard renderer API with the standard `navigator.clipboard` API
+
+- Replaced legacy dependencies (`fs-plus`, `rimraf`, `mkdirp`, `uuid`, `temp`) with native Node.js APIs, removing several third-party dependencies.
+
+- Removed unused dependencies `deep-extend` and `graceful-fs`.
+
+- Added TypeScript typecheck and lint steps to the per-commit GitHub Actions workflow.
+
+- Updated license dates.
+
 ## 1.19.0 (3/9/2026)
 
 Features:

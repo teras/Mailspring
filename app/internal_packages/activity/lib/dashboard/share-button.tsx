@@ -1,9 +1,8 @@
 import React from 'react';
-import { clipboard } from 'electron';
 import { localized, MailspringAPIRequest } from 'mailspring-exports';
 import { RetinaImg } from 'mailspring-component-kit';
 
-function buildShareHTML(htmlEl, styleEl) {
+function buildShareHTML(htmlEl: HTMLElement, styleEl: HTMLStyleElement) {
   return `
     <!DOCTYPE html>
     <html lang="en">
@@ -85,13 +84,20 @@ export default class ShareButton extends React.Component<
         {this.state.link && (
           <div>
             <input
-              ref={el => (this._linkEl = el)}
+              ref={(el) => (this._linkEl = el)}
               type="url"
               value={this.state.link}
               style={{ width: 300, marginLeft: 10 }}
               readOnly
             />
-            <div className="copy-to-clipboard" onClick={() => clipboard.writeText(this.state.link)}>
+            <div
+              className="copy-to-clipboard"
+              onClick={() =>
+                navigator.clipboard
+                  .writeText(this.state.link)
+                  .catch((err) => console.error('Failed to copy to clipboard:', err))
+              }
+            >
               <RetinaImg name="icon-copytoclipboard.png" mode={RetinaImg.Mode.ContentIsMask} />
             </div>
           </div>

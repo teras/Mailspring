@@ -1,6 +1,7 @@
 import React from 'react';
 import { ImageAttachmentItem } from 'mailspring-component-kit';
 import { AttachmentStore } from 'mailspring-exports';
+import { File as MailspringFile } from '../../flux/models/file';
 import { isQuoteNode } from './base-block-plugins';
 import { ComposerEditorPlugin } from './types';
 import { Editor, Inline, Node } from 'slate';
@@ -14,11 +15,13 @@ function ImageNode(props) {
     imgProps = node.data.get ? node.data.get('imgProps') : node.data.imgProps;
 
   if (targetIsHTML) {
-    return <img alt="" src={`cid:${contentId}`} width={imgProps?.width} height={imgProps?.height} />;
+    return (
+      <img alt="" src={`cid:${contentId}`} width={imgProps?.width} height={imgProps?.height} />
+    );
   }
 
   const { draft } = editor.props.propsForPlugins;
-  const file = draft.files.find(f => contentId === f.contentId);
+  const file = draft.files.find((f) => contentId === f.contentId);
   if (!file) {
     return <span />;
   }
@@ -67,10 +70,7 @@ const rules = [
             nodes: [],
             type: IMAGE_TYPE,
             data: {
-              contentId: el
-                .getAttribute('src')
-                .split('cid:')
-                .pop(),
+              contentId: el.getAttribute('src').split('cid:').pop(),
               imgProps: {
                 width: Number.parseInt(el.getAttribute('width')),
                 height: Number.parseInt(el.getAttribute('height')),
@@ -79,7 +79,7 @@ const rules = [
           };
         }
     },
-    serialize(obj, children) {
+    serialize(obj: any, children: any) {
       if (obj.object !== 'inline') return;
       return renderNode({ node: obj, children, targetIsHTML: true });
     },
@@ -87,7 +87,7 @@ const rules = [
 ];
 
 export const changes = {
-  insert: (editor: Editor, file) => {
+  insert: (editor: Editor, file: MailspringFile) => {
     const canHoldInline = (node: Node) => {
       const isVoid =
         node.object === 'inline' && schema.inlines[node.type] && schema.inlines[node.type].isVoid;

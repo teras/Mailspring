@@ -8,6 +8,7 @@ import * as Actions from '../actions';
 import KeyManager from '../../key-manager';
 import { makeRequest, rootURLForServer } from '../mailspring-api-request';
 import { Disposable } from 'event-kit';
+import { debounce } from 'underscore';
 
 // Note this key name is used when migrating to Mailspring Pro accounts from old N1.
 const PASSWORD_NAME = 'Mailspring Account';
@@ -93,9 +94,12 @@ class _IdentityStore extends MailspringStore {
     setTimeout(() => {
       this.fetchIdentity();
     }, 1000);
-    setInterval(() => {
-      this.fetchIdentity();
-    }, 1000 * 60 * 10); // 10 minutes
+    setInterval(
+      () => {
+        this.fetchIdentity();
+      },
+      1000 * 60 * 10
+    ); // 10 minutes
   }
 
   async saveIdentity(identity: IIdentity | null) {
@@ -218,6 +222,8 @@ class _IdentityStore extends MailspringStore {
       return `${rootURLForServer('identity')}${path}`;
     }
   }
+
+  fetchIdentitySoon = debounce(() => this.fetchIdentity(), 5000, true);
 
   async fetchIdentity() {
     if (!this._identity || !this._identity.token) {

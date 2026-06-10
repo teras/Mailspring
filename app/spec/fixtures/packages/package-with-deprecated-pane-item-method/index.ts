@@ -4,4 +4,4 @@ class TestItem {
   }
 }
 
-exports.activate = () => AppEnv.workspace.addOpener(() => new TestItem());
+exports.activate = () => (AppEnv as any).workspace.addOpener(() => new TestItem());

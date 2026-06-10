@@ -1,4 +1,3 @@
-import temp from 'temp';
 import os from 'os';
 import path from 'path';
 import fs from 'fs';
@@ -84,12 +83,7 @@ function __getDesktopSettingsPath(): string {
  */
 function __exec(cmd: string): string {
   try {
-    return cmd == null
-      ? null
-      : execSync(cmd)
-          .toString()
-          .trim()
-          .replace(/'/g, '');
+    return cmd == null ? null : execSync(cmd).toString().trim().replace(/'/g, '');
   } catch (error) {
     console.warn(error);
     return null;
@@ -311,16 +305,14 @@ function getIcon(
  */
 function convertToPNG(iconName: string, iconPath: string) {
   try {
-    const version = execSync('convert --version')
-      .toString()
-      .trim();
+    const version = execSync('convert --version').toString().trim();
     if (!version) {
       console.warn('Cannot find ImageMagick');
       return null;
     }
-    const tmpFile = temp.openSync({ prefix: iconName, suffix: '.png' });
-    execSync(`convert ${iconPath} -transparent white ${tmpFile.path}`);
-    return tmpFile.path;
+    const tmpPath = path.join(os.tmpdir(), `${iconName}-${crypto.randomUUID()}.png`);
+    execSync(`convert ${iconPath} -transparent white ${tmpPath}`);
+    return tmpPath;
   } catch (error) {
     console.warn(error);
   }

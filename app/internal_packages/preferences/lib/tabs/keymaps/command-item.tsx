@@ -1,7 +1,5 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import PropTypes from 'prop-types';
-import _ from 'underscore';
 import { Flexbox } from 'mailspring-component-kit';
 import { localized } from 'mailspring-exports';
 import fs from 'fs';
@@ -24,12 +22,6 @@ export default class CommandKeybinding extends React.Component<
   CommandKeybindingProps,
   CommandKeybindingState
 > {
-  static propTypes = {
-    bindings: PropTypes.array,
-    label: PropTypes.string,
-    command: PropTypes.string,
-  };
-
   _mounted = false;
 
   constructor(props) {
@@ -89,7 +81,7 @@ export default class CommandKeybinding extends React.Component<
     return clean;
   }
 
-  _renderKeystrokes = (keystrokes, idx) => {
+  _renderKeystrokes = (keystrokes: string, idx: number) => {
     const elements = [];
     const splitKeystrokes = keystrokes.split(' ');
     splitKeystrokes.forEach((keystroke, kidx) => {
@@ -149,7 +141,7 @@ export default class CommandKeybinding extends React.Component<
     }, 100);
   };
 
-  _onKey = event => {
+  _onKey = (event: React.KeyboardEvent<HTMLElement>) => {
     if (!this.state.editing) {
       return;
     }
@@ -164,7 +156,7 @@ export default class CommandKeybinding extends React.Component<
 
     let { keys, modifiers } = this.state;
     keys = keys.concat([eventKey]);
-    modifiers = _.uniq(modifiers.concat(eventMods));
+    modifiers = [...new Set(modifiers.concat(eventMods))];
 
     let editingBinding = keys.join(' ');
     if (modifiers.length > 0) {
@@ -185,7 +177,7 @@ export default class CommandKeybinding extends React.Component<
 
     let value: React.ReactChild | React.ReactChild[] = 'None';
     if (bindings.length > 0) {
-      value = _.uniq(bindings).map(this._renderKeystrokes);
+      value = [...new Set(bindings)].map(this._renderKeystrokes);
     }
 
     let classnames = 'shortcut';

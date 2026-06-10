@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import { localized } from 'mailspring-exports';
 import { RetinaImg } from './retina-img';
 
@@ -23,20 +22,6 @@ type NotificationState = {
 
 export default class Notification extends React.Component<NotificationProps, NotificationState> {
   static containerRequired = false;
-
-  static propTypes = {
-    className: PropTypes.string,
-    displayName: PropTypes.string,
-    title: PropTypes.string,
-    subtitle: PropTypes.string,
-    subtitleAction: PropTypes.func,
-    actions: PropTypes.array,
-    icon: PropTypes.string,
-    priority: PropTypes.string,
-    isError: PropTypes.bool,
-    isDismissable: PropTypes.bool,
-    isPermanentlyDismissable: PropTypes.bool,
-  };
 
   static defaultProps = {
     className: '',
@@ -94,7 +79,7 @@ export default class Notification extends React.Component<NotificationProps, Not
 
       if (this.mounted) {
         this.setState({
-          loadingActions: this.state.loadingActions.filter(f => f !== actionId),
+          loadingActions: this.state.loadingActions.filter((f) => f !== actionId),
         });
       }
     }
@@ -143,7 +128,7 @@ export default class Notification extends React.Component<NotificationProps, Not
           key={id}
           id={id}
           className={className}
-          onClick={e => this._onClick(e, id, action.fn)}
+          onClick={(e) => this._onClick(e, id, action.fn)}
           {...action.props}
         >
           {action.label}

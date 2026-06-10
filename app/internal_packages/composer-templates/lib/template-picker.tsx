@@ -1,15 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { localized, PropTypes, Actions, Message } from 'mailspring-exports';
+import { localized, Actions, Message } from 'mailspring-exports';
 import { Menu, RetinaImg } from 'mailspring-component-kit';
 import TemplateStore from './template-store';
 
 class TemplatePopover extends React.Component<{ headerMessageId: string }> {
   static displayName = 'TemplatePopover';
-
-  static propTypes = {
-    headerMessageId: PropTypes.string,
-  };
 
   unsubscribe?: () => void;
 
@@ -37,16 +33,16 @@ class TemplatePopover extends React.Component<{ headerMessageId: string }> {
       return templates;
     }
 
-    return templates.filter(t => {
+    return templates.filter((t) => {
       return t.name.toLowerCase().indexOf(searchValue.toLowerCase()) === 0;
     });
   }
 
-  _onSearchValueChange = event => {
+  _onSearchValueChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     this.setState({ searchValue: event.target.value });
   };
 
-  _onChooseTemplate = template => {
+  _onChooseTemplate = (template: ReturnType<typeof TemplateStore.items>[0]) => {
     Actions.insertTemplateId({
       templateId: template.id,
       headerMessageId: this.props.headerMessageId,
@@ -92,8 +88,8 @@ class TemplatePopover extends React.Component<{ headerMessageId: string }> {
         headerComponents={headerComponents}
         footerComponents={footerComponents}
         items={filteredTemplates}
-        itemKey={item => item.id}
-        itemContent={item => item.name}
+        itemKey={(item) => item.id}
+        itemContent={(item) => item.name}
         onSelect={this._onChooseTemplate}
       />
     );
@@ -105,10 +101,6 @@ class TemplatePicker extends React.Component<{
   draft: Message;
 }> {
   static displayName = 'TemplatePicker';
-
-  static propTypes = {
-    headerMessageId: PropTypes.string,
-  };
 
   _onClickButton = () => {
     const buttonRect = (ReactDOM.findDOMNode(this) as HTMLElement).getBoundingClientRect();

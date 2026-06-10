@@ -6,7 +6,7 @@ import * as Attributes from '../attributes';
  (like a `Thread`, `Message`, or `Account`).
  */
 export class PluginMetadata extends Model {
-  static attributes = ({
+  static attributes = {
     pluginId: Attributes.String({
       modelKey: 'pluginId',
     }),
@@ -17,7 +17,7 @@ export class PluginMetadata extends Model {
     value: Attributes.Obj({
       modelKey: 'value',
     }),
-  } as unknown) as typeof Model['attributes'];
+  } as unknown as (typeof Model)['attributes'];
 
   public pluginId: string;
   public version: number;
@@ -73,14 +73,14 @@ export class ModelWithMetadata extends Model {
 
   public pluginMetadata: PluginMetadata[];
 
-  constructor(fields) {
+  constructor(fields: AttributeValues<typeof Model.attributes>) {
     super(fields);
     this.pluginMetadata = this.pluginMetadata || [];
   }
 
   // Public accessors
 
-  metadataForPluginId(pluginId) {
+  metadataForPluginId(pluginId: string) {
     const metadata = this.metadataObjectForPluginId(pluginId);
     if (!metadata) {
       return null;
@@ -104,9 +104,9 @@ export class ModelWithMetadata extends Model {
    * we change the draft's metadata directly with other attributes and then use SyncbackDraftTask
    * to commit all the changes at once. It's a bit messy: this code must match the C++ codebase.
    */
-  directlyAttachMetadata(pluginId, metadataValue) {
+  directlyAttachMetadata(pluginId: string, metadataValue: Record<string, any>) {
     // ensure that this function treats metadata objects as immutable
-    this.pluginMetadata = [].concat(this.pluginMetadata.map(p => p.clone()));
+    this.pluginMetadata = [].concat(this.pluginMetadata.map((p) => p.clone()));
 
     let metadata = this.metadataObjectForPluginId(pluginId);
     if (!metadata) {
@@ -123,10 +123,10 @@ export class ModelWithMetadata extends Model {
 
   // Private helpers
 
-  metadataObjectForPluginId(pluginId) {
+  metadataObjectForPluginId(pluginId: string) {
     if (typeof pluginId !== 'string') {
       throw new Error(`Invalid pluginId. Must be a valid string: '${pluginId}'`);
     }
-    return this.pluginMetadata.find(metadata => metadata.pluginId === pluginId);
+    return this.pluginMetadata.find((metadata) => metadata.pluginId === pluginId);
   }
 }

@@ -25,8 +25,8 @@ class TestModel extends Model {
   };
 }
 
-TestModel.configureBasic = () =>
-  (TestModel.attributes = {
+(TestModel as any).configureBasic = () =>
+  ((TestModel as any).attributes = {
     id: Attributes.String({
       queryable: true,
       modelKey: 'id',
@@ -43,8 +43,8 @@ TestModel.configureBasic = () =>
     }),
   });
 
-TestModel.configureWithAllAttributes = () =>
-  (TestModel.attributes = {
+(TestModel as any).configureWithAllAttributes = () =>
+  ((TestModel as any).attributes = {
     datetime: Attributes.DateTime({
       queryable: true,
       modelKey: 'datetime',
@@ -67,8 +67,8 @@ TestModel.configureWithAllAttributes = () =>
     }),
   });
 
-TestModel.configureWithCollectionAttribute = () =>
-  (TestModel.attributes = {
+(TestModel as any).configureWithCollectionAttribute = () =>
+  ((TestModel as any).attributes = {
     id: Attributes.String({
       queryable: true,
       modelKey: 'id',
@@ -96,8 +96,8 @@ TestModel.configureWithCollectionAttribute = () =>
     }),
   });
 
-TestModel.configureWithJoinedDataAttribute = function() {
-  TestModel.attributes = {
+(TestModel as any).configureWithJoinedDataAttribute = function () {
+  (TestModel as any).attributes = {
     id: Attributes.String({
       queryable: true,
       modelKey: 'id',
@@ -118,7 +118,7 @@ TestModel.configureWithJoinedDataAttribute = function() {
     }),
   };
 
-  TestModel.attributes = {
+  (TestModel as any).attributes = {
     id: Attributes.String({
       queryable: true,
       modelKey: 'id',

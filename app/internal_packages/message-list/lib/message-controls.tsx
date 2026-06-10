@@ -3,10 +3,10 @@
 import React from 'react';
 import {
   localized,
-  PropTypes,
   Actions,
   TaskQueue,
   GetMessageRFC2822Task,
+  EmlUtils,
   Thread,
   Message,
 } from 'mailspring-exports';
@@ -19,10 +19,6 @@ interface MessageControlsProps {
 
 export default class MessageControls extends React.Component<MessageControlsProps> {
   static displayName = 'MessageControls';
-  static propTypes = {
-    thread: PropTypes.object.isRequired,
-    message: PropTypes.object.isRequired,
-  };
 
   _items() {
     const reply = {
@@ -56,8 +52,8 @@ export default class MessageControls extends React.Component<MessageControlsProp
       : [reply, replyAll, forward, showOriginal];
   }
 
-  _dropdownMenu(items) {
-    const itemContent = item => (
+  _dropdownMenu(items: Array<{ name: string; image: string; select: () => void }>) {
+    const itemContent = (item: { name: string; image: string; select: () => void }) => (
       <span>
         <RetinaImg name={item.image} mode={RetinaImg.Mode.ContentIsMask} />
         &nbsp;&nbsp;{item.name}&nbsp;&nbsp;
@@ -67,9 +63,9 @@ export default class MessageControls extends React.Component<MessageControlsProp
     return (
       <Menu
         items={items}
-        itemKey={item => item.name}
+        itemKey={(item) => item.name}
         itemContent={itemContent}
-        onSelect={item => item.select()}
+        onSelect={(item) => item.select()}
       />
     );
   }
@@ -99,6 +95,25 @@ export default class MessageControls extends React.Component<MessageControlsProp
     Actions.composeForward({ thread, message });
   };
 
+  _onDownloadEml = () => {
+    const { message } = this.props;
+    const defaultFilename = EmlUtils.defaultEmlFilename(message.subject);
+
+    AppEnv.showSaveDialog(
+      { defaultPath: defaultFilename, title: localized('Save Email') },
+      async (savePath: string) => {
+        if (!savePath) return;
+        const task = new GetMessageRFC2822Task({
+          messageId: message.id,
+          accountId: message.accountId,
+          filepath: savePath,
+        });
+        Actions.queueTask(task);
+        await TaskQueue.waitForPerformRemote(task);
+      }
+    );
+  };
+
   _onShowActionsMenu = () => {
     const SystemMenu = require('@electron/remote').Menu;
     const SystemMenuItem = require('@electron/remote').MenuItem;
@@ -115,6 +130,10 @@ export default class MessageControls extends React.Component<MessageControlsProp
         label: localized('Copy Debug Info to Clipboard'),
         click: this._onCopyToClipboard,
       })
+    );
+    menu.append(new SystemMenuItem({ type: 'separator' }));
+    menu.append(
+      new SystemMenuItem({ label: localized('Download as .eml'), click: this._onDownloadEml })
     );
     menu.popup({});
   };
@@ -154,7 +173,6 @@ export default class MessageControls extends React.Component<MessageControlsProp
 
   _onCopyToClipboard = () => {
     const { message, thread } = this.props;
-    const clipboard = require('electron').clipboard;
     const data = `
       AccountID: ${message.accountId}
       Message ID: ${message.id}
@@ -162,13 +180,15 @@ export default class MessageControls extends React.Component<MessageControlsProp
       Thread ID: ${thread.id}
       Thread Metadata: ${JSON.stringify(thread.pluginMetadata, null, '  ')}
     `;
-    clipboard.writeText(data);
+    navigator.clipboard
+      .writeText(data)
+      .catch((err) => console.error('Failed to copy to clipboard:', err));
   };
 
   render() {
     const items = this._items();
     return (
-      <div className="message-actions-wrap" onClick={e => e.stopPropagation()}>
+      <div className="message-actions-wrap" onClick={(e) => e.stopPropagation()}>
         <ButtonDropdown
           primaryItem={<RetinaImg name={items[0].image} mode={RetinaImg.Mode.ContentIsMask} />}
           primaryTitle={items[0].name}
@@ -178,11 +198,9 @@ export default class MessageControls extends React.Component<MessageControlsProp
         />
         <div
           className="message-actions-ellipsis"
-          role="button"
           tabIndex={-1}
-          aria-label={localized('More message actions')}
           onClick={this._onShowActionsMenu}
-          onKeyDown={e => {
+          onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
               this._onShowActionsMenu();

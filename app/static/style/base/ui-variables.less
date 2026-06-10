@@ -30,8 +30,14 @@
 @blue-light: #009ec4;
 
 //== Color Descriptors
-@accent-primary: @blue;
-@accent-primary-dark: @blue-dark;
+// --system-accent / --system-accent-dark are optionally set at runtime by
+// ThemeManager when the user opts into mirroring the OS tint color. When
+// unset, the fallbacks below are used. We derive @accent-primary-dark from
+// @accent-primary via CSS color-mix() so per-theme overrides of
+// @accent-primary also flow through automatically (LESS resolves @accent-
+// primary lazily to the theme's last declaration).
+@accent-primary: var(--system-accent, @blue);
+@accent-primary-dark: var(--system-accent-dark, color-mix(in srgb, @accent-primary, black 10%));
 
 @background-primary: @white;
 @background-off-primary: #fdfdfd;
@@ -91,8 +97,10 @@
 @font-weight-blond: 300;
 @font-weight-normal: 400;
 @font-weight-medium: 500;
-@font-weight-semi-bold: 600;
-@headings-font-weight: 600;
+// Semi-bold resolves to a CSS custom property defined in workspace.less
+// (600 default, 700 on Windows) because Nylas-Pro's heaviest face is
+// SemiBold at 600, while Windows system-ui (Segoe UI) needs 700.
+@font-weight-semi-bold: var(--font-weight-semi-bold);
 
 // ----- Font Sizes -----
 @font-size-base: 14px;
@@ -156,7 +164,7 @@
 
 //=============================== Buttons ==============================//
 
-@btn-shadow: @standard-shadow;
+@btn-border-color: @standard-shadow-color;
 
 @btn-default-bg-color: darken(@background-primary, 0.5%);
 @btn-default-text-color: @text-color;
@@ -207,8 +215,8 @@
 @list-focused-bg: @component-active-color;
 @list-focused-border: @list-focused-bg;
 @list-selected-color: inherit;
-@list-selected-bg: mix(@component-active-color, @list-bg, 17%);
-@list-selected-border: mix(@component-active-color, @list-bg, 50%);
+@list-selected-bg: color-mix(in srgb, @component-active-color 17%, @list-bg);
+@list-selected-border: color-mix(in srgb, @component-active-color 50%, @list-bg);
 
 //== Notifications
 @background-color-info: @blue-light;

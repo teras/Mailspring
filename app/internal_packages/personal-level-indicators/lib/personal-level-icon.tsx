@@ -1,5 +1,5 @@
 import React from 'react';
-import { PropTypes, Thread } from 'mailspring-exports';
+import { Thread } from 'mailspring-exports';
 import { RetinaImg } from 'mailspring-component-kit';
 
 const StaticEmptyIndicator = <div className="personal-level-icon" />;
@@ -9,11 +9,7 @@ export default class PersonalLevelIcon extends React.Component<{ thread: Thread 
   // conflicts when injecting your item
   static displayName = 'PersonalLevelIcon';
 
-  static propTypes = {
-    thread: PropTypes.object.isRequired,
-  };
-
-  renderIndicator(level) {
+  renderIndicator(level: number) {
     return (
       <div className="personal-level-icon">
         <RetinaImg
@@ -29,7 +25,7 @@ export default class PersonalLevelIcon extends React.Component<{ thread: Thread 
   // `props`. In that sense, `render` methods are deterministic.
   render() {
     const { thread } = this.props;
-    const me = thread.participants.find(p => p.isMe());
+    const me = thread.participants.find((p) => p.isMe());
 
     if (me && thread.participants.length === 2) {
       return this.renderIndicator(2);

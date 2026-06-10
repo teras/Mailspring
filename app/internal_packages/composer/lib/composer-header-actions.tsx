@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import { localized, Actions } from 'mailspring-exports';
 import { RetinaImg, RovingTabIndexToolbar } from 'mailspring-component-kit';
 import Fields from './fields';
@@ -11,12 +10,6 @@ interface ComposerHeaderActionsProps {
 }
 export default class ComposerHeaderActions extends React.Component<ComposerHeaderActionsProps> {
   static displayName = 'ComposerHeaderActions';
-
-  static propTypes = {
-    headerMessageId: PropTypes.string.isRequired,
-    enabledFields: PropTypes.array.isRequired,
-    onShowAndFocusField: PropTypes.func.isRequired,
-  };
 
   _onPopoutComposer = () => {
     Actions.composePopoutDraft(this.props.headerMessageId);
@@ -58,6 +51,21 @@ export default class ComposerHeaderActions extends React.Component<ComposerHeade
           onKeyDown={this._onKeyDown(() => this.props.onShowAndFocusField(Fields.Bcc))}
         >
           {localized('Bcc')}
+        </span>
+      );
+    }
+
+    if (!this.props.enabledFields.includes(Fields.ReplyTo)) {
+      items.push(
+        <span
+          className="action show-reply-to"
+          key="replyTo"
+          role="button"
+          tabIndex={-1}
+          onClick={() => this.props.onShowAndFocusField(Fields.ReplyTo)}
+          onKeyDown={this._onKeyDown(() => this.props.onShowAndFocusField(Fields.ReplyTo))}
+        >
+          {localized('Reply-To')}
         </span>
       );
     }

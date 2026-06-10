@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 /* Public: A small React component which renders as a horizontal on/off switch.
    Provide it with `onChange` and `checked` props just like a checkbox:
@@ -16,7 +15,7 @@ type SwitchProps = {
   labelledBy?: string;
 };
 
-const Switch: React.SFC<SwitchProps> = props => {
+const Switch: React.SFC<SwitchProps> = (props) => {
   let classnames = `${props.className || ''} slide-switch`;
   if (props.checked) {
     classnames += ' active';

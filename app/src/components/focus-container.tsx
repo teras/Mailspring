@@ -1,5 +1,5 @@
 import React from 'react';
-import { PropTypes, FocusedContentStore, Actions } from 'mailspring-exports';
+import { FocusedContentStore, Actions } from 'mailspring-exports';
 import { FluxContainer } from 'mailspring-component-kit';
 
 type FocusContainerProps = {
@@ -8,10 +8,6 @@ type FocusContainerProps = {
 };
 export default class FocusContainer extends React.Component<FocusContainerProps> {
   static displayName = 'FocusContainer';
-  static propTypes = {
-    children: PropTypes.element,
-    collection: PropTypes.string,
-  };
 
   getStateFromStores = () => {
     const { collection } = this.props;
@@ -20,8 +16,8 @@ export default class FocusContainer extends React.Component<FocusContainerProps>
       focusedId: FocusedContentStore.focusedId(collection),
       keyboardCursor: FocusedContentStore.keyboardCursor(collection),
       keyboardCursorId: FocusedContentStore.keyboardCursorId(collection),
-      onFocusItem: item => Actions.setFocus({ collection, item }),
-      onSetCursorPosition: item => Actions.setCursorPosition({ collection, item }),
+      onFocusItem: (item: any) => Actions.setFocus({ collection, item }),
+      onSetCursorPosition: (item: any) => Actions.setCursorPosition({ collection, item }),
     };
   };
 

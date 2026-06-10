@@ -4,18 +4,28 @@ import {
   Actions,
   Thread,
   Message,
+  Contact,
   DatabaseStore,
   NativeNotifications,
   FocusedPerspectiveStore,
 } from 'mailspring-exports';
 
+interface ActivityAction {
+  messageId: string;
+  threadId: string;
+  title: string;
+  recipient: Contact | null;
+  pluginId: string;
+  timestamp: number;
+}
+
 import * as ActivityActions from './activity-actions';
 import ActivityDataSource from './activity-data-source';
 import { configForPluginId, LINK_TRACKING_ID, OPEN_TRACKING_ID } from './plugin-helpers';
 
-export function pluckByEmail(recipients, email) {
+export function pluckByEmail(recipients: Contact[], email: string) {
   if (email) {
-    return recipients.find(r => r.email === email);
+    return recipients.find((r) => r.email === email);
   } else if (recipients.length === 1) {
     return recipients[0];
   }
@@ -38,7 +48,7 @@ class ActivityEventStore extends MailspringStore {
         .buildObservable({
           messageLimit: 500,
         })
-        .subscribe(messages => {
+        .subscribe((messages) => {
           this._messages = messages;
           this._onUpdateActivity();
         });
@@ -59,12 +69,12 @@ class ActivityEventStore extends MailspringStore {
     return this._actions;
   }
 
-  actionIsUnseen(action) {
+  actionIsUnseen(action: ActivityAction) {
     if (!AppEnv.savedState.activityListViewed) return true;
     return action.timestamp >= AppEnv.savedState.activityListViewed;
   }
 
-  actionIsUnnotified(action) {
+  actionIsUnnotified(action: ActivityAction) {
     if (!AppEnv.savedState.activityListNotified) return true;
     return action.timestamp >= AppEnv.savedState.activityListNotified;
   }
@@ -78,10 +88,10 @@ class ActivityEventStore extends MailspringStore {
     return '999+';
   }
 
-  focusThread(threadId) {
+  focusThread(threadId: string) {
     AppEnv.displayWindow();
     Actions.closePopover();
-    DatabaseStore.find<Thread>(Thread, threadId).then(thread => {
+    DatabaseStore.find<Thread>(Thread, threadId).then((thread) => {
       if (!thread) {
         AppEnv.reportError(
           new Error(`ActivityEventStore::focusThread: Can't find thread: ${threadId}`)
@@ -119,17 +129,17 @@ class ActivityEventStore extends MailspringStore {
     // Build actions and notifications
 
     this._messages
-      .filter(m => sidebarAccountIds.includes(m.accountId))
-      .forEach(message => {
+      .filter((m) => sidebarAccountIds.includes(m.accountId))
+      .forEach((message) => {
         const openMetadata = message.metadataForPluginId(OPEN_TRACKING_ID);
         const linkMetadata = message.metadataForPluginId(LINK_TRACKING_ID);
         if (openMetadata && openMetadata.open_count > 0) {
-          this._appendActionsForMessage(message, OPEN_TRACKING_ID, cb => {
-            openMetadata.open_data.forEach(open => cb(open, message.subject));
+          this._appendActionsForMessage(message, OPEN_TRACKING_ID, (cb) => {
+            openMetadata.open_data.forEach((open) => cb(open, message.subject));
           });
         }
         if (linkMetadata && linkMetadata.links) {
-          this._appendActionsForMessage(message, LINK_TRACKING_ID, cb => {
+          this._appendActionsForMessage(message, LINK_TRACKING_ID, (cb) => {
             for (const link of linkMetadata.links) {
               for (const click of link.click_data) {
                 cb(click, link.title || link.url);
@@ -145,10 +155,10 @@ class ActivityEventStore extends MailspringStore {
     }
 
     const unnotified = this._actions.filter(
-      a => this.actionIsUnseen(a) && this.actionIsUnnotified(a)
+      (a) => this.actionIsUnseen(a) && this.actionIsUnnotified(a)
     );
 
-    unnotified.forEach(action => {
+    unnotified.forEach((action) => {
       const key = `${action.threadId}-${action.pluginId}`;
       const last = this._throttlingTimestamps[key];
 
@@ -175,7 +185,13 @@ class ActivityEventStore extends MailspringStore {
     this.trigger();
   }
 
-  _appendActionsForMessage(message, pluginId, actionLoopFn) {
+  _appendActionsForMessage(
+    message: Message,
+    pluginId: string,
+    actionLoopFn: (
+      cb: (event: { recipient: string; timestamp: number }, title: string) => void
+    ) => void
+  ) {
     const recipients = message.to.concat(message.cc, message.bcc);
 
     let actions = [];
@@ -200,7 +216,7 @@ class ActivityEventStore extends MailspringStore {
     if (!AppEnv.config.get('core.notifications.enabledForRepeatedTrackingEvents')) {
       const seen = {};
       actions = actions.sort((a, b) => a.timestamp - b.timestamp); // oldest to newest
-      actions = actions.filter(a => {
+      actions = actions.filter((a) => {
         const key = `${a.title}${a.recipient && a.recipient.email}`;
         if (seen[key]) return false;
         seen[key] = true;
@@ -209,7 +225,7 @@ class ActivityEventStore extends MailspringStore {
     }
 
     this._actions.push(...actions);
-    this._unreadCount += actions.filter(a => this.actionIsUnseen(a)).length;
+    this._unreadCount += actions.filter((a) => this.actionIsUnseen(a)).length;
   }
 }
 

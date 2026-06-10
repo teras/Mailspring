@@ -14,7 +14,7 @@ class OutboxStore extends MailspringStore {
 
   _populate() {
     const nextTasks = TaskQueue.queue().filter(
-      task => task instanceof SendDraftTask || task instanceof SyncbackDraftTask
+      (task) => task instanceof SendDraftTask || task instanceof SyncbackDraftTask
     );
     if (this._tasks.length === 0 && nextTasks.length === 0) {
       return;
@@ -23,8 +23,8 @@ class OutboxStore extends MailspringStore {
     this.trigger();
   }
 
-  itemsForAccount(accountId) {
-    return this._tasks.filter(task => task.draftAccountId === accountId);
+  itemsForAccount(accountId: string) {
+    return this._tasks.filter((task) => task.draftAccountId === accountId);
   }
 }
 

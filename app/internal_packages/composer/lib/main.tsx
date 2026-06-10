@@ -79,7 +79,7 @@ class ComposerWithWindowProps extends React.Component<
   render() {
     return (
       <ComposerViewForDraftClientId
-        ref={cm => {
+        ref={(cm) => {
           this._composerComponent = cm;
         }}
         onDraftReady={this._onDraftReady}
@@ -89,7 +89,7 @@ class ComposerWithWindowProps extends React.Component<
     );
   }
 
-  _showInitialErrorDialog(msg, detail) {
+  _showInitialErrorDialog(msg: string, detail: string) {
     // We delay so the view has time to update the restored draft. If we
     // don't delay the modal may come up in a state where the draft looks
     // like it hasn't been restored or has been lost.

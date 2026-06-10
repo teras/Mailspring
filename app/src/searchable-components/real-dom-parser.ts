@@ -1,4 +1,3 @@
-import _ from 'underscore';
 import { DOMUtils } from 'mailspring-exports';
 import UnifiedDOMParser from './unified-dom-parser';
 
@@ -16,10 +15,10 @@ export default class RealDOMParser extends UnifiedDOMParser {
   }
 
   getWalker(dom: any): Iterable<HTMLElement> {
-    const filterFn = node => {
+    const filterFn = (node) => {
       return node.nodeType === Node.TEXT_NODE;
     };
-    const pruneFn = node => {
+    const pruneFn = (node) => {
       return node.nodeName === 'STYLE';
     };
     return this._pruningDOMWalker({ node: dom, pruneFn, filterFn });
@@ -42,7 +41,7 @@ export default class RealDOMParser extends UnifiedDOMParser {
   }
 
   getRawFullString(fullString: any) {
-    return _.pluck(fullString, 'data').join('');
+    return fullString.map((x) => x.data).join('');
   }
 
   removeMatchesAndNormalize(element: any) {

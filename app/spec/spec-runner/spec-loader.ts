@@ -1,10 +1,13 @@
 /* eslint global-require: 0 */
 /* eslint import/no-dynamic-require: 0 */
 import _ from 'underscore';
-import fs from 'fs-plus';
+import fs from 'fs';
 import path from 'path';
 
 class N1SpecLoader {
+  jasmineEnv: any;
+  loadSettings: any;
+
   loadSpecs(loadSettings, jasmineEnv) {
     this.jasmineEnv = jasmineEnv;
     this.loadSettings = loadSettings;
@@ -26,18 +29,19 @@ class N1SpecLoader {
     const fixturesPackagesPath = path.join(__dirname, 'fixtures', 'packages');
 
     // EDGEHILL_CORE: Look in internal_packages instead of node_modules
-    let packagePaths = [];
-    const iterable = fs.listSync(path.join(resourcePath, 'internal_packages'));
+    let packagePathsList: string[] = [];
+    const pkgsDir = path.join(resourcePath, 'internal_packages');
+    const iterable = fs.readdirSync(pkgsDir).map((f) => path.join(pkgsDir, f));
     for (let i = 0; i < iterable.length; i++) {
       const packagePath = iterable[i];
-      if (fs.isDirectorySync(packagePath)) {
-        packagePaths.push(packagePath);
+      if (fs.statSync(packagePath).isDirectory()) {
+        packagePathsList.push(packagePath);
       }
     }
 
-    packagePaths = _.uniq(packagePaths);
+    packagePathsList = _.uniq(packagePathsList);
 
-    packagePaths = _.groupBy(packagePaths, packagePath => {
+    const packagePaths: { [key: string]: string[] } = _.groupBy(packagePathsList, (packagePath) => {
       if (packagePath.indexOf(`${fixturesPackagesPath}${path.sep}`) === 0) {
         return 'fixtures';
       } else if (packagePath.indexOf(`${resourcePath}${path.sep}`) === 0) {
@@ -72,7 +76,10 @@ class N1SpecLoader {
       regex = new RegExp(specFilePattern);
     }
 
-    for (const specFilePath of fs.listTreeSync(specDirectory)) {
+    if (!fs.existsSync(specDirectory)) return;
+    for (const specFilePath of (fs.readdirSync(specDirectory, { recursive: true }) as string[]).map(
+      (f) => path.join(specDirectory, f)
+    )) {
       if (regex.test(specFilePath)) {
         try {
           require(specFilePath);

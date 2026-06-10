@@ -36,7 +36,7 @@ interface WeekViewEventColumnProps {
 export class WeekViewEventColumn extends React.Component<WeekViewEventColumnProps> {
   static displayName = 'WeekViewEventColumn';
 
-  shouldComponentUpdate(nextProps, nextState) {
+  shouldComponentUpdate(nextProps: WeekViewEventColumnProps, nextState: Record<string, never>) {
     return !Utils.isEqualReact(nextProps, this.props) || !Utils.isEqualReact(nextState, this.state);
   }
 
@@ -71,7 +71,7 @@ export class WeekViewEventColumn extends React.Component<WeekViewEventColumnProp
         data-calendar-end={dayEndUnix}
         data-calendar-type="day-column"
       >
-        {events.map(e => (
+        {events.map((e) => (
           <CalendarEvent
             event={e}
             selected={selectedEvents.includes(e)}

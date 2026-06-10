@@ -37,12 +37,12 @@ export default class AccountSidebar extends React.Component<
     return this.unsubscribers.push(AccountStore.listen(this._onStoreChange));
   }
 
-  shouldComponentUpdate(nextProps, nextState) {
+  shouldComponentUpdate(nextProps: Record<string, unknown>, nextState: AccountSidebarState) {
     return !Utils.isEqualReact(nextProps, this.props) || !Utils.isEqualReact(nextState, this.state);
   }
 
   componentWillUnmount() {
-    return this.unsubscribers.map(unsubscribe => unsubscribe());
+    return this.unsubscribers.map((unsubscribe) => unsubscribe());
   }
 
   _onStoreChange = () => {
@@ -58,8 +58,8 @@ export default class AccountSidebar extends React.Component<
     };
   };
 
-  _renderUserSections(sections) {
-    return sections.map(section => <OutlineView key={section.title} {...section} />);
+  _renderUserSections(sections: ISidebarSection[]) {
+    return sections.map((section) => <OutlineView key={section.title} {...section} />);
   }
 
   render() {

@@ -6,10 +6,13 @@ import {
   FolderSyncProgressStore,
   TaskQueue,
   SendDraftTask,
+  GetManyRFC2822Task,
+  Task,
 } from 'mailspring-exports';
 
 import { SyncActivity } from './sync-activity';
 import { SyncbackActivity } from './syncback-activity';
+import { ExportActivity } from './export-activity';
 
 const SEND_TASK_CLASSES = [SendDraftTask];
 
@@ -35,7 +38,7 @@ export default class ActivitySidebar extends React.Component<
 
   _unlisteners: Array<() => void>;
 
-  constructor(props) {
+  constructor(props: Record<string, unknown>) {
     super(props);
     this.state = Object.assign({ expanded: false }, this._getStateFromStores(false));
   }
@@ -44,7 +47,7 @@ export default class ActivitySidebar extends React.Component<
     this.setState(this._getStateFromStores(this.state.expanded));
   };
 
-  _getStateFromStores = isExpanded => {
+  _getStateFromStores = (isExpanded: boolean) => {
     return {
       tasks: TaskQueue.queue(),
 
@@ -55,7 +58,7 @@ export default class ActivitySidebar extends React.Component<
     };
   };
 
-  shouldComponentUpdate(nextProps, nextState) {
+  shouldComponentUpdate(nextProps: Record<string, unknown>, nextState: ActivitySidebarState) {
     return !Utils.isEqualReact(nextState, this.state);
   }
 
@@ -84,11 +87,14 @@ export default class ActivitySidebar extends React.Component<
   render() {
     const { tasks, syncSummary, syncState, expanded } = this.state;
 
-    const sendTasks = [];
-    const nonSendTasks = [];
-    tasks.forEach(task => {
-      if (SEND_TASK_CLASSES.some(klass => task instanceof klass)) {
+    const sendTasks: SendDraftTask[] = [];
+    const exportTasks: GetManyRFC2822Task[] = [];
+    const nonSendTasks: Task[] = [];
+    tasks.forEach((task) => {
+      if (SEND_TASK_CLASSES.some((klass) => task instanceof klass)) {
         sendTasks.push(task);
+      } else if (task instanceof GetManyRFC2822Task) {
+        exportTasks.push(task);
       } else {
         nonSendTasks.push(task);
       }
@@ -98,6 +104,7 @@ export default class ActivitySidebar extends React.Component<
       <div className="sidebar-activity-floating-container">
         <div className="sidebar-activity">
           {sendTasks.length ? <SyncbackActivity tasks={sendTasks} /> : null}
+          {exportTasks.length ? <ExportActivity tasks={exportTasks} /> : null}
           {nonSendTasks.length || syncSummary.phrase ? (
             <div
               className="item"

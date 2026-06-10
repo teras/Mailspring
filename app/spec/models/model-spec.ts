@@ -112,7 +112,7 @@ describe('Model', function modelSpecs() {
     it('should assign attribute values by calling through to attribute fromJSON functions', () => {
       spyOn(Model.attributes.accountId, 'fromJSON').andCallFake(() => 'inflated value!');
       this.m.fromJSON(this.json);
-      expect(Model.attributes.accountId.fromJSON.callCount).toBe(1);
+      expect((Model.attributes.accountId.fromJSON as jasmine.Spy).callCount).toBe(1);
       expect(this.m.accountId).toBe('inflated value!');
     });
 
@@ -265,7 +265,7 @@ describe('Model', function modelSpecs() {
     });
 
     it('should pass itself as an argument to the matchers', () => {
-      spyOn(this.truthyMatcher, 'evaluate').andCallFake(param => {
+      spyOn(this.truthyMatcher, 'evaluate').andCallFake((param) => {
         expect(param).toBe(this.model);
       });
       this.model.matches([this.truthyMatcher]);

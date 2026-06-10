@@ -146,8 +146,8 @@ const Tests = [
   },
 ];
 
-describe('MailRulesProcessor', function() {
-  describe('_checkRuleForMessage', function() {
+describe('MailRulesProcessor', function () {
+  describe('_checkRuleForMessage', function () {
     it('should correctly filter sample messages', () =>
       Tests.forEach(({ rule, good, bad }) => {
         let idx, message;
@@ -173,7 +173,7 @@ describe('MailRulesProcessor', function() {
         })();
       }));
 
-    it('should check the account id', function() {
+    it('should check the account id', function () {
       const { rule, good } = Tests[0];
       const message = good[0];
       message.accountId = 'not the same!';
@@ -182,13 +182,13 @@ describe('MailRulesProcessor', function() {
   });
 
   describe('_applyRuleToMessage', () =>
-    it('should queue tasks for messages', function() {
+    it('should queue tasks for messages', function () {
       spyOn(TaskQueue, 'waitForPerformLocal');
       spyOn(Actions, 'queueTasks');
       spyOn(DatabaseStore, 'findBy').andReturn(Promise.resolve({}));
       Tests.forEach(({ rule }) => {
-        TaskQueue.waitForPerformLocal.reset();
-        Actions.queueTasks.reset();
+        (TaskQueue.waitForPerformLocal as jasmine.Spy).reset();
+        (Actions.queueTasks as unknown as jasmine.Spy).reset();
 
         const message = new Message({ accountId: rule.accountId });
         const thread = new Thread({ accountId: rule.accountId });

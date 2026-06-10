@@ -26,7 +26,7 @@ describe('QuerySubscriptionPool', function QuerySubscriptionPoolSpecs() {
       const subscription = QuerySubscriptionPool._subscriptions[this.queryKey];
       spyOn(subscription, 'applyChangeRecord');
 
-      const record = { objectType: 'whateves' };
+      const record = { objectType: 'whateves' } as any;
       QuerySubscriptionPool._onChange(record);
       expect(subscription.applyChangeRecord).toHaveBeenCalledWith(record);
     });

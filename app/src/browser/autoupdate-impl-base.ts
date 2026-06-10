@@ -3,6 +3,19 @@ import https from 'https';
 import { shell } from 'electron';
 import url from 'url';
 
+const FALLBACK_DOWNLOAD_URL = 'https://getmailspring.com/download';
+
+function safeHttpUrl(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return null;
+    return parsed.href;
+  } catch {
+    return null;
+  }
+}
+
 export default class AutoupdateImplBase extends EventEmitter {
   feedURL: string;
   lastRetrievedUpdateURL?: string;
@@ -22,8 +35,12 @@ export default class AutoupdateImplBase extends EventEmitter {
     this.lastRetrievedUpdateURL = null;
   }
 
-  emitError = error => {
-    this.emit('error', error);
+  emitError = (error) => {
+    if (this.listenerCount('error') > 0) {
+      this.emit('error', error);
+    } else {
+      console.error('Autoupdater error (unhandled):', error.message);
+    }
   };
 
   manuallyQueryUpdateServer(successCallback) {
@@ -33,7 +50,7 @@ export default class AutoupdateImplBase extends EventEmitter {
     // Hit the feed URL ourselves and see if an update is available.
     // On linux we can't autoupdate, but we can still show the "update available" bar.
     https
-      .get({ host: feedHost, path: feedPath }, res => {
+      .get({ host: feedHost, path: feedPath }, (res) => {
         console.log(`Manual update check (${feedHost}${feedPath}) returned ${res.statusCode}`);
 
         if (res.statusCode === 204) {
@@ -41,9 +58,15 @@ export default class AutoupdateImplBase extends EventEmitter {
           return;
         }
 
+        if (res.statusCode !== 200) {
+          this.emitError(new Error(`Autoupdater server returned status ${res.statusCode}`));
+          res.resume(); // drain the response so the socket can be freed
+          return;
+        }
+
         let data = '';
         res.on('error', this.emitError);
-        res.on('data', chunk => {
+        res.on('data', (chunk) => {
           data += chunk;
         });
         res.on('end', () => {
@@ -53,6 +76,14 @@ export default class AutoupdateImplBase extends EventEmitter {
               this.emitError(new Error(`Autoupdater response did not include URL: ${data}`));
               return;
             }
+            const safeUrl = safeHttpUrl(json.url);
+            if (!safeUrl) {
+              this.emitError(
+                new Error(`Autoupdater response URL has disallowed scheme: ${json.url}`)
+              );
+              return;
+            }
+            json.url = safeUrl;
             successCallback(json);
           } catch (err) {
             this.emitError(err);
@@ -70,7 +101,7 @@ export default class AutoupdateImplBase extends EventEmitter {
 
     this.emit('checking-for-update');
 
-    this.manuallyQueryUpdateServer(json => {
+    this.manuallyQueryUpdateServer((json) => {
       if (!json) {
         this.emit('update-not-available');
         return;
@@ -82,6 +113,6 @@ export default class AutoupdateImplBase extends EventEmitter {
 
   /* Public: Install the update. */
   quitAndInstall() {
-    shell.openExternal(this.lastRetrievedUpdateURL || 'https://getmailspring.com/download');
+    shell.openExternal(safeHttpUrl(this.lastRetrievedUpdateURL) ?? FALLBACK_DOWNLOAD_URL);
   }
 }

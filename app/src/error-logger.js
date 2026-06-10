@@ -9,7 +9,7 @@ if (process.type === 'renderer') {
 }
 
 var appVersion = app.getVersion();
-var RavenErrorReporter = require('./error-logger-extensions/raven-error-reporter');
+// DISABLED: Sentry error reporting removed for local-only client (no SentryErrorReporter import)
 
 // A globally available ErrorLogger that can report errors to various
 // sources and enhance error functionality.
@@ -56,8 +56,37 @@ module.exports = ErrorLogger = (function () {
     if (this.inSpecMode) {
       return;
     }
-    if (!error) {
-      error = { stack: '' };
+    // Without a message and a stack, an error logged to Sentry shows up as
+    // "Unknown error" with only the IPC handler frame, which is unactionable.
+    // Wrap such inputs in a real Error here so we capture the call site as
+    // the stack and describe the original input in the message.
+    var hasMessage =
+      error && typeof error.message === 'string' && error.message.length > 0;
+    var hasStack = error && typeof error.stack === 'string' && error.stack.length > 0;
+    if (!hasMessage && !hasStack) {
+      var description;
+      try {
+        description = JSON.stringify(error);
+      } catch (e) {
+        description = Object.prototype.toString.call(error);
+      }
+      var wrapped = new Error('Empty error reported (' + description + ')');
+      if (error && typeof error === 'object') {
+        // Copy any other useful fields from the original, but never let an
+        // empty `message`/`stack` on the input clobber the wrap's real values
+        // — that would defeat the whole purpose of wrapping.
+        try {
+          var keys = Object.getOwnPropertyNames(error);
+          for (var i = 0; i < keys.length; i++) {
+            var key = keys[i];
+            if (key === 'message' || key === 'stack') continue;
+            wrapped[key] = error[key];
+          }
+        } catch (e) {
+          // ignore non-assignable inputs
+        }
+      }
+      error = wrapped;
     }
     if (process.type === 'renderer') {
       var errorJSON = '{}';
@@ -113,7 +142,7 @@ module.exports = ErrorLogger = (function () {
         ver: appVersion,
         platform: process.platform,
       },
-    })
+    });
   };
 
   ErrorLogger.prototype._extendNativeConsole = function (args) {

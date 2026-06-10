@@ -14,6 +14,21 @@ import _ from 'underscore';
 // You must now manually call `advanceClock()` in order to move the "clock"
 // forward.
 class TimeOverride {
+  static advanceClock: (delta?: number) => void;
+  static now: number;
+  static timeoutCount: number;
+  static intervalCount: number;
+  static timeouts: Array<[number, number, () => void]>;
+  static intervalTimeouts: { [id: number]: number };
+  static originalPromiseScheduler: any;
+  static resetTime: () => void;
+  static enableSpies: () => void;
+  static disableSpies: () => void;
+  static _fakeSetTimeout: (callback: () => void, ms: number) => number;
+  static _fakeClearTimeout: (idToClear: number) => void;
+  static _fakeSetInterval: (callback: () => void, ms: number) => number;
+  static _fakeClearInterval: (idToClear: number) => void;
+
   static initClass() {
     this.advanceClock = (delta = 1) => {
       this.now += delta;
@@ -57,7 +72,7 @@ class TimeOverride {
       spyOn(window, 'clearTimeout').andCallFake(this._fakeClearTimeout);
       spyOn(window, 'setInterval').andCallFake(this._fakeSetInterval);
       spyOn(window, 'clearInterval').andCallFake(this._fakeClearInterval);
-      spyOn(_._, 'now').andCallFake(() => this.now);
+      spyOn((_ as any)._, 'now').andCallFake(() => this.now);
     };
 
     // spyOn(Date, "now").andCallFake => @now
@@ -71,7 +86,7 @@ class TimeOverride {
       jasmine.unspy(window, 'setInterval');
       jasmine.unspy(window, 'clearInterval');
 
-      jasmine.unspy(_._, 'now');
+      jasmine.unspy((_ as any)._, 'now');
     };
 
     this._fakeSetTimeout = (callback, ms) => {
@@ -80,11 +95,11 @@ class TimeOverride {
       return id;
     };
 
-    this._fakeClearTimeout = idToClear => {
+    this._fakeClearTimeout = (idToClear) => {
       if (this.timeouts == null) {
         this.timeouts = [];
       }
-      this.timeouts = this.timeouts.filter(function(...args) {
+      this.timeouts = this.timeouts.filter(function (...args) {
         const [id] = args[0];
         return id !== idToClear;
       });
@@ -100,29 +115,29 @@ class TimeOverride {
       return id;
     };
 
-    this._fakeClearInterval = idToClear => {
+    this._fakeClearInterval = (idToClear) => {
       this._fakeClearTimeout(this.intervalTimeouts[idToClear]);
     };
   }
 
   static resetSpyData() {
-    if (typeof window.setTimeout.reset === 'function') {
-      window.setTimeout.reset();
+    if (typeof (window.setTimeout as any).reset === 'function') {
+      (window.setTimeout as unknown as jasmine.Spy).reset();
     }
-    if (typeof window.clearTimeout.reset === 'function') {
-      window.clearTimeout.reset();
+    if (typeof (window.clearTimeout as any).reset === 'function') {
+      (window.clearTimeout as jasmine.Spy).reset();
     }
-    if (typeof window.setInterval.reset === 'function') {
-      window.setInterval.reset();
+    if (typeof (window.setInterval as any).reset === 'function') {
+      (window.setInterval as jasmine.Spy).reset();
     }
-    if (typeof window.clearInterval.reset === 'function') {
-      window.clearInterval.reset();
+    if (typeof (window.clearInterval as any).reset === 'function') {
+      (window.clearInterval as jasmine.Spy).reset();
     }
-    if (typeof Date.now.reset === 'function') {
-      Date.now.reset();
+    if (typeof (Date.now as any).reset === 'function') {
+      (Date.now as jasmine.Spy).reset();
     }
-    if (typeof Date.prototype.getTime.reset === 'function') {
-      Date.prototype.getTime.reset();
+    if (typeof (Date.prototype.getTime as any).reset === 'function') {
+      (Date.prototype.getTime as jasmine.Spy).reset();
     }
   }
 }

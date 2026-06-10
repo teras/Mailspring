@@ -10,11 +10,10 @@ import { DraftEditingSession } from '../../src/flux/stores/draft-editing-session
 const { DraftChangeSet } = DraftEditingSession;
 import _ from 'underscore';
 
-xdescribe('DraftEditingSession Specs', function() {
-  describe('DraftChangeSet', function() {
-    beforeEach(function() {
-      this.onDidAddChanges = jasmine.createSpy('onDidAddChanges');
-      this.onWillAddChanges = jasmine.createSpy('onWillAddChanges');
+xdescribe('DraftEditingSession Specs', function () {
+  describe('DraftChangeSet', function () {
+    beforeEach(function () {
+      this.onAddChanges = jasmine.createSpy('onAddChanges');
       this.commitResolve = null;
       this.commitResolves = [];
       this.onCommit = jasmine.createSpy('commit').andCallFake(() => {
@@ -25,33 +24,32 @@ xdescribe('DraftEditingSession Specs', function() {
       });
 
       this.changeSet = new DraftChangeSet({
-        onDidAddChanges: this.onDidAddChanges,
-        onWillAddChanges: this.onWillAddChanges,
+        onAddChanges: this.onAddChanges,
         onCommit: this.onCommit,
       });
       this.changeSet._pending = { subject: 'Change to subject line' };
     });
 
     describe('teardown', () =>
-      it('should remove all of the pending and saving changes', function() {
+      it('should remove all of the pending and saving changes', function () {
         this.changeSet.teardown();
         expect(this.changeSet._saving).toEqual({});
         expect(this.changeSet._pending).toEqual({});
       }));
 
-    describe('add', function() {
-      it('should mark that the draft is not pristine', function() {
+    describe('add', function () {
+      it('should mark that the draft is not pristine', function () {
         this.changeSet.add({ body: 'Hello World!' });
         expect(this.changeSet._pending.pristine).toEqual(false);
       });
 
-      it('should add the changes to the _pending set', function() {
+      it('should add the changes to the _pending set', function () {
         this.changeSet.add({ body: 'Hello World!' });
         expect(this.changeSet._pending.body).toEqual('Hello World!');
       });
 
       describe('otherwise', () =>
-        it('should commit after thirty seconds', function() {
+        it('should commit after thirty seconds', function () {
           spyOn(this.changeSet, 'commit');
           this.changeSet.add({ body: 'Hello World!' });
           expect(this.changeSet.commit).not.toHaveBeenCalled();
@@ -60,8 +58,8 @@ xdescribe('DraftEditingSession Specs', function() {
         }));
     });
 
-    describe('commit', function() {
-      it('should resolve immediately if the pending set is empty', function() {
+    describe('commit', function () {
+      it('should resolve immediately if the pending set is empty', function () {
         this.changeSet._pending = {};
         waitsForPromise(() => {
           return this.changeSet.commit().then(() => {
@@ -70,7 +68,7 @@ xdescribe('DraftEditingSession Specs', function() {
         });
       });
 
-      it('should move changes to the saving set', function() {
+      it('should move changes to the saving set', function () {
         const pendingBefore = { ...this.changeSet._pending };
         expect(this.changeSet._saving).toEqual({});
         this.changeSet.commit();
@@ -79,7 +77,7 @@ xdescribe('DraftEditingSession Specs', function() {
         expect(this.changeSet._saving).toEqual(pendingBefore);
       });
 
-      it('should call the commit handler and then clear the saving set', function() {
+      it('should call the commit handler and then clear the saving set', function () {
         this.changeSet.commit();
         advanceClock();
         expect(this.changeSet._saving).not.toEqual({});
@@ -89,7 +87,7 @@ xdescribe('DraftEditingSession Specs', function() {
       });
 
       describe('concurrency', () =>
-        it('the commit function should always run serially', function() {
+        it('the commit function should always run serially', function () {
           let firstFulfilled = false;
           let secondFulfilled = false;
 
@@ -117,9 +115,9 @@ xdescribe('DraftEditingSession Specs', function() {
     });
   });
 
-  describe('DraftEditingSession', function() {
-    describe('constructor', function() {
-      it('should make a query to fetch the draft', function() {
+  describe('DraftEditingSession', function () {
+    describe('constructor', function () {
+      it('should make a query to fetch the draft', function () {
         spyOn(DatabaseStore, 'run').andCallFake(() => {
           return new Promise((resolve, reject) => {});
         });
@@ -127,8 +125,8 @@ xdescribe('DraftEditingSession Specs', function() {
         expect(DatabaseStore.run).toHaveBeenCalled();
       });
 
-      describe('when given a draft object', function() {
-        beforeEach(function() {
+      describe('when given a draft object', function () {
+        beforeEach(function () {
           spyOn(DatabaseStore, 'run');
           this.draft = new Message({ draft: true, body: '123' });
           this.session = new DraftEditingSession('client-id', this.draft);
@@ -137,7 +135,7 @@ xdescribe('DraftEditingSession Specs', function() {
         it('should not make a query for the draft', () =>
           expect(DatabaseStore.run).not.toHaveBeenCalled());
 
-        it('prepare should resolve without querying for the draft', function() {
+        it('prepare should resolve without querying for the draft', function () {
           waitsForPromise(() =>
             this.session.prepare().then(() => {
               expect(this.session.draft()).toBeDefined();
@@ -148,19 +146,19 @@ xdescribe('DraftEditingSession Specs', function() {
       });
     });
 
-    describe('prepare', function() {
-      beforeEach(function() {
+    describe('prepare', function () {
+      beforeEach(function () {
         this.draft = new Message({ draft: true, body: '123', id: 'client-id' });
         spyOn(DraftEditingSession.prototype, 'prepare');
         this.session = new DraftEditingSession('client-id');
         spyOn(this.session, '_setDraft').andCallThrough();
-        spyOn(DatabaseStore, 'run').andCallFake(modelQuery => {
+        spyOn(DatabaseStore, 'run').andCallFake((modelQuery) => {
           return Promise.resolve(this.draft);
         });
         jasmine.unspy(DraftEditingSession.prototype, 'prepare');
       });
 
-      it('should call setDraft with the retrieved draft', function() {
+      it('should call setDraft with the retrieved draft', function () {
         waitsForPromise(() => {
           return this.session.prepare().then(() => {
             expect(this.session._setDraft).toHaveBeenCalledWith(this.draft);
@@ -168,29 +166,29 @@ xdescribe('DraftEditingSession Specs', function() {
         });
       });
 
-      it('should resolve with the DraftEditingSession', function() {
+      it('should resolve with the DraftEditingSession', function () {
         waitsForPromise(() => {
-          return this.session.prepare().then(val => {
+          return this.session.prepare().then((val) => {
             expect(val).toBe(this.session);
           });
         });
       });
 
-      describe('error handling', function() {
-        it('should reject if the draft session has already been destroyed', function() {
+      describe('error handling', function () {
+        it('should reject if the draft session has already been destroyed', function () {
           waitsForPromise(() => {
             return this.session
               .prepare()
               .then(() => {
                 expect(false).toBe(true);
               })
-              .catch(val => {
+              .catch((val) => {
                 expect(val instanceof Error).toBe(true);
               });
           });
         });
 
-        it('should reject if the draft cannot be found', function() {
+        it('should reject if the draft cannot be found', function () {
           this.draft = null;
           waitsForPromise(() => {
             return this.session
@@ -198,7 +196,7 @@ xdescribe('DraftEditingSession Specs', function() {
               .then(() => {
                 expect(false).toBe(true);
               })
-              .catch(val => {
+              .catch((val) => {
                 expect(val instanceof Error).toBe(true);
               });
           });
@@ -206,8 +204,8 @@ xdescribe('DraftEditingSession Specs', function() {
       });
     });
 
-    describe('when a draft changes', function() {
-      beforeEach(function() {
+    describe('when a draft changes', function () {
+      beforeEach(function () {
         this.draft = new Message({ draft: true, id: 'client-id', body: 'A', subject: 'initial' });
         this.session = new DraftEditingSession('client-id', this.draft);
         advanceClock();
@@ -215,15 +213,15 @@ xdescribe('DraftEditingSession Specs', function() {
         spyOn(Actions, 'queueTask').andReturn(Promise.resolve());
       });
 
-      it('should ignore the update unless it applies to the current draft', function() {
+      it('should ignore the update unless it applies to the current draft', function () {
         spyOn(this.session, 'trigger');
-        this.session._onDraftChanged({ objectClass: 'message', objects: [new Message()] });
+        this.session._onDraftChanged({ objectClass: 'message', objects: [new Message({} as any)] });
         expect(this.session.trigger).not.toHaveBeenCalled();
         this.session._onDraftChanged({ objectClass: 'message', objects: [this.draft] });
         expect(this.session.trigger).toHaveBeenCalled();
       });
 
-      it('should apply the update to the current draft', function() {
+      it('should apply the update to the current draft', function () {
         const updatedDraft = this.draft.clone();
         updatedDraft.subject = 'This is the new subject';
         spyOn(this.session, '_setDraft');
@@ -234,40 +232,40 @@ xdescribe('DraftEditingSession Specs', function() {
         expect(draft.subject).toEqual(updatedDraft.subject);
       });
 
-      it('atomically commits changes', function() {
+      it('atomically commits changes', function () {
         spyOn(DatabaseStore, 'run').andReturn(Promise.resolve(this.draft));
         spyOn(DatabaseStore, 'inTransaction').andCallThrough();
         this.session.changes.add({ body: '123' });
         waitsForPromise(() => {
           return this.session.changes.commit().then(() => {
             expect(DatabaseStore.inTransaction).toHaveBeenCalled();
-            expect(DatabaseStore.inTransaction.calls.length).toBe(1);
+            expect((DatabaseStore.inTransaction as jasmine.Spy).calls.length).toBe(1);
           });
         });
       });
 
-      it('persist the applied changes', function() {
+      it('persist the applied changes', function () {
         spyOn(DatabaseStore, 'run').andReturn(Promise.resolve(this.draft));
         this.session.changes.add({ body: '123' });
         waitsForPromise(() => {
           return this.session.changes.commit().then(() => {
-            expect(updated.body).toBe('123');
+            expect((this as any).updated.body).toBe('123');
           });
         });
       });
 
       describe('when findBy does not return a draft', () =>
-        it("continues and persists it's local draft reference, so it is resaved and draft editing can continue", function() {
+        it("continues and persists it's local draft reference, so it is resaved and draft editing can continue", function () {
           spyOn(DatabaseStore, 'run').andReturn(Promise.resolve(null));
           this.session.changes.add({ body: '123' });
           waitsForPromise(() => {
             return this.session.changes.commit().then(() => {
-              expect(updated.body).toBe('123');
+              expect((this as any).updated.body).toBe('123');
             });
           });
         }));
 
-      it('does nothing if the draft is marked as destroyed', function() {
+      it('does nothing if the draft is marked as destroyed', function () {
         spyOn(DatabaseStore, 'run').andReturn(Promise.resolve(this.draft));
         spyOn(DatabaseStore, 'inTransaction').andCallThrough();
         return waitsForPromise(() => {

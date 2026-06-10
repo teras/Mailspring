@@ -1,8 +1,7 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import { localized, getAvailableLanguages } from 'mailspring-exports';
 
-const LanguageSection = ({ config }) => {
+const LanguageSection = ({ config }: { config?: any; configSchema?: any }) => {
   const { automatic, current, verified, experimental } = getAvailableLanguages();
 
   const configValue = config.get('core.intl.language');
@@ -10,7 +9,7 @@ const LanguageSection = ({ config }) => {
   const relaunchRequiredToUnset = !configValue && current.key !== automatic.key;
   const relaunchRequired = relaunchRequiredToSet || relaunchRequiredToUnset;
 
-  const onChangeValue = event => {
+  const onChangeValue = (event: React.ChangeEvent<HTMLSelectElement>) => {
     config.set('core.intl.language', event.target.value);
     event.target.blur();
   };
@@ -67,11 +66,6 @@ const LanguageSection = ({ config }) => {
       </div>
     </section>
   );
-};
-
-LanguageSection.propTypes = {
-  config: PropTypes.object,
-  configSchema: PropTypes.object,
 };
 
 export default LanguageSection;

@@ -2,10 +2,10 @@ import React from 'react';
 import {
   localized,
   Actions,
-  PropTypes,
   SignatureStore,
   DraftEditingSession,
   Account,
+  ISignature,
   ISignatureSet,
   MessageWithEditorState,
 } from 'mailspring-exports';
@@ -27,13 +27,6 @@ export default class SignatureComposerDropdown extends React.Component<
   static displayName = 'SignatureComposerDropdown';
 
   static containerRequired = false;
-
-  static propTypes = {
-    draft: PropTypes.object.isRequired,
-    draftFromEmail: PropTypes.string,
-    session: PropTypes.object.isRequired,
-    accounts: PropTypes.array,
-  };
 
   _staticIcon = (
     <RetinaImg
@@ -71,7 +64,7 @@ export default class SignatureComposerDropdown extends React.Component<
     ];
   };
 
-  componentDidUpdate(previousProps) {
+  componentDidUpdate(previousProps: { draftFromEmail: string }) {
     if (previousProps.draftFromEmail !== this.props.draftFromEmail) {
       const nextDefaultSignature = SignatureStore.signatureForEmail(this.props.draftFromEmail);
       window.requestAnimationFrame(() => {
@@ -81,7 +74,7 @@ export default class SignatureComposerDropdown extends React.Component<
   }
 
   componentWillUnmount() {
-    this.unsubscribers.forEach(unsubscribe => unsubscribe());
+    this.unsubscribers.forEach((unsubscribe) => unsubscribe());
   }
 
   _getStateFromStores() {
@@ -90,7 +83,7 @@ export default class SignatureComposerDropdown extends React.Component<
     };
   }
 
-  _onChangeSignature = sig => {
+  _onChangeSignature = (sig: ISignature | null) => {
     let body;
     if (sig) {
       body = applySignature(this.props.draft.body, sig);
@@ -121,9 +114,9 @@ export default class SignatureComposerDropdown extends React.Component<
         ]}
         footerComponents={this._staticFooterItems}
         items={Object.values(this.state.signatures)}
-        itemKey={sig => sig.id}
-        itemChecked={sig => currentId === sig.id}
-        itemContent={sig => <span className={`signature-title-${sig.title}`}>{sig.title}</span>}
+        itemKey={(sig) => sig.id}
+        itemChecked={(sig) => currentId === sig.id}
+        itemContent={(sig) => <span className={`signature-title-${sig.title}`}>{sig.title}</span>}
         onSelect={this._onChangeSignature}
       />
     );

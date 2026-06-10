@@ -74,6 +74,12 @@
 
   #inbox-html-wrapper.platform-win32 {
     font-family: system-ui;
+
+    strong,
+    b,
+    .bold {
+      font-weight: 700;
+    }
   }
 
   #inbox-plain-wrapper {
@@ -120,7 +126,7 @@
   }
 
   a:visited {
-    color: darken(@text-color-link, 10%);
+    color: color-mix(in srgb, @text-color-link, black 10%);
   }
   a img {
     border-bottom: 0;

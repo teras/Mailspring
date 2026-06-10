@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { RetinaImg, BindGlobalCommands, RovingTabIndexToolbar } from 'mailspring-component-kit';
 import {
@@ -18,10 +17,6 @@ import ThreadListStore from './thread-list-store';
 export class ArchiveButton extends React.Component<{ items: Thread[] }> {
   static displayName = 'ArchiveButton';
   static containerRequired = false;
-
-  static propTypes = {
-    items: PropTypes.array.isRequired,
-  };
 
   _onArchive = (event?: React.MouseEvent) => {
     const tasks = TaskFactory.tasksForArchiving({
@@ -65,10 +60,6 @@ export class ArchiveButton extends React.Component<{ items: Thread[] }> {
 export class TrashButton extends React.Component<{ items: Thread[] }> {
   static displayName = 'TrashButton';
   static containerRequired = false;
-
-  static propTypes = {
-    items: PropTypes.array.isRequired,
-  };
 
   _onRemove = (event?: React.MouseEvent) => {
     const tasks = TaskFactory.tasksForMovingToTrash({
@@ -152,7 +143,7 @@ class HiddenGenericRemoveButton extends React.Component<{ items: Thread[] }> {
 class HiddenToggleImportantButton extends React.Component<{ items: Thread[] }> {
   static displayName = 'HiddenToggleImportantButton';
 
-  _onSetImportant = important => {
+  _onSetImportant = (important: boolean) => {
     Actions.queueTasks(
       TaskFactory.tasksForThreadsByAccountId(this.props.items, (accountThreads, accountId) => {
         return new ChangeLabelsTask({
@@ -179,8 +170,8 @@ class HiddenToggleImportantButton extends React.Component<{ items: Thread[] }> {
       return false;
     }
 
-    const allImportant = this.props.items.every(item =>
-      item.labels.some(c => c.role === 'important')
+    const allImportant = this.props.items.every((item) =>
+      item.labels.some((c) => c.role === 'important')
     );
 
     return (
@@ -201,10 +192,6 @@ class HiddenToggleImportantButton extends React.Component<{ items: Thread[] }> {
 export class MarkAsSpamButton extends React.Component<{ items: Thread[] }> {
   static displayName = 'MarkAsSpamButton';
   static containerRequired = false;
-
-  static propTypes = {
-    items: PropTypes.array.isRequired,
-  };
 
   _onNotSpam = (event?: React.MouseEvent) => {
     // TODO BG REPLACE TASK FACTORY
@@ -234,7 +221,7 @@ export class MarkAsSpamButton extends React.Component<{ items: Thread[] }> {
   };
 
   render() {
-    const allInSpam = this.props.items.every(item => item.folders.some(c => c.role === 'spam'));
+    const allInSpam = this.props.items.every((item) => item.folders.some((c) => c.role === 'spam'));
 
     if (allInSpam) {
       return (
@@ -290,10 +277,6 @@ export class ToggleStarredButton extends React.Component<{ items: Thread[] }> {
   static displayName = 'ToggleStarredButton';
   static containerRequired = false;
 
-  static propTypes = {
-    items: PropTypes.array.isRequired,
-  };
-
   _onStar = (event?: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     Actions.queueTask(
       TaskFactory.taskForInvertingStarred({
@@ -308,7 +291,7 @@ export class ToggleStarredButton extends React.Component<{ items: Thread[] }> {
   };
 
   render() {
-    const postClickStarredState = this.props.items.every(t => t.starred === false);
+    const postClickStarredState = this.props.items.every((t) => t.starred === false);
     const title = postClickStarredState ? localized('Star') : localized('Unstar');
     const imageName = postClickStarredState ? 'toolbar-star.png' : 'toolbar-star-selected.png';
 
@@ -332,18 +315,14 @@ export class ToggleUnreadButton extends React.Component<{ items: Thread[] }> {
   static displayName = 'ToggleUnreadButton';
   static containerRequired = false;
 
-  static propTypes = {
-    items: PropTypes.array.isRequired,
-  };
-
-  _onClick = event => {
-    const targetUnread = this.props.items.every(t => t.unread === false);
+  _onClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const targetUnread = this.props.items.every((t) => t.unread === false);
     this._onChangeUnread(targetUnread);
     event.stopPropagation();
     return;
   };
 
-  _onChangeUnread = targetUnread => {
+  _onChangeUnread = (targetUnread: boolean) => {
     Actions.queueTask(
       TaskFactory.taskForSettingUnread({
         threads: this.props.items,
@@ -355,7 +334,7 @@ export class ToggleUnreadButton extends React.Component<{ items: Thread[] }> {
   };
 
   render() {
-    const targetUnread = this.props.items.every(t => t.unread === false);
+    const targetUnread = this.props.items.every((t) => t.unread === false);
     const fragment = targetUnread ? localized('Unread') : localized('Read');
     const key = targetUnread ? 'unread' : 'read';
     const label = localized(`Mark as %@`, fragment);
@@ -399,13 +378,6 @@ class ThreadArrowButton extends React.Component<
   },
   ThreadArrowButtonState
 > {
-  static propTypes = {
-    getStateFromStores: PropTypes.func,
-    direction: PropTypes.string,
-    command: PropTypes.string,
-    title: PropTypes.string,
-  };
-
   _unsubscribe?: () => void;
   _unsubscribe_focus?: () => void;
 

@@ -20,6 +20,8 @@ interface NotificationOptions {
   toastXml?: string;
 }
 
+const handledWindowsToastXMLProtocolActionsForIds: string[] = [];
+
 // Track active notifications by ID, with metadata for thread-based dismissal
 const activeNotifications = new Map<string, { notification: Notification; threadId?: string }>();
 
@@ -35,7 +37,7 @@ const activeNotifications = new Map<string, { notification: Notification; thread
  *
  * Uses path.resolve() to prevent directory traversal attacks.
  */
-const validateIconPath = (iconPath: string): string | null => {
+const validateIconPath = (iconPath: string | undefined): string | null => {
   if (!iconPath) {
     return null;
   }
@@ -150,15 +152,26 @@ const displayNotification = (
 
   // Handle click event
   notification.on('click', () => {
-    if (process.platform === 'win32') {
-      // We use protocol handlers (in handleWindowsToastXMLProtocolAction)
-      return;
-    }
-    sendToAllWindows('notification:clicked', {
+    const payload = {
       id: options.id,
       threadId: options.threadId,
       messageId: options.messageId,
-    });
+    };
+    if (process.platform === 'win32') {
+      // On Windows with toastXml + activationType="protocol", clicks are routed through
+      // the OS protocol handler (mailspring:// URLs) rather than Electron's Activated callback,
+      // but this event still fires first. It seems worth handling it in case the protocol handler
+      // fails, since it's a big of a fragile approach, but we need to wait and let the event arrive
+      // from the second-instance that is launched to handle the URL.
+      setTimeout(() => {
+        if (handledWindowsToastXMLProtocolActionsForIds.includes(payload.id)) {
+          return;
+        }
+        sendToAllWindows('notification:clicked', payload);
+      }, 1500);
+    } else {
+      sendToAllWindows('notification:clicked', payload);
+    }
   });
 
   // Handle close event
@@ -227,16 +240,19 @@ export function registerNotificationIPCHandlers(ipcMain: IpcMain) {
 }
 
 export function handleWindowsToastXMLProtocolAction(parts: UrlWithParsedQuery) {
-  const windowsNotifEventArgs = {
+  const payload = {
     id: parts.query.id as string,
     threadId: parts.query.threadId as string,
     messageId: parts.query.messageId as string,
   };
 
+  handledWindowsToastXMLProtocolActionsForIds.unshift(payload.id);
+  handledWindowsToastXMLProtocolActionsForIds.splice(10);
+
   if (parts.host === 'notification-click') {
-    sendToAllWindows('notification:clicked', windowsNotifEventArgs);
+    sendToAllWindows('notification:clicked', payload);
   } else if (parts.host === 'notification-action') {
     const actionIndex = parseInt(parts.query.actionIndex as string, 10);
-    sendToAllWindows('notification:action', { ...windowsNotifEventArgs, actionIndex });
+    sendToAllWindows('notification:action', { ...payload, actionIndex });
   }
 }

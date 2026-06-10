@@ -1,7 +1,6 @@
 /* eslint react/prefer-stateless-function: 0 */
 /* eslint global-require: 0 */
 import React from 'react';
-import PropTypes from 'prop-types';
 import ReactDOM from 'react-dom';
 
 import { localized, isRTL, Actions, ComponentRegistry, WorkspaceStore } from 'mailspring-exports';
@@ -11,15 +10,14 @@ import { RetinaImg } from './components/retina-img';
 import { RovingTabIndexToolbar } from './components/roving-tab-index-toolbar';
 import * as Utils from './flux/models/utils';
 import { Disposable } from 'rx-core';
+import { isWaylandSession } from './browser/is-wayland';
+import { SheetDepthContext } from './sheet-context';
 
 let Category = null;
 let FocusedPerspectiveStore = null;
 
 class ToolbarSpacer extends React.Component<{ order: number }> {
   static displayName = 'ToolbarSpacer';
-  static propTypes = {
-    order: PropTypes.number,
-  };
 
   render() {
     return <div className="item-spacer" style={{ flex: 1, order: this.props.order || 0 }} />;
@@ -131,7 +129,7 @@ class ToolbarWindowControls extends React.Component<Record<string, unknown>, { a
     this.setState({ alt: AppEnv.keymaps.getIsAltKeyDown() });
   };
 
-  _onMaximize = event => {
+  _onMaximize = (event: React.MouseEvent<HTMLButtonElement>) => {
     if (process.platform === 'darwin' && !event.altKey) {
       AppEnv.setFullScreen(!AppEnv.isFullScreen());
     } else {
@@ -186,10 +184,13 @@ class ToolbarMenuControl extends React.Component {
   };
 
   render() {
+    // On Wayland, the native menu bar does not render (Electron's ozone-wayland
+    // backend bypasses GTK, and KDE Plasma's Global Menu may not be configured).
+    // Show the hamburger menu button as a fallback so menus are always accessible.
     const enabled =
       process.platform === 'win32' ||
       (process.platform === 'linux' &&
-        AppEnv.config.get('core.workspace.menubarStyle') === 'hamburger');
+        (AppEnv.config.get('core.workspace.menubarStyle') === 'hamburger' || isWaylandSession()));
 
     if (!enabled) {
       return <span />;
@@ -252,27 +253,12 @@ let lastReportedToolbarHeight = 0;
 export default class Toolbar extends React.Component<ToolbarProps, ToolbarState> {
   static displayName = 'Toolbar';
 
-  static propTypes = {
-    data: PropTypes.object,
-    depth: PropTypes.number,
-  };
-
-  static childContextTypes = {
-    sheetDepth: PropTypes.number,
-  };
-
   mounted = false;
   unlisteners: Array<() => void> = [];
 
   constructor(props) {
     super(props);
     this.state = this._getStateFromStores();
-  }
-
-  getChildContext() {
-    return {
-      sheetDepth: this.props.depth,
-    };
   }
 
   componentDidMount() {
@@ -286,8 +272,8 @@ export default class Toolbar extends React.Component<ToolbarProps, ToolbarState>
     window.requestAnimationFrame(() => this.recomputeLayout());
   }
 
-  shouldComponentUpdate(nextProps, nextState) {
-    // This is very important. Because toolbar uses CSSTransitionGroup,
+  shouldComponentUpdate(nextProps: ToolbarProps, nextState: ToolbarState) {
+    // This is very important. Because toolbar uses TransitionGroup,
     // repetitive unnecessary updates can break animations and cause performance issues.
     return !Utils.isEqualReact(nextProps, this.props) || !Utils.isEqualReact(nextState, this.state);
   }
@@ -341,9 +327,7 @@ export default class Toolbar extends React.Component<ToolbarProps, ToolbarState>
     // Record our overall height for sheets
     if (el.clientHeight !== lastReportedToolbarHeight) {
       lastReportedToolbarHeight = el.clientHeight;
-      require('@electron/remote')
-        .getCurrentWindow()
-        .setSheetOffset(el.clientHeight);
+      require('@electron/remote').getCurrentWindow().setSheetOffset(el.clientHeight);
     }
   }
 
@@ -351,7 +335,7 @@ export default class Toolbar extends React.Component<ToolbarProps, ToolbarState>
     this.recomputeLayout();
   };
 
-  _getStateFromStores(props = this.props) {
+  _getStateFromStores(props: ToolbarProps = this.props) {
     const state: ToolbarState = {
       mode: WorkspaceStore.layoutMode(),
       columns: [],
@@ -405,8 +389,8 @@ export default class Toolbar extends React.Component<ToolbarProps, ToolbarState>
     return state;
   }
 
-  _flexboxForComponents(components) {
-    const elements = components.map(Component => (
+  _flexboxForComponents(components: Array<typeof React.Component & { displayName?: string }>) {
+    const elements = components.map((Component) => (
       <Component key={Component.displayName} {...this.props} />
     ));
     return (
@@ -433,18 +417,20 @@ export default class Toolbar extends React.Component<ToolbarProps, ToolbarState>
     ));
 
     return (
-      <div
-        style={{
-          position: 'absolute',
-          width: '100%',
-          height: '100%',
-          zIndex: 1,
-        }}
-        className={`sheet-toolbar-container mode-${this.state.mode}`}
-        data-id={this.props.data.id}
-      >
-        {toolbars}
-      </div>
+      <SheetDepthContext.Provider value={this.props.depth}>
+        <div
+          style={{
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+            zIndex: 1,
+          }}
+          className={`sheet-toolbar-container mode-${this.state.mode}`}
+          data-id={this.props.data.id}
+        >
+          {toolbars}
+        </div>
+      </SheetDepthContext.Provider>
     );
   }
 }

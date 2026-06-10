@@ -1,5 +1,5 @@
-import ReactTestUtils from 'react-dom/test-utils';
 import { TaskQueue } from 'mailspring-exports';
+import { unmountAll } from './react-test-utils-extensions';
 
 class MasterAfterEach {
   setup(loadSettings, afterEach) {
@@ -14,7 +14,7 @@ class MasterAfterEach {
       if (!window.debugContent) {
         document.getElementById('jasmine-content').innerHTML = '';
       }
-      ReactTestUtils.unmountAll();
+      unmountAll();
 
       jasmine.unspy(AppEnv, 'saveWindowState');
 

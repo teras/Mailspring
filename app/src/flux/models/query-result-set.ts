@@ -26,7 +26,7 @@ export class QueryResultSet<T extends Model> {
   _modelsHash?: { [id: string]: T };
   _ids: string[] = [];
 
-  static setByApplyingModels(set, models) {
+  static setByApplyingModels<T extends Model>(set: QueryResultSet<T>, models: { [id: string]: T }) {
     if (models instanceof Array) {
       throw new Error('setByApplyingModels: A hash of models is required.');
     }
@@ -56,7 +56,7 @@ export class QueryResultSet<T extends Model> {
   }
 
   isComplete() {
-    return this._ids.every(id => !!this._modelsHash[id]);
+    return this._ids.every((id) => !!this._modelsHash[id]);
   }
 
   range() {
@@ -84,7 +84,7 @@ export class QueryResultSet<T extends Model> {
   }
 
   models() {
-    return this._ids.map(id => this._modelsHash[id]);
+    return this._ids.map((id) => this._modelsHash[id]);
   }
 
   modelCacheCount() {

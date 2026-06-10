@@ -22,7 +22,7 @@ describe('FeatureUsageStore', function featureUsageStoreSpec() {
       },
     };
     spyOn(IdentityStore, 'identity').andReturn(this.fakeIdentity);
-    spyOn(IdentityStore, 'saveIdentity').andCallFake(async ident => {
+    spyOn(IdentityStore, 'saveIdentity').andCallFake(async (ident) => {
       this.fakeIdentity = ident;
     });
   });
@@ -72,9 +72,9 @@ describe('FeatureUsageStore', function featureUsageStoreSpec() {
     });
 
     it("marks the feature used if it's usable", async () => {
-      await FeatureUsageStore.markUsedOrUpgrade('is-usable');
+      await FeatureUsageStore.markUsedOrUpgrade('is-usable', {} as any);
       expect(FeatureUsageStore.markUsed).toHaveBeenCalled();
-      expect(FeatureUsageStore.markUsed.callCount).toBe(1);
+      expect((FeatureUsageStore.markUsed as jasmine.Spy).callCount).toBe(1);
     });
 
     describe('showing modal', () => {
@@ -93,7 +93,7 @@ describe('FeatureUsageStore', function featureUsageStoreSpec() {
         });
         await FeatureUsageStore.markUsedOrUpgrade('not-usable', this.lexicon);
         expect(Actions.openModal).toHaveBeenCalled();
-        expect(Actions.openModal.calls.length).toBe(1);
+        expect((Actions.openModal as unknown as jasmine.Spy).calls.length).toBe(1);
       });
 
       it('pops open a modal with the correct text', async () => {
@@ -103,8 +103,8 @@ describe('FeatureUsageStore', function featureUsageStoreSpec() {
         });
         await FeatureUsageStore.markUsedOrUpgrade('not-usable', this.lexicon);
         expect(Actions.openModal).toHaveBeenCalled();
-        expect(Actions.openModal.calls.length).toBe(1);
-        const component = Actions.openModal.calls[0].args[0].component;
+        expect((Actions.openModal as unknown as jasmine.Spy).calls.length).toBe(1);
+        const component = (Actions.openModal as unknown as jasmine.Spy).calls[0].args[0].component;
         expect(component.props).toEqual({
           modalClass: 'not-usable',
           headerText: 'all test used',

@@ -4,29 +4,26 @@ import { Mark, Editor } from 'slate';
 import AutoReplace from 'slate-auto-replace';
 import { RegExpUtils } from 'mailspring-exports';
 
-import { BuildMarkButtonWithValuePicker } from './toolbar-component-factories';
+import { BuildMarkButtonWithValuePicker, safeActiveMarks } from './toolbar-component-factories';
 import { ComposerEditorPlugin } from './types';
 
 export const LINK_TYPE = 'link';
 
-function onPaste(event, editor: Editor, next: () => void) {
+function onPaste(event: React.ClipboardEvent, editor: Editor, next: () => void) {
   const html = event.clipboardData.getData('text/html');
   const plain = event.clipboardData.getData('text/plain');
   const regex = RegExpUtils.urlRegex({ matchStartOfString: true, matchTailOfString: true });
   if (!html && plain && plain.match(regex)) {
     const mark = Mark.create({ type: LINK_TYPE, data: { href: plain } });
-    editor
-      .addMark(mark)
-      .insertText(plain)
-      .removeMark(mark);
+    editor.addMark(mark).insertText(plain).removeMark(mark);
   } else {
     return next();
   }
 }
 
 function buildAutoReplaceHandler({ hrefPrefix = '' } = {}) {
-  return function(editor: Editor, e, matches) {
-    if (editor.value.activeMarks.find(m => m.type === LINK_TYPE))
+  return function (editor: Editor, e, matches) {
+    if (safeActiveMarks(editor.value).find((m) => m.type === LINK_TYPE))
       return editor.insertText(TriggerKeyValues[e.key]);
 
     const link = matches.before[0];
@@ -57,7 +54,7 @@ function renderMark({ mark, children, targetIsHTML }, editor: Editor = null, nex
         className="link"
         title={href}
         spellCheck={false}
-        onClick={e => {
+        onClick={(e) => {
           if (e.ctrlKey || e.metaKey || e.altKey) {
             AppEnv.windowEventHandler.openLink({ href, metaKey: e.metaKey });
           }
@@ -71,7 +68,7 @@ function renderMark({ mark, children, targetIsHTML }, editor: Editor = null, nex
 
 const rules = [
   {
-    deserialize(el, next) {
+    deserialize(el: HTMLElement, next: (elements: NodeList) => any) {
       if (el.tagName.toLowerCase() === 'a') {
         return {
           object: 'mark',
@@ -83,7 +80,7 @@ const rules = [
         };
       }
     },
-    serialize(obj, children) {
+    serialize(obj: any, children: any) {
       if (obj.object !== 'mark') return;
       return renderMark({ mark: obj, children, targetIsHTML: true });
     },
@@ -112,7 +109,7 @@ const BaseLinkPlugin: ComposerEditorPlugin = {
     if (!['Space', 'Enter', ' ', 'Return'].includes(event.key)) {
       return next();
     }
-    const mark = editor.value.activeMarks.find(m => m.type === LINK_TYPE);
+    const mark = safeActiveMarks(editor.value).find((m) => m.type === LINK_TYPE);
     if (mark) {
       editor.removeMark(mark);
     }
@@ -150,12 +147,12 @@ const BaseLinkPlugin: ComposerEditorPlugin = {
 const plugins: ComposerEditorPlugin[] = [
   BaseLinkPlugin,
   AutoReplace({
-    trigger: e => !!TriggerKeyValues[e.key],
+    trigger: (e) => !!TriggerKeyValues[e.key],
     before: RegExpUtils.emailRegex({ requireStartOrWhitespace: true, matchTailOfString: true }),
     change: buildAutoReplaceHandler({ hrefPrefix: 'mailto:' }),
   }),
   AutoReplace({
-    trigger: e => !!TriggerKeyValues[e.key],
+    trigger: (e) => !!TriggerKeyValues[e.key],
     before: RegExpUtils.urlRegex({ matchTailOfString: true }),
     change: buildAutoReplaceHandler(),
   }),

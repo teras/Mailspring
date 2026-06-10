@@ -57,7 +57,7 @@ jobs:
           aws-region: us-east-1
 
       - name: Lint
-        run: npm run lint
+        run: npm run lint:check
 
       - name: Build
         run: SIGN_BUILD=true DEBUG=electron-packager,electron-osx-sign,electron-notarize* npm run build
@@ -67,6 +67,9 @@ jobs:
           APPLE_PROVISIONING_PROFILE_PATH: ${{ env.APPLE_PROVISIONING_PROFILE_PATH }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
 
       - name: Rename artifacts
         if: matrix.os == 'macos-latest'

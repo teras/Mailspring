@@ -142,7 +142,7 @@ class WorkspaceStore extends MailspringStore {
   Inbound Events
   */
 
-  _onSelectRootSheet = sheet => {
+  _onSelectRootSheet = (sheet: SheetDeclaration) => {
     if (!sheet) {
       throw new Error(`Actions.selectRootSheet - ${sheet} is not a valid sheet.`);
     }
@@ -195,7 +195,7 @@ class WorkspaceStore extends MailspringStore {
     }
   };
 
-  _onSelectLayoutMode = mode => {
+  _onSelectLayoutMode = (mode: string) => {
     if (mode === this._preferredLayoutMode) {
       return;
     }
@@ -283,7 +283,7 @@ class WorkspaceStore extends MailspringStore {
 
   // Public: Returns a {Boolean} indicating whether the location provided is hidden.
   // You should provide one of the WorkspaceStore.Location constant values.
-  isLocationHidden(loc) {
+  isLocationHidden(loc: { id: string } | null) {
     if (!loc) {
       return false;
     }
@@ -301,7 +301,7 @@ class WorkspaceStore extends MailspringStore {
   //      supports. For each key, provide an array of column names.
   //
   defineSheet(
-    id,
+    id: string,
     options: Partial<SheetDeclaration> = {},
     columns: { [mode: string]: string[] } = {}
   ) {
@@ -342,7 +342,7 @@ class WorkspaceStore extends MailspringStore {
     this.triggerDebounced();
   }
 
-  undefineSheet(id) {
+  undefineSheet(id: string) {
     delete Sheet[id];
     this.triggerDebounced();
   }
@@ -353,7 +353,7 @@ class WorkspaceStore extends MailspringStore {
   //
   // * `sheet` The {Sheet} type to push onto the stack.
   //
-  pushSheet = sheet => {
+  pushSheet = (sheet: SheetDeclaration) => {
     this._sheetStack.push(sheet);
     this.trigger();
   };

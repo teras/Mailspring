@@ -5,7 +5,7 @@ import { PLUGIN_ID, PLUGIN_URL } from './open-tracking-constants';
 import { OpenTrackingMetadata } from './types';
 
 export default class OpenTrackingComposerExtension extends ComposerExtension {
-  static needsPerRecipientBodies(draft) {
+  static needsPerRecipientBodies(draft: Message) {
     return !draft.plaintext && !!draft.metadataForPluginId(PLUGIN_ID);
   }
 
@@ -23,7 +23,7 @@ export default class OpenTrackingComposerExtension extends ComposerExtension {
     return;
   }
 
-  static onSendSuccess(draft) {
+  static onSendSuccess(draft: Message) {
     const metadata = draft.metadataForPluginId(PLUGIN_ID);
     if (metadata) {
       FeatureUsageStore.markUsed(PLUGIN_ID);

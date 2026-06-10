@@ -2,14 +2,21 @@ import classNames from 'classnames';
 import _ from 'underscore';
 import React, { HTMLProps } from 'react';
 import ReactDOM from 'react-dom';
-import { PropTypes, DOMUtils } from 'mailspring-exports';
+import { DOMUtils } from 'mailspring-exports';
 
 export interface MenuItemProps {
+  id?: string;
   onMouseDown?: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   divider?: string | boolean;
   selected?: boolean;
   checked?: boolean;
   content?: any;
+  role?: string;
+  // When true, overrides aria-selected to false regardless of `selected`.
+  // Used in combobox popup mode where aria-activedescendant is the sole
+  // mechanism for announcing the active item, and aria-selected mutations
+  // would cause double-announcements.
+  suppressAriaSelected?: boolean;
 }
 
 export interface MenuNameEmailContentProps {
@@ -29,7 +36,9 @@ export interface MenuProps extends HTMLProps<any> {
   onSelect: (item: any) => any;
   onExpand?: (item: any) => any;
   onEscape?: (...args: any[]) => any;
+  onActiveDescendantChange?: (id: string | null) => void;
   defaultSelectedIndex?: number;
+  listboxId?: string;
 }
 
 interface MenuState {
@@ -55,12 +64,6 @@ class MenuItem extends React.Component<MenuItemProps> {
      - `selected` (optional) Pass a {Boolean} to specify whether the item is selected.
      - `checked` (optional) Pass a {Boolean} to specify whether the item is checked.
     */
-  static propTypes = {
-    divider: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]),
-    selected: PropTypes.bool,
-    checked: PropTypes.bool,
-  };
-
   render() {
     if (this.props.divider) {
       const dividerLabel = _.isString(this.props.divider) ? this.props.divider : '';
@@ -72,7 +75,17 @@ class MenuItem extends React.Component<MenuItemProps> {
         checked: this.props.checked,
       });
       return (
-        <div className={className} onMouseDown={this.props.onMouseDown}>
+        <div
+          id={this.props.id}
+          role={this.props.role}
+          aria-selected={
+            this.props.role === 'option' && !this.props.suppressAriaSelected
+              ? this.props.selected
+              : undefined
+          }
+          className={className}
+          onMouseDown={this.props.onMouseDown}
+        >
           {this.props.content}
         </div>
       );
@@ -94,11 +107,6 @@ class MenuNameEmailContent extends React.Component<MenuNameEmailContentProps> {
      - `name` (optional) The {String} name to be displayed.
      - `email` (optional) The {String} email address to be displayed.
     */
-  static propTypes = {
-    name: PropTypes.string,
-    email: PropTypes.string,
-  };
-
   render() {
     if (this.props.name && this.props.name !== this.props.email) {
       return (
@@ -188,25 +196,6 @@ export class Menu extends React.Component<MenuProps, MenuState> {
      nothing selected.
 
     */
-  static propTypes = {
-    className: PropTypes.string,
-    footerComponents: PropTypes.node,
-    headerComponents: PropTypes.node,
-    itemContext: PropTypes.object,
-    itemContent: PropTypes.func.isRequired,
-    itemKey: PropTypes.func.isRequired,
-    itemChecked: PropTypes.func,
-
-    items: PropTypes.array.isRequired,
-
-    onSelect: PropTypes.func.isRequired,
-
-    onExpand: PropTypes.func,
-    onEscape: PropTypes.func,
-
-    defaultSelectedIndex: PropTypes.number,
-  };
-
   static defaultProps = { onEscape() {} };
 
   _mounted = false;
@@ -238,7 +227,7 @@ export class Menu extends React.Component<MenuProps, MenuState> {
     if (itemsChanged && state.selectedItemKey !== null && props.items.length > 0) {
       // Try to find the previously selected item by key in the new items array
       const newItemIndex = props.items.findIndex(
-        item => props.itemKey(item) === state.selectedItemKey
+        (item) => props.itemKey(item) === state.selectedItemKey
       );
 
       if (newItemIndex !== -1) {
@@ -315,7 +304,7 @@ export class Menu extends React.Component<MenuProps, MenuState> {
     this._mounted = false;
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(prevProps: MenuProps, prevState: MenuState) {
     // Scroll selected item into view
     if ((this.props.items || []).length === 0) {
       return;
@@ -326,6 +315,22 @@ export class Menu extends React.Component<MenuProps, MenuState> {
     const adjustment = DOMUtils.scrollAdjustmentToMakeNodeVisibleInContainer(item, container);
     if (adjustment !== 0) {
       container.scrollTop += adjustment;
+    }
+
+    // Notify parent when the active completion changes so the combobox input
+    // can update aria-activedescendant and screen readers announce the new item.
+    if (
+      prevState.selectedItemKey !== this.state.selectedItemKey &&
+      this.props.onActiveDescendantChange
+    ) {
+      const activeId =
+        this.props.listboxId &&
+        this.state.selectedItemKey !== null &&
+        this.state.selectedIndex >= 0 &&
+        this.state.selectedIndex < this.props.items.length
+          ? `${this.props.listboxId}-option-${this.state.selectedItemKey}`
+          : null;
+      this.props.onActiveDescendantChange(activeId);
     }
   }
 
@@ -342,7 +347,7 @@ export class Menu extends React.Component<MenuProps, MenuState> {
     );
   }
 
-  onKeyDown = event => {
+  onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (this.props.items.length === 0) {
       return;
     }
@@ -386,7 +391,7 @@ export class Menu extends React.Component<MenuProps, MenuState> {
         return content;
       }
 
-      const onMouseDown = event => {
+      const onMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
         event.preventDefault();
         const key = this.props.itemKey(item);
         this.setState({ selectedIndex: i, selectedItemKey: key });
@@ -407,10 +412,13 @@ export class Menu extends React.Component<MenuProps, MenuState> {
       return (
         <MenuItem
           key={key}
+          id={this.props.listboxId ? `${this.props.listboxId}-option-${key}` : undefined}
+          role={this.props.listboxId ? 'option' : undefined}
           onMouseDown={onMouseDown}
           checked={this.props.itemChecked && this.props.itemChecked(item)}
           content={content}
           selected={this.state.selectedIndex === i}
+          suppressAriaSelected={!!this.props.onActiveDescendantChange}
         />
       );
     });
@@ -420,10 +428,18 @@ export class Menu extends React.Component<MenuProps, MenuState> {
       empty: items.length === 0,
     });
 
-    return <div className={contentClass}>{items}</div>;
+    return (
+      <div
+        id={this.props.listboxId}
+        role={this.props.listboxId ? 'listbox' : undefined}
+        className={contentClass}
+      >
+        {items}
+      </div>
+    );
   };
 
-  _onShiftSelectedIndex = delta => {
+  _onShiftSelectedIndex = (delta) => {
     if (this.props.items.length === 0) {
       return;
     }

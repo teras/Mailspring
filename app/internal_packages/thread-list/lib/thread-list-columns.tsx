@@ -8,15 +8,16 @@ import {
   InjectedComponentSet,
 } from 'mailspring-component-kit';
 
-import { localized, FocusedPerspectiveStore, Utils, DateUtils } from 'mailspring-exports';
+import { localized, FocusedPerspectiveStore, Utils, DateUtils, Thread } from 'mailspring-exports';
 
 import { ThreadArchiveQuickAction, ThreadTrashQuickAction } from './thread-list-quick-actions';
 import ThreadListParticipants from './thread-list-participants';
 import ThreadListIcon from './thread-list-icon';
 import ThreadListAvatar from './thread-list-avatar';
+import { ThreadWithMessagesMetadata } from './types';
 
 // Get and format either last sent or last received timestamp depending on thread-list being viewed
-const ThreadListTimestamp = function({ thread }) {
+const ThreadListTimestamp = function ({ thread }: { thread: Thread }) {
   const rawTimestamp = FocusedPerspectiveStore.current().isSent()
     ? thread.lastMessageSentTimestamp
     : thread.lastMessageReceivedTimestamp;
@@ -26,7 +27,7 @@ const ThreadListTimestamp = function({ thread }) {
 
 ThreadListTimestamp.containerRequired = false;
 
-const subject = function(subj) {
+const subject = function (subj: string) {
   if ((subj || '').trim().length === 0) {
     return <span className="no-subject">{localized('(No Subject)')}</span>;
   } else if (subj.split(/([\uD800-\uDBFF][\uDC00-\uDFFF])/g).length > 1) {
@@ -50,7 +51,7 @@ const subject = function(subj) {
   }
 };
 
-const getSnippet = function(thread) {
+const getSnippet = function (thread: ThreadWithMessagesMetadata) {
   const messages = thread.__messages || [];
   if (messages.length === 0) {
     return thread.snippet;
@@ -63,7 +64,7 @@ const getSnippet = function(thread) {
 
 const c1 = new ListTabular.Column({
   name: '★',
-  resolver: thread => {
+  resolver: (thread: ThreadWithMessagesMetadata) => {
     return [
       <ThreadListIcon key="thread-list-icon" thread={thread} />,
       <MailImportantIcon
@@ -86,8 +87,8 @@ const c1 = new ListTabular.Column({
 const c2 = new ListTabular.Column({
   name: 'Participants',
   width: 200,
-  resolver: thread => {
-    const hasDraft = (thread.__messages || []).find(m => m.draft);
+  resolver: (thread: ThreadWithMessagesMetadata) => {
+    const hasDraft = (thread.__messages || []).find((m) => m.draft);
     return (
       <div style={{ display: 'flex', alignItems: 'center' }}>
         <ThreadListAvatar thread={thread} size={20} style={{ marginLeft: -20, marginRight: 6 }} />
@@ -107,12 +108,12 @@ const c2 = new ListTabular.Column({
 const c3 = new ListTabular.Column({
   name: 'Message',
   flex: 4,
-  resolver: thread => {
+  resolver: (thread: ThreadWithMessagesMetadata) => {
     let attachment: JSX.Element = null;
     const messages = thread.__messages || [];
 
     const hasAttachments =
-      thread.attachmentCount > 0 && messages.find(m => Utils.showIconForAttachments(m.files));
+      thread.attachmentCount > 0 && messages.find((m) => Utils.showIconForAttachments(m.files));
     if (hasAttachments) {
       attachment = <div className="thread-icon thread-icon-attachment" />;
     }
@@ -134,7 +135,7 @@ const c3 = new ListTabular.Column({
 
 const c4 = new ListTabular.Column({
   name: 'Date',
-  resolver: thread => {
+  resolver: (thread: ThreadWithMessagesMetadata) => {
     return (
       <InjectedComponent
         className="thread-injected-timestamp"
@@ -148,7 +149,7 @@ const c4 = new ListTabular.Column({
 
 const c5 = new ListTabular.Column({
   name: 'HoverActions',
-  resolver: thread => {
+  resolver: (thread: ThreadWithMessagesMetadata) => {
     return (
       <div className="inner">
         <InjectedComponentSet
@@ -171,18 +172,18 @@ const c5 = new ListTabular.Column({
 const cNarrow = new ListTabular.Column({
   name: 'Item',
   flex: 1,
-  resolver: thread => {
+  resolver: (thread: ThreadWithMessagesMetadata) => {
     let pencil: JSX.Element = null;
     let attachment: JSX.Element = null;
     const messages = thread.__messages || [];
 
     const hasAttachments =
-      thread.attachmentCount > 0 && messages.find(m => Utils.showIconForAttachments(m.files));
+      thread.attachmentCount > 0 && messages.find((m) => Utils.showIconForAttachments(m.files));
     if (hasAttachments) {
       attachment = <div className="thread-icon thread-icon-attachment" />;
     }
 
-    const hasDraft = messages.find(m => m.draft);
+    const hasDraft = messages.find((m) => m.draft);
     if (hasDraft) {
       pencil = (
         <RetinaImg

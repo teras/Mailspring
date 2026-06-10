@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   localized,
+  Account,
   AccountStore,
   CategoryStore,
   Category,
@@ -80,7 +81,7 @@ export default class PreferencesCategoryMapper extends React.Component<
     Actions.updateContainerFolderDefault(this.state.containerFolderDefault);
   };
 
-  _renderRoleSection = (account, role) => {
+  _renderRoleSection = (account: Account, role: string) => {
     if (!account) return false;
 
     const assignments = this.state.assignments[account.id];
@@ -94,7 +95,7 @@ export default class PreferencesCategoryMapper extends React.Component<
 
     let all = this.state.all[account.id];
     const allowLabels = account.usesLabels() && role !== 'trash' && role !== 'spam';
-    if (!allowLabels) all = all.filter(c => c instanceof Folder);
+    if (!allowLabels) all = all.filter((c) => c instanceof Folder);
 
     return (
       <div className="role-section" key={`${account.id}-${role}`}>
@@ -103,7 +104,7 @@ export default class PreferencesCategoryMapper extends React.Component<
           <CategorySelection
             all={all}
             current={assignments[role]}
-            onSelect={category => this._onCategorySelection(account, role, category)}
+            onSelect={(category) => this._onCategorySelection(account, role, category)}
             allowLabels={allowLabels}
           />
         </div>
@@ -118,13 +119,13 @@ export default class PreferencesCategoryMapper extends React.Component<
         <input
           type="text"
           value={this.state.containerFolderDefault}
-          onBlur={e => this._updateContainerFolderDefault()}
-          onChange={e => this.setState({ containerFolderDefault: e.target.value })}
+          onBlur={(e) => this._updateContainerFolderDefault()}
+          onChange={(e) => this.setState({ containerFolderDefault: e.target.value })}
         />
-        {AccountStore.accounts().map(account => (
+        {AccountStore.accounts().map((account) => (
           <div key={account.id}>
             <div className="account-section-title">{account.label}</div>
-            {SELECTABLE_ROLES.map(role => this._renderRoleSection(account, role))}
+            {SELECTABLE_ROLES.map((role) => this._renderRoleSection(account, role))}
           </div>
         ))}
       </div>

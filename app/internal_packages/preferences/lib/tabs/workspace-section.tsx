@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import { localized, DefaultClientHelper, SystemStartService } from 'mailspring-exports';
 import { shell } from 'electron';
 
@@ -28,7 +27,7 @@ class DefaultMailClientItem extends React.Component<
     if (helper.available()) {
       await Promise.delay(DELAY_FOR_SHEET_ANIMATION);
       if (!this._mounted) return;
-      helper.isRegisteredForURLScheme('mailto', registered => {
+      helper.isRegisteredForURLScheme('mailto', (registered) => {
         if (!this._mounted) return;
         this.setState({ defaultClient: registered instanceof Error ? 'unknown' : registered });
       });
@@ -39,7 +38,7 @@ class DefaultMailClientItem extends React.Component<
     this._mounted = false;
   }
 
-  toggleDefaultMailClient = event => {
+  toggleDefaultMailClient = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (this.state.defaultClient) {
       this.setState({ defaultClient: false });
       helper.resetURLScheme('mailto');
@@ -117,7 +116,7 @@ class LaunchSystemStartItem extends React.Component {
     this._mounted = false;
   }
 
-  _toggleLaunchOnStart = event => {
+  _toggleLaunchOnStart = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (this.state.launchOnStart) {
       this.setState({ launchOnStart: false });
       service.dontLaunchOnSystemStart();
@@ -145,7 +144,7 @@ class LaunchSystemStartItem extends React.Component {
   }
 }
 
-const WorkspaceSection = props => {
+const WorkspaceSection = (props: { config: any; configSchema: any }) => {
   return (
     <section>
       <DefaultMailClientItem />
@@ -197,11 +196,6 @@ const WorkspaceSection = props => {
       )}
     </section>
   );
-};
-
-WorkspaceSection.propTypes = {
-  config: PropTypes.object,
-  configSchema: PropTypes.object,
 };
 
 export default WorkspaceSection;

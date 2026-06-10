@@ -1,7 +1,7 @@
 import React, { CSSProperties } from 'react';
 import ReactDOM from 'react-dom';
 import { RetinaImg } from './retina-img';
-import { PropTypes, localized } from 'mailspring-exports';
+import { localized } from 'mailspring-exports';
 import classnames from 'classnames';
 
 type ButtonDropdownState = {
@@ -22,15 +22,6 @@ type ButtonDropdownProps = {
 
 export class ButtonDropdown extends React.Component<ButtonDropdownProps, ButtonDropdownState> {
   static displayName = 'ButtonDropdown';
-  static propTypes = {
-    primaryItem: PropTypes.element,
-    primaryClick: PropTypes.func,
-    bordered: PropTypes.bool,
-    menu: PropTypes.element,
-    style: PropTypes.object,
-    closeOnMenuClick: PropTypes.bool,
-    attachment: PropTypes.string,
-  };
 
   static defaultProps = {
     style: {},
@@ -69,7 +60,10 @@ export class ButtonDropdown extends React.Component<ButtonDropdownProps, ButtonD
             aria-label={this.props.primaryTitle}
             onClick={this.props.primaryClick}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.props.primaryClick(); }
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                this.props.primaryClick();
+              }
             }}
           >
             {this.props.primaryItem}
@@ -83,7 +77,10 @@ export class ButtonDropdown extends React.Component<ButtonDropdownProps, ButtonD
             className="secondary-picker"
             onClick={this.toggleDropdown}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.toggleDropdown(); }
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                this.toggleDropdown();
+              }
             }}
           >
             <RetinaImg name={'icon-thread-disclosure.png'} mode={RetinaImg.Mode.ContentIsMask} />
@@ -139,14 +136,14 @@ export class ButtonDropdown extends React.Component<ButtonDropdownProps, ButtonD
     }
   };
 
-  _onMenuClick = event => {
+  _onMenuClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (this.props.closeOnMenuClick) {
       this.setState({ open: false });
     }
   };
 
-  _onBlur = event => {
-    const target = event.nativeEvent.relatedTarget;
+  _onBlur = (event: React.FocusEvent<HTMLDivElement>) => {
+    const target = event.nativeEvent.relatedTarget as Node | null;
     if (target != null && ReactDOM.findDOMNode(this.refs.button).contains(target)) {
       return;
     }

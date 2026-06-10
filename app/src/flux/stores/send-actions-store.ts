@@ -75,11 +75,11 @@ class _SendActionsStore extends MailspringStore {
     return all;
   }
 
-  sendActionForKey(configKey) {
-    return this._sendActions.find(a => a.configKey === configKey);
+  sendActionForKey(configKey: string) {
+    return this._sendActions.find((a) => a.configKey === configKey);
   }
 
-  orderedSendActionsForDraft(draft) {
+  orderedSendActionsForDraft(draft: Message) {
     const configKeys = this._sendActions.map(({ configKey }) => configKey);
 
     let preferredKey = AppEnv.config.get(ACTION_CONFIG_KEY);
@@ -87,12 +87,12 @@ class _SendActionsStore extends MailspringStore {
       preferredKey = DefaultSendActionKey;
     }
 
-    let preferred = this._sendActions.find(a => a.configKey === preferredKey);
+    let preferred = this._sendActions.find((a) => a.configKey === preferredKey);
     if (!preferred || !preferred.isAvailableForDraft({ draft })) {
       preferred = DefaultSendAction;
     }
     const rest = this._sendActions.filter(
-      action => action !== preferred && action.isAvailableForDraft({ draft })
+      (action) => action !== preferred && action.isAvailableForDraft({ draft })
     );
 
     return [preferred, ...rest];

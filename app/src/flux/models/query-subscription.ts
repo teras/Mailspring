@@ -77,7 +77,7 @@ export class QuerySubscription<T extends Model> {
         `QuerySubscription:removeCallback - expects a function, received ${callback}`
       );
     }
-    this._callbacks = this._callbacks.filter(c => c !== callback);
+    this._callbacks = this._callbacks.filter((c) => c !== callback);
     if (this.callbackCount() === 0) {
       this.onLastCallbackRemoved();
     }
@@ -121,7 +121,7 @@ export class QuerySubscription<T extends Model> {
     let knownImpacts = 0;
     let unknownImpacts = 0;
 
-    this._queuedChangeRecords.forEach(record => {
+    this._queuedChangeRecords.forEach((record) => {
       if (record.type === 'unpersist') {
         for (const item of record.objects) {
           const offset = this._set.offsetOfId(item.id);
@@ -248,12 +248,22 @@ export class QuerySubscription<T extends Model> {
       rangeQuery.background();
     }
 
-    DatabaseStore.run<T[] | string[]>(rangeQuery, { format: false }).then(async results => {
+    DatabaseStore.run<T[] | string[]>(rangeQuery, { format: false }).then(async (results) => {
       if (this._queryVersion !== version) {
         return;
       }
 
-      if (this._set && !this._set.range().isContiguousWith(range)) {
+      // Use the actual results length (not the requested range limit) to check
+      // contiguity. If fewer items were returned than requested (end of list,
+      // or items deleted since the scroll position was computed), the actual
+      // data may not reach the existing set — treating the requested range as
+      // contiguous would pass the check but then throw inside addIdsInRange.
+      // For infinite ranges keep the original `range` so isContiguousWith can
+      // short-circuit with `return true` as it always did for infinite ranges.
+      const contiguityRange = range.isInfinite()
+        ? range
+        : new QueryRange({ offset: range.offset, limit: results.length });
+      if (this._set && !this._set.range().isContiguousWith(contiguityRange)) {
         this._set = null;
       }
       this._set = this._set || new MutableQueryResultSet();
@@ -279,7 +289,7 @@ export class QuerySubscription<T extends Model> {
   }
 
   async _fetchMissingModels() {
-    const missingIds = this._set.ids().filter(id => !this._set.modelWithId(id));
+    const missingIds = this._set.ids().filter((id) => !this._set.modelWithId(id));
     if (missingIds.length === 0) {
       return [];
     }
@@ -319,7 +329,7 @@ export class QuerySubscription<T extends Model> {
       this._lastResult = this._query.formatResult(models) as QuerySubscriptionResult<T>;
     }
 
-    this._callbacks.forEach(callback => callback(this._lastResult));
+    this._callbacks.forEach((callback) => callback(this._lastResult));
 
     // process any additional change records that have arrived
     if (this._updateInFlight) {

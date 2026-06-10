@@ -10,12 +10,9 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import PropTypes from 'prop-types';
 
-const formatStackTrace = function(spec, message, stackTrace, indent) {
+const formatStackTrace = function (spec, message, stackTrace, indent = '') {
   if (message == null) {
     message = '';
-  }
-  if (indent == null) {
-    indent = '';
   }
   if (!stackTrace) {
     return stackTrace;
@@ -54,14 +51,11 @@ const formatStackTrace = function(spec, message, stackTrace, indent) {
     lines[index] = line.replace(`at ${spec.specDirectory}${path.sep}`, 'at ');
   }
 
-  lines = lines.map(line => indent + line.trim());
+  lines = lines.map((line) => indent + line.trim());
   return lines.join('\n');
 };
 
-function indentationString(suite, plus) {
-  if (plus == null) {
-    plus = 0;
-  }
+function indentationString(suite, plus = 0) {
   let rootSuite = suite;
   let indentLevel = 0 + plus;
   while (rootSuite.parentSuite) {
@@ -86,7 +80,13 @@ function suiteString(spec) {
   return descriptions.join('\n');
 }
 
-class N1GuiReporter extends React.Component {
+interface N1GuiReporterProps {
+  specs: any[];
+  plainTextOutput?: string;
+  startedAt?: number;
+}
+
+class N1GuiReporter extends React.Component<N1GuiReporterProps, {}> {
   render() {
     return (
       <div className="spec-reporter">
@@ -108,7 +108,7 @@ class N1GuiReporter extends React.Component {
     );
   }
 
-  _renderSpecsOfType = type => {
+  _renderSpecsOfType = (type) => {
     const items = [];
     this.props.specs.forEach((spec, idx) => {
       if (spec.specType !== type) {
@@ -140,7 +140,7 @@ class N1GuiReporter extends React.Component {
     const topLevelSuites = [];
 
     const failedSpecs = this.props.specs.filter(
-      spec => spec.endedAt && spec.results().failedCount > 0
+      (spec) => spec.endedAt && spec.results().failedCount > 0
     );
 
     for (let spec of failedSpecs) {
@@ -186,8 +186,9 @@ class N1GuiReporter extends React.Component {
     }
 
     if (skippedCount) {
-      specCount = `${completeCount - skippedCount}/${this.props.specs.length -
-        skippedCount} (${skippedCount} skipped)`;
+      specCount = `${completeCount - skippedCount}/${
+        this.props.specs.length - skippedCount
+      } (${skippedCount} skipped)`;
     } else {
       specCount = `${completeCount}/${this.props.specs.length}`;
     }
@@ -202,12 +203,16 @@ class N1GuiReporter extends React.Component {
   };
 
   onReloadSpecs = () => {
-    require('@electron/remote').getCurrentWindow()
-      .reload();
+    require('@electron/remote').getCurrentWindow().reload();
   };
 }
 
-class SuiteResultView extends React.Component {
+interface SuiteResultViewProps {
+  suite: any;
+  allSpecs: any[];
+}
+
+class SuiteResultView extends React.Component<SuiteResultViewProps, {}> {
   static propTypes = {
     suite: PropTypes.object,
     allSpecs: PropTypes.array,
@@ -217,7 +222,7 @@ class SuiteResultView extends React.Component {
     let items = [];
     let subsuites = [];
 
-    this.props.allSpecs.forEach(spec => {
+    this.props.allSpecs.forEach((spec) => {
       if (spec.suite === this.props.suite) {
         return items.push(spec);
       } else {
@@ -250,7 +255,11 @@ class SuiteResultView extends React.Component {
   }
 }
 
-class SpecResultView extends React.Component {
+interface SpecResultViewProps {
+  spec: any;
+}
+
+class SpecResultView extends React.Component<SpecResultViewProps, {}> {
   static propTypes = {
     spec: PropTypes.object,
   };

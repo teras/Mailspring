@@ -34,7 +34,7 @@ interface WeekViewAllDayEventsProps extends EventRendererProps {
 export class WeekViewAllDayEvents extends React.Component<WeekViewAllDayEventsProps> {
   static displayName = 'WeekViewAllDayEvents';
 
-  shouldComponentUpdate(nextProps, nextState) {
+  shouldComponentUpdate(nextProps: WeekViewAllDayEventsProps, nextState: Record<string, never>) {
     return !Utils.isEqualReact(nextProps, this.props) || !Utils.isEqualReact(nextState, this.state);
   }
 
@@ -58,7 +58,7 @@ export class WeekViewAllDayEvents extends React.Component<WeekViewAllDayEventsPr
         data-calendar-end={this.props.end}
         data-calendar-type="all-day-area"
       >
-        {allDayEvents.map(e => (
+        {allDayEvents.map((e) => (
           <CalendarEvent
             event={e}
             order={allDayOverlap[e.id]?.order || 1}

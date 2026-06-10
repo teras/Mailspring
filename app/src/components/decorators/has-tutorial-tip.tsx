@@ -3,7 +3,7 @@ import _ from 'underscore';
 import React from 'react';
 import ReactDOM from 'react-dom';
 
-import { localized, PropTypes, Actions, WorkspaceStore, DOMUtils } from 'mailspring-exports';
+import { localized, Actions, WorkspaceStore, DOMUtils } from 'mailspring-exports';
 import MailspringStore from 'mailspring-store';
 import { Disposable } from 'event-kit';
 
@@ -18,7 +18,7 @@ class TipsStoreCls extends MailspringStore {
 
   isTipVisible(key) {
     const seen = AppEnv.config.get('core.tutorial.seen') || [];
-    return this._tipKeys.find(t => !seen.includes(t)) === key;
+    return this._tipKeys.find((t) => !seen.includes(t)) === key;
   }
 
   hasSeenTip(key) {
@@ -28,21 +28,21 @@ class TipsStoreCls extends MailspringStore {
   // Actions: Since this is a private store just inside this file, we call
   // these methods directly for now.
 
-  mountedTip = key => {
+  mountedTip = (key) => {
     if (!this._tipKeys.includes(key)) {
       this._tipKeys.push(key);
     }
     this.trigger();
   };
 
-  seenTip = key => {
-    this._tipKeys = this._tipKeys.filter(t => t !== key);
+  seenTip = (key) => {
+    this._tipKeys = this._tipKeys.filter((t) => t !== key);
     AppEnv.config.pushAtKeyPath('core.tutorial.seen', key);
     this.trigger();
   };
 
-  unmountedTip = key => {
-    this._tipKeys = this._tipKeys.filter(t => t !== key);
+  unmountedTip = (key) => {
+    this._tipKeys = this._tipKeys.filter((t) => t !== key);
     this.trigger();
   };
 }
@@ -57,13 +57,6 @@ interface TipPopoverContentsProps {
 }
 
 class TipPopoverContents extends React.Component<TipPopoverContentsProps> {
-  static propTypes = {
-    title: PropTypes.string,
-    tipKey: PropTypes.string,
-    instructions: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
-    onDismissed: PropTypes.func,
-  };
-
   componentDidMount() {
     if (TipsBackgroundEl.parentNode === null) {
       document.body.appendChild(TipsBackgroundEl);
@@ -177,8 +170,8 @@ export default function HasTutorialTip(ComposedComponent, TipConfig) {
 
     componentWillUnmount() {
       this._mounted = false;
-      this._unlisteners.forEach(unlisten => unlisten());
-      this._disposables.forEach(disposable => disposable.dispose());
+      this._unlisteners.forEach((unlisten) => unlisten());
+      this._disposables.forEach((disposable) => disposable.dispose());
 
       window.removeEventListener('resize', this._onRecomputeTooltipPosition);
       this.tipNode.parentNode.removeChild(this.tipNode);
@@ -188,7 +181,7 @@ export default function HasTutorialTip(ComposedComponent, TipConfig) {
       TipsStore.unmountedTip(TipKey);
     }
 
-    _containingSheetIsVisible = el => {
+    _containingSheetIsVisible = (el) => {
       const sheetEl = el.closest('.sheet') || el.closest('.sheet-toolbar-container');
       if (!sheetEl) {
         return true;

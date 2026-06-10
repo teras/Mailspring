@@ -2,6 +2,7 @@ import { QueryResultSet } from './query-result-set';
 import { AttributeJoinedData } from '../attributes/attribute-joined-data';
 import { Model } from './model';
 import ModelQuery from './query';
+import { QueryRange } from './query-range';
 
 // TODO: Make mutator methods QueryResultSet.join(), QueryResultSet.clip...
 export class MutableQueryResultSet<T extends Model> extends QueryResultSet<T> {
@@ -17,7 +18,7 @@ export class MutableQueryResultSet<T extends Model> extends QueryResultSet<T> {
     return set;
   }
 
-  clipToRange(range) {
+  clipToRange(range: QueryRange) {
     if (range.isInfinite()) {
       return;
     }
@@ -35,15 +36,18 @@ export class MutableQueryResultSet<T extends Model> extends QueryResultSet<T> {
     const models = this.models();
     this._modelsHash = {};
     this._idToIndexHash = null;
-    models.forEach(m => this.updateModel(m));
+    models.forEach((m) => this.updateModel(m));
   }
 
-  addModelsInRange(rangeModels: T[], range) {
-    this.addIdsInRange(rangeModels.map(m => m.id), range);
-    rangeModels.forEach(m => this.updateModel(m));
+  addModelsInRange(rangeModels: T[], range: QueryRange) {
+    this.addIdsInRange(
+      rangeModels.map((m) => m.id),
+      range
+    );
+    rangeModels.forEach((m) => this.updateModel(m));
   }
 
-  addIdsInRange(rangeIds: string[], range) {
+  addIdsInRange(rangeIds: string[], range: QueryRange) {
     if (this._offset === null || range.isInfinite()) {
       this._ids = rangeIds;
       this._idToIndexHash = null;
@@ -89,7 +93,7 @@ export class MutableQueryResultSet<T extends Model> extends QueryResultSet<T> {
     // Make sure we never drop joined data by pulling it over.
     const existing = this._modelsHash[item.id];
     if (existing) {
-      const attrs = existing.constructor.attributes;
+      const attrs = (existing.constructor as any).attributes;
       for (const key of Object.keys(attrs)) {
         const attr = attrs[key];
         if (attr instanceof AttributeJoinedData && item[attr.modelKey] === undefined) {
@@ -101,7 +105,7 @@ export class MutableQueryResultSet<T extends Model> extends QueryResultSet<T> {
     this._modelsHash[item.id] = item;
   }
 
-  removeModelAtOffset(item: T, offset) {
+  removeModelAtOffset(item: T, offset: number) {
     const idx = offset - this._offset;
     delete this._modelsHash[item.id];
     this._ids.splice(idx, 1);

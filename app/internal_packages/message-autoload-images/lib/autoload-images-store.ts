@@ -1,7 +1,7 @@
 import MailspringStore from 'mailspring-store';
 import fs from 'fs';
 import path from 'path';
-import { Utils, MessageBodyProcessor, CategoryStore } from 'mailspring-exports';
+import { Utils, Message, MessageBodyProcessor, CategoryStore } from 'mailspring-exports';
 import * as AutoloadImagesActions from './autoload-images-actions';
 
 class AutoloadImagesStore extends MailspringStore {
@@ -29,14 +29,17 @@ class AutoloadImagesStore extends MailspringStore {
     // - background: url(....)
     // - background: url(""...."")
     // - @import url(....)
-    return /((?:src|background|placeholder|icon|poster|srcset)\s*=\s*['"]?(?=[cid:|\w*://])|(?::|@import)\s*url\(['"]?)+([^"')]*)/gi;
+    // - @import "...." / @import '....' (string form, no url())
+    return /((?:src|background|placeholder|icon|poster|srcset)\s*=\s*['"]?(?=[cid:|\w*://])|(?::|@import)\s*url\(['"]?|@import\s+['"])+([^"')]*)/gi;
   };
 
   getLinkTagRegexp = () => {
-    return /<link [^>]+>/gi;
+    // Use \s+ rather than a literal space so tabs/newlines between <link and
+    // its attributes don't slip a tracking <link> through unmatched.
+    return /<link\s+[^>]+>/gi;
   };
 
-  shouldBlockImagesIn = message => {
+  shouldBlockImagesIn = (message: Message) => {
     const spam = CategoryStore.getSpamCategory(message.accountId);
     const spamFolderId = spam ? spam.id : undefined;
 
@@ -56,7 +59,7 @@ class AutoloadImagesStore extends MailspringStore {
   };
 
   _loadWhitelist = () => {
-    fs.exists(this._whitelistEmailsPath, exists => {
+    fs.exists(this._whitelistEmailsPath, (exists) => {
       if (!exists) {
         return;
       }
@@ -71,7 +74,7 @@ class AutoloadImagesStore extends MailspringStore {
         body
           .toString()
           .split(/[\n\r]+/)
-          .forEach(email => {
+          .forEach((email) => {
             this._whitelistEmails[Utils.toEquivalentEmailForm(email)] = true;
           });
         this.trigger();
@@ -81,20 +84,20 @@ class AutoloadImagesStore extends MailspringStore {
 
   _saveWhitelist = () => {
     const data = Object.keys(this._whitelistEmails).join('\n');
-    fs.writeFile(this._whitelistEmailsPath, data, err => {
+    fs.writeFile(this._whitelistEmailsPath, data, (err) => {
       if (err) {
         console.error(`AutoloadImagesStore could not save whitelist: ${err.toString()}`);
       }
     });
   };
 
-  _onTemporarilyEnableImages = message => {
+  _onTemporarilyEnableImages = (message: Message) => {
     this._whitelistMessageIds[message.id] = true;
     MessageBodyProcessor.resetCache();
     this.trigger();
   };
 
-  _onPermanentlyEnableImages = message => {
+  _onPermanentlyEnableImages = (message: Message) => {
     const email = Utils.toEquivalentEmailForm(message.fromContact().email);
     this._whitelistEmails[email] = true;
     MessageBodyProcessor.resetCache();

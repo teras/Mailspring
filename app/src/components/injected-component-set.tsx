@@ -1,5 +1,5 @@
 import React from 'react';
-import { PropTypes, Utils, ComponentRegistry } from 'mailspring-exports';
+import { Utils, ComponentRegistry } from 'mailspring-exports';
 
 import { Flexbox } from './flexbox';
 import InjectedComponentErrorBoundary from './injected-component-error-boundary';
@@ -71,15 +71,15 @@ export class InjectedComponentSet extends React.Component<
    -  Any other props you provide, such as `direction`, `data-column`, etc.
       will be applied to the {Flexbox} rendered by the InjectedComponentSet.
   */
-  static propTypes = {
-    matching: PropTypes.object.isRequired,
-    children: PropTypes.array,
-    className: PropTypes.string,
-    matchLimit: PropTypes.number,
-    exposedProps: PropTypes.object,
-    containersRequired: PropTypes.bool,
-    deferred: PropTypes.bool,
-  };
+  static ownPropKeys = [
+    'matching',
+    'children',
+    'className',
+    'matchLimit',
+    'exposedProps',
+    'containersRequired',
+    'deferred',
+  ];
 
   static defaultProps = {
     direction: 'row',
@@ -91,7 +91,10 @@ export class InjectedComponentSet extends React.Component<
   _mounted = false;
   _componentUnlistener?: () => void;
 
-  constructor(props, context) {
+  constructor(
+    props: InjectedComponentSetProps & React.HTMLProps<HTMLDivElement>,
+    context: unknown
+  ) {
     super(props, context);
     this.state = !props.deferred ? this._getStateFromStores() : { components: [], visible: false };
   }
@@ -144,9 +147,9 @@ export class InjectedComponentSet extends React.Component<
     const { exposedProps, containersRequired, matching, children } = this.props;
     let { className } = this.props;
 
-    const flexboxProps = Utils.fastOmit(this.props, Object.keys(InjectedComponentSet.propTypes));
+    const flexboxProps = Utils.fastOmit(this.props, InjectedComponentSet.ownPropKeys);
 
-    const elements = components.map(Component => {
+    const elements = components.map((Component) => {
       if (containersRequired === false || Component.containerRequired === false) {
         return <Component key={Component.displayName} {...exposedProps} />;
       }

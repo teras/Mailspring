@@ -36,7 +36,7 @@ describe('IdentityStore', function identityStoreSpec() {
       expect(KeyManager.deletePassword).toHaveBeenCalled();
       expect(KeyManager.replacePassword).not.toHaveBeenCalled();
       expect(AppEnv.config.set).toHaveBeenCalled();
-      const ident = AppEnv.config.set.calls[0].args[1];
+      const ident = (AppEnv.config.set as jasmine.Spy).calls[0].args[1];
       expect(ident).toBe(null);
     });
 
@@ -58,16 +58,16 @@ describe('IdentityStore', function identityStoreSpec() {
     it('returns the identity as null if it looks blank', () => {
       IdentityStore._identity = null;
       expect(IdentityStore.identity()).toBe(null);
-      IdentityStore._identity = {};
+      IdentityStore._identity = {} as any;
       expect(IdentityStore.identity()).toBe(null);
-      IdentityStore._identity = { token: 'bad' };
+      IdentityStore._identity = { token: 'bad' } as any;
       expect(IdentityStore.identity()).toBe(null);
     });
 
     it('returns a proper clone of the identity', () => {
-      IdentityStore._identity = { id: 'bar', deep: { obj: 'baz' } };
-      const ident = IdentityStore.identity();
-      IdentityStore._identity.deep.obj = 'changed';
+      IdentityStore._identity = { id: 'bar', deep: { obj: 'baz' } } as any;
+      const ident = IdentityStore.identity() as any;
+      (IdentityStore._identity as any).deep.obj = 'changed';
       expect(ident.deep.obj).toBe('baz');
     });
   });
@@ -88,10 +88,10 @@ describe('IdentityStore', function identityStoreSpec() {
       });
       await IdentityStore.fetchIdentity();
       expect(MailspringAPIRequest.makeRequest).toHaveBeenCalled();
-      const options = MailspringAPIRequest.makeRequest.calls[0].args[0];
+      const options = (MailspringAPIRequest.makeRequest as jasmine.Spy).calls[0].args[0];
       expect(options.path).toEqual('/api/me');
       expect(IdentityStore.saveIdentity).toHaveBeenCalled();
-      const newIdent = IdentityStore.saveIdentity.calls[0].args[0];
+      const newIdent = (IdentityStore.saveIdentity as jasmine.Spy).calls[0].args[0];
       expect(newIdent.featureUsage.feat.quota).toBe(5);
       expect(AppEnv.reportError).not.toHaveBeenCalled();
     });

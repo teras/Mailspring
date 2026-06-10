@@ -11,8 +11,8 @@ import MTestUtils from '../mailspring-test-utils';
 
 const { findDOMNode } = ReactDOM;
 
-const makeList = (items = [], props = {}) => {
-  const list = MTestUtils.renderIntoDocument(<EditableList {...props} items={items} />);
+const makeList = (items = [], props: any = {}) => {
+  const list = MTestUtils.renderIntoDocument(<EditableList {...props} items={items} />) as any;
   if (props.initialState) {
     list.setState(props.initialState);
   }
@@ -106,7 +106,7 @@ describe('EditableList', function editableList() {
       const list = makeList(['1', '2'], { initialState: { creatingItem: true }, onItemCreated });
       const createItem = findRenderedDOMComponentWithClass(list, 'create-item-input');
       const input = createItem.querySelector('input');
-      findDOMNode(input).value = 'New Item';
+      (findDOMNode(input) as HTMLInputElement).value = 'New Item';
 
       Simulate.keyDown(input, { key: 'Enter' });
 
@@ -118,7 +118,7 @@ describe('EditableList', function editableList() {
       const list = makeList(['1', '2'], { initialState: { creatingItem: true }, onItemCreated });
       const createItem = findRenderedDOMComponentWithClass(list, 'create-item-input');
       const input = createItem.querySelector('input');
-      findDOMNode(input).value = '';
+      (findDOMNode(input) as HTMLInputElement).value = '';
 
       Simulate.keyDown(input, { key: 'Enter' });
 
@@ -200,22 +200,22 @@ describe('EditableList', function editableList() {
     });
 
     it('renders correctly when item is selected', () => {
-      const item = findDOMNode(makeItem('item 1', 0, { selected: 'item 1' }));
+      const item = findDOMNode(makeItem('item 1', 0, { selected: 'item 1' })) as HTMLElement;
       expect(item.className.indexOf('selected')).not.toEqual(-1);
     });
 
     it('renders correctly when item is string', () => {
-      const item = findDOMNode(makeItem('item 1', 0));
+      const item = findDOMNode(makeItem('item 1', 0)) as HTMLElement;
       expect(item.className.indexOf('selected')).toEqual(-1);
       expect(item.className.indexOf('editable-item')).not.toEqual(-1);
       expect(item.innerText).toEqual('item 1');
     });
 
     it('renders correctly when item is component', () => {
-      const item = findDOMNode(makeItem(<div />, 0));
+      const item = findDOMNode(makeItem(<div />, 0)) as HTMLElement;
       expect(item.className.indexOf('selected')).toEqual(-1);
       expect(item.className.indexOf('editable-item')).toEqual(-1);
-      expect(item.childNodes[0].tagName).toEqual('DIV');
+      expect((item.childNodes[0] as HTMLElement).tagName).toEqual('DIV');
     });
 
     it('renders correctly when item is in editing state', () => {
@@ -240,7 +240,7 @@ describe('EditableList', function editableList() {
       expect(onInputKeyDown.calls[0].args[1]).toEqual('item 1');
       expect(onInputKeyDown.calls[0].args[2]).toEqual(0);
 
-      expect(findDOMNode(input).tagName).toEqual('INPUT');
+      expect((findDOMNode(input) as HTMLElement).tagName).toEqual('INPUT');
     });
   });
 
@@ -270,14 +270,14 @@ describe('EditableList', function editableList() {
       const list = makeList();
       const button = scryRenderedDOMComponentsWithClass(list, 'btn-editable-list')[0];
 
-      expect(findDOMNode(button).textContent).toEqual('+');
+      expect((findDOMNode(button) as HTMLElement).querySelector('svg')).not.toBeNull();
     });
 
     it('renders delete button', () => {
       const list = makeList(['1', '2'], { selected: '2' });
       const button = scryRenderedDOMComponentsWithClass(list, 'btn-editable-list')[1];
 
-      expect(findDOMNode(button).textContent).toEqual('—');
+      expect((findDOMNode(button) as HTMLElement).querySelector('svg')).not.toBeNull();
     });
 
     it('disables the delete button when no item is selected', () => {

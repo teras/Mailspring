@@ -2,7 +2,6 @@ import _ from 'underscore';
 import React, { Component, CSSProperties } from 'react';
 import { Utils, Model } from 'mailspring-exports';
 import ReactDOM from 'react-dom';
-import PropTypes from 'prop-types';
 
 import { ScrollRegion, ScrollRegionProps } from './scroll-region';
 import { Spinner } from './spinner';
@@ -46,6 +45,9 @@ type ListTabularRowsProps = {
   role?: string;
   ariaLabel?: string;
   ariaMultiselectable?: boolean;
+  tabIndex?: number;
+  ariaActiveDescendant?: string;
+  domRef?: (el: HTMLElement | null) => void;
   onSelect?: (...args: any[]) => any;
   onClick?: (...args: any[]) => any;
   onDoubleClick?: (...args: any[]) => any;
@@ -53,71 +55,58 @@ type ListTabularRowsProps = {
   onDragEnd?: (...args: any[]) => any;
 };
 
-export class ListTabularRows extends Component<ListTabularRowsProps> {
-  static displayName = 'ListTabularRows';
-
-  static propTypes = {
-    rows: PropTypes.array,
-    columns: PropTypes.array.isRequired,
-    draggable: PropTypes.bool,
-    itemHeight: PropTypes.number,
-    innerStyles: PropTypes.object,
-    onSelect: PropTypes.func,
-    onClick: PropTypes.func,
-    onDoubleClick: PropTypes.func,
-    onDragStart: PropTypes.func,
-    onDragEnd: PropTypes.func,
-  };
-
-  shouldComponentUpdate(nextProps, nextState) {
-    return !Utils.isEqualReact(nextProps, this.props) || !Utils.isEqualReact(nextState, this.state);
-  }
-
-  renderRow({
-    item,
-    idx,
-    itemProps = {},
-  }: {
-    item: Model;
-    idx: number;
-    itemProps?: { [key: string]: any };
-  }) {
-    if (!item) {
-      return false;
-    }
-    const { columns, itemHeight, onClick, onSelect, onDoubleClick } = this.props;
-    return (
-      <ListTabularItem
-        key={item.id || idx}
-        item={item}
-        itemProps={itemProps}
-        metrics={{ top: idx * itemHeight, height: itemHeight }}
-        columns={columns}
-        onSelect={onSelect}
-        onClick={onClick}
-        onDoubleClick={onDoubleClick}
-      />
-    );
-  }
-
-  render() {
-    const { rows, innerStyles, draggable, role, ariaLabel, ariaMultiselectable, onDragStart, onDragEnd } = this.props;
-    return (
-      <div
-        className="list-rows"
-        style={innerStyles}
-        onDragStart={onDragStart}
-        onDragEnd={onDragEnd}
-        draggable={draggable}
-        role={role}
-        aria-label={ariaLabel}
-        aria-multiselectable={ariaMultiselectable}
-      >
-        {rows.map(r => this.renderRow(r))}
-      </div>
-    );
-  }
-}
+export const ListTabularRows: React.FC<ListTabularRowsProps> = React.memo(
+  ({
+    rows,
+    columns,
+    itemHeight,
+    innerStyles,
+    draggable,
+    role,
+    ariaLabel,
+    ariaMultiselectable,
+    tabIndex,
+    ariaActiveDescendant,
+    domRef,
+    onClick,
+    onSelect,
+    onDoubleClick,
+    onDragStart,
+    onDragEnd,
+  }) => (
+    <div
+      ref={domRef}
+      className="list-rows"
+      style={innerStyles}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      draggable={draggable}
+      role={role}
+      aria-label={ariaLabel}
+      aria-multiselectable={ariaMultiselectable}
+      tabIndex={tabIndex}
+      aria-activedescendant={ariaActiveDescendant}
+    >
+      {rows.map(({ item, idx, itemProps = {} }) => {
+        if (!item) return null;
+        return (
+          <ListTabularItem
+            key={item.id || idx}
+            item={item}
+            itemProps={itemProps}
+            metrics={{ top: idx * itemHeight, height: itemHeight }}
+            columns={columns}
+            onSelect={onSelect}
+            onClick={onClick}
+            onDoubleClick={onDoubleClick}
+          />
+        );
+      })}
+    </div>
+  ),
+  (prev, next) => Utils.isEqualReact(prev, next)
+);
+ListTabularRows.displayName = 'ListTabularRows';
 
 export interface ListTabularProps extends ScrollRegionProps {
   footer?: React.ReactNode;
@@ -131,6 +120,8 @@ export interface ListTabularProps extends ScrollRegionProps {
   role?: string;
   ariaLabel?: string;
   ariaMultiselectable?: boolean;
+  tabIndex?: number;
+  ariaActiveDescendant?: string;
   onClick?: (...args: any[]) => any;
   onSelect?: (...args: any[]) => any;
   onDoubleClick?: (...args: any[]) => any;
@@ -157,24 +148,6 @@ interface ListTabularState {
 export class ListTabular extends Component<ListTabularProps, ListTabularState> {
   static displayName = 'ListTabular';
 
-  static propTypes = {
-    footer: PropTypes.node,
-    draggable: PropTypes.bool,
-    className: PropTypes.string,
-    columns: PropTypes.array.isRequired,
-    dataSource: PropTypes.object,
-    itemPropsProvider: PropTypes.func,
-    itemHeight: PropTypes.number,
-    EmptyComponent: PropTypes.func,
-    scrollTooltipComponent: PropTypes.func,
-    onClick: PropTypes.func,
-    onSelect: PropTypes.func,
-    onDoubleClick: PropTypes.func,
-    onDragStart: PropTypes.func,
-    onDragEnd: PropTypes.func,
-    onComponentDidUpdate: PropTypes.func,
-  };
-
   static defaultProps = {
     footer: false,
     EmptyComponent: () => false,
@@ -191,8 +164,13 @@ export class ListTabular extends Component<ListTabularProps, ListTabularState> {
   _cleanupAnimationTimeout?: number;
   _onWindowResize?: any;
   _scrollRegion: ScrollRegion;
+  _listRowsEl: HTMLElement | null = null;
 
-  constructor(props) {
+  _setListRowsEl = (el: HTMLElement | null) => {
+    this._listRowsEl = el;
+  };
+
+  constructor(props: ListTabularProps) {
     super(props);
     if (!props.itemHeight) {
       throw new Error(
@@ -208,7 +186,7 @@ export class ListTabular extends Component<ListTabularProps, ListTabularState> {
     this.setupDataSource(this.props.dataSource);
   }
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(prevProps: ListTabularProps, prevState: ListTabularState) {
     if (this.props.onComponentDidUpdate) {
       this.props.onComponentDidUpdate();
     }
@@ -273,12 +251,14 @@ export class ListTabular extends Component<ListTabularProps, ListTabularState> {
     }
   };
 
-  setupDataSource(dataSource) {
+  setupDataSource(dataSource: ListDataSource) {
     this._unlisten();
-    this._unlisten = dataSource.listen(() => this.setState(this.buildStateForRange()));
+    this._unlisten = dataSource.listen(() => this.setState(this.buildStateForRange()), this);
 
     const range = this.getRange();
-    this.props.dataSource.setRetainedRange(range);
+    if (range) {
+      this.props.dataSource.setRetainedRange(range);
+    }
     this.setState(this.buildStateForRange({ ...range, dataSource }));
   }
 
@@ -293,7 +273,7 @@ export class ListTabular extends Component<ListTabularProps, ListTabularState> {
       rows.push({ item: record.item, idx: Number(idx) / 1, itemProps });
     });
 
-    Utils.range(renderedRangeStart, renderedRangeEnd).forEach(idx => {
+    Utils.range(renderedRangeStart, renderedRangeEnd).forEach((idx) => {
       const item = items[idx];
       if (item) {
         const itemProps = itemPropsProvider(item, idx);
@@ -304,14 +284,18 @@ export class ListTabular extends Component<ListTabularProps, ListTabularState> {
     return rows;
   }
 
-  scrollTo(node) {
+  scrollTo(node: HTMLElement) {
     if (!this._scrollRegion) {
       return;
     }
     this._scrollRegion.scrollTo(node);
   }
 
-  scrollByPage(direction) {
+  focusListbox() {
+    this._listRowsEl?.focus({ preventScroll: true });
+  }
+
+  scrollByPage(direction: number) {
     if (!this._scrollRegion) {
       return;
     }
@@ -340,10 +324,12 @@ export class ListTabular extends Component<ListTabularProps, ListTabularState> {
 
   updateRangeStateIfViewportChanged() {
     const range = this.getRange();
+    if (!range) {
+      return;
+    }
 
     // Final sanity check to prevent needless work
     if (
-      !range ||
       range.end !== this.state.renderedRangeEnd ||
       range.start !== this.state.renderedRangeStart
     ) {
@@ -363,7 +349,7 @@ export class ListTabular extends Component<ListTabularProps, ListTabularState> {
     const items: { [id: number]: Model } = {};
     let animatingOut = {};
 
-    Utils.range(start, end).forEach(idx => {
+    Utils.range(start, end).forEach((idx) => {
       items[idx] = dataSource.get(idx);
     });
 
@@ -372,7 +358,7 @@ export class ListTabular extends Component<ListTabularProps, ListTabularState> {
     // last time but not allocate height to them. This allows us to animate them
     // being covered by other items, not just disappearing when others start to slide up.
     if (this.state && start === this.state.renderedRangeStart) {
-      const nextIds = Object.values(items).map(a => a && a.id);
+      const nextIds = Object.values(items).map((a) => a && a.id);
       animatingOut = {};
 
       // Keep items which are still animating out and are still not in the set
@@ -426,6 +412,8 @@ export class ListTabular extends Component<ListTabularProps, ListTabularState> {
       role,
       ariaLabel,
       ariaMultiselectable,
+      tabIndex,
+      ariaActiveDescendant,
       onClick,
       onSelect,
       onDragEnd,
@@ -438,7 +426,7 @@ export class ListTabular extends Component<ListTabularProps, ListTabularState> {
     return (
       <div className={`list-container list-tabular ${className}`}>
         <ScrollRegion
-          ref={cm => {
+          ref={(cm) => {
             this._scrollRegion = cm;
           }}
           onScroll={this.onScroll}
@@ -453,6 +441,9 @@ export class ListTabular extends Component<ListTabularProps, ListTabularState> {
             role={role}
             ariaLabel={ariaLabel}
             ariaMultiselectable={ariaMultiselectable}
+            tabIndex={tabIndex}
+            ariaActiveDescendant={ariaActiveDescendant}
+            domRef={this._setListRowsEl}
             innerStyles={{
               height: count * itemHeight,
               backgroundSize: `100% ${this.props.itemHeight}px`,

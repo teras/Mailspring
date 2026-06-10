@@ -12,23 +12,24 @@ interface IAccountMenuItem extends Electron.MenuItemConstructorOptions {
   account?: boolean;
 }
 
-export function _isSelected(account, sidebarAccountIds) {
+export function _isSelected(account: Account | Account[], sidebarAccountIds: string[]) {
   if (sidebarAccountIds.length > 1) {
     return account instanceof Array;
   } else if (sidebarAccountIds.length === 1) {
-    return (account != null ? account.id : undefined) === sidebarAccountIds[0];
+    const singleAccount = account as Account;
+    return (singleAccount != null ? singleAccount.id : undefined) === sidebarAccountIds[0];
   } else {
     return false;
   }
 }
 
 export function menuItem(
-  account: Account,
+  account: Account | Account[],
   idx: number,
   { isSelected, clickHandlers }: { isSelected?: boolean; clickHandlers?: boolean } = {}
 ) {
   const item: IAccountMenuItem = {
-    label: account.label != null ? account.label : 'All Accounts',
+    label: !Array.isArray(account) && account.label != null ? account.label : 'All Accounts',
     command: `window:select-account-${idx}`,
     account: true,
   };
@@ -45,8 +46,8 @@ export function menuItem(
 }
 
 export function menuTemplate(
-  accounts,
-  sidebarAccountIds,
+  accounts: Account[],
+  sidebarAccountIds: string[],
   { clickHandlers }: { clickHandlers?: boolean } = {}
 ) {
   let isSelected;
@@ -69,14 +70,14 @@ export function menuTemplate(
   return template;
 }
 
-export function _focusAccounts(accounts) {
+export function _focusAccounts(accounts: Account[]) {
   Actions.focusDefaultMailboxPerspectiveForAccounts(accounts);
   if (!AppEnv.isVisible()) {
     AppEnv.show();
   }
 }
 
-export function registerCommands(accounts) {
+export function registerCommands(accounts: Account[]) {
   if (_commandsDisposable != null) {
     _commandsDisposable.dispose();
   }
@@ -85,7 +86,7 @@ export function registerCommands(accounts) {
   const allKey = 'window:select-account-0';
   commands[allKey] = _focusAccounts.bind(this, accounts);
 
-  [1, 2, 3, 4, 5, 6, 7, 8].forEach(index => {
+  [1, 2, 3, 4, 5, 6, 7, 8].forEach((index) => {
     const account = accounts[index - 1];
     if (!account) {
       return;
@@ -105,7 +106,7 @@ export function registerMenuItems(accounts: Account[], sidebarAccountIds: string
     return;
   }
 
-  const submenu = windowMenu.submenu.filter(item => !(item as any).account);
+  const submenu = windowMenu.submenu.filter((item) => !(item as any).account);
   if (!submenu) {
     return;
   }

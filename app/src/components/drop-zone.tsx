@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import _ from 'underscore';
 
 interface DropZoneProps {
@@ -14,11 +13,7 @@ interface DropZoneProps {
 }
 
 export class DropZone extends React.Component<DropZoneProps> {
-  static propTypes = {
-    shouldAcceptDrop: PropTypes.func.isRequired,
-    onDrop: PropTypes.func.isRequired,
-    onDragStateChange: PropTypes.func,
-  };
+  static ownPropKeys = ['shouldAcceptDrop', 'onDrop', 'onDragStateChange'];
 
   _dragCounter = 0;
 
@@ -32,7 +27,7 @@ export class DropZone extends React.Component<DropZoneProps> {
 
   // Alternative solution *maybe* is to set pointer-events:none; during drag.
 
-  _onDragEnter = e => {
+  _onDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
     if (!this.props.shouldAcceptDrop(e)) {
       return;
     }
@@ -44,7 +39,7 @@ export class DropZone extends React.Component<DropZoneProps> {
     return;
   };
 
-  _onDragLeave = e => {
+  _onDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
     if (!this.props.shouldAcceptDrop(e)) {
       return;
     }
@@ -56,7 +51,7 @@ export class DropZone extends React.Component<DropZoneProps> {
     return;
   };
 
-  _onDrop = e => {
+  _onDrop = (e: React.DragEvent<HTMLDivElement>) => {
     if (!this.props.shouldAcceptDrop(e)) {
       return;
     }
@@ -70,11 +65,11 @@ export class DropZone extends React.Component<DropZoneProps> {
   };
 
   render() {
-    const otherProps = _.omit(this.props, Object.keys(DropZone.propTypes));
+    const otherProps = _.omit(this.props, DropZone.ownPropKeys);
     return (
       <div
         {...otherProps}
-        onDragOver={event => {
+        onDragOver={(event) => {
           if (event.target instanceof HTMLElement && event.target.closest('[data-slate-editor]'))
             return;
           const allowed = event.dataTransfer.effectAllowed;

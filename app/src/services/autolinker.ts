@@ -57,7 +57,7 @@ function _runOnTextNode(node, matchers) {
     const range = document.createRange();
     range.setStart(node, match.index);
     range.setEnd(node, match.index + match[0].length);
-    const aTag: HTMLAnchorElement = DOMUtils.wrap(range, 'A');
+    const aTag = DOMUtils.wrap(range, 'A') as HTMLAnchorElement;
     aTag.href = href;
     aTag.title = href;
 
@@ -93,7 +93,7 @@ export function Autolink(
   ];
 
   if (options.async) {
-    const fn = deadline => {
+    const fn = (deadline) => {
       while (textWalker.nextNode()) {
         _runOnTextNode(textWalker.currentNode, matchers);
         if (deadline.timeRemaining() <= 0) {
@@ -111,7 +111,7 @@ export function Autolink(
 
   // Traverse the new DOM tree and make sure everything with an href has a title.
   const aTagWalker = document.createTreeWalker(body, NodeFilter.SHOW_ELEMENT, {
-    acceptNode: node =>
+    acceptNode: (node) =>
       (node as HTMLLinkElement).href ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP,
   });
   while (aTagWalker.nextNode()) {

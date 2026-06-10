@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import _ from 'underscore';
 import classNames from 'classnames';
 
@@ -27,11 +26,7 @@ export class Spinner extends React.Component<SpinnerProps, SpinnerState> {
      - `withCover` (optiona) Pass true to dim the content behind the spinner.
      - `style` (optional) Additional styles to apply to the spinner.
     */
-  static propTypes = {
-    visible: PropTypes.bool,
-    withCover: PropTypes.bool,
-    style: PropTypes.object,
-  };
+  static ownPropKeys = ['visible', 'withCover', 'style'];
 
   timer = null;
   state = {
@@ -146,15 +141,16 @@ export class Spinner extends React.Component<SpinnerProps, SpinnerState> {
       paused: this.state.paused,
     });
 
-    const style = _.extend({}, this.props.style != null ? this.props.style : {}, {
+    const style: React.CSSProperties = {
+      ...(this.props.style != null ? this.props.style : {}),
       position: 'absolute',
       left: '50%',
       top: '50%',
       zIndex: 1001,
       transform: 'translate(-50%,-50%)',
-    });
+    };
 
-    const otherProps = _.omit(this.props, Object.keys(Spinner.propTypes));
+    const otherProps = _.omit(this.props, Spinner.ownPropKeys);
     return (
       <div className={spinnerClass} {...otherProps} style={style}>
         <div className="bounce1" />

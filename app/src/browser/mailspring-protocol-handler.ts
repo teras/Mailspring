@@ -18,10 +18,10 @@ export default class MailspringProtocolHandler {
 
   constructor({ configDirPath, resourcePath, safeMode }) {
     if (!safeMode) {
-      this.loadPaths.push(path.join(configDirPath, 'dev', 'packages'));
+      this.loadPaths.push(path.resolve(path.join(configDirPath, 'dev', 'packages')));
     }
-    this.loadPaths.push(path.join(configDirPath, 'packages'));
-    this.loadPaths.push(path.join(resourcePath, 'internal_packages'));
+    this.loadPaths.push(path.resolve(path.join(configDirPath, 'packages')));
+    this.loadPaths.push(path.resolve(path.join(resourcePath, 'internal_packages')));
 
     this.registerProtocol();
   }
@@ -29,24 +29,37 @@ export default class MailspringProtocolHandler {
   // Creates the 'Mailspring' custom protocol handler.
   registerProtocol() {
     const scheme = 'mailspring';
-    protocol.registerFileProtocol(scheme, (request, callback) => {
+
+    protocol.handle(scheme, (request) => {
       const relativePath = path.normalize(request.url.substr(scheme.length + 1));
 
       let filePath = null;
       for (const loadPath of this.loadPaths) {
-        filePath = path.join(loadPath, relativePath);
+        // Use path.join (not path.resolve) so absolute-looking inputs like
+        // "/foo" stay anchored to the load path instead of replacing it.
+        const candidate = path.resolve(path.join(loadPath, relativePath));
+        // Ensure the resolved path is contained within the load path.
+        // Append path.sep to prevent prefix-matching attacks (e.g. /packages-evil/).
+        if (candidate !== loadPath && !candidate.startsWith(loadPath + path.sep)) {
+          continue;
+        }
         let fileStats: fs.Stats | false = false;
         try {
-          fileStats = fs.statSync(filePath);
+          fileStats = fs.statSync(candidate);
         } catch (e) {
           // path doesn't exist
         }
         if (fileStats && fileStats.isFile && fileStats.isFile()) {
+          filePath = candidate;
           break;
         }
       }
 
-      callback(filePath);
+      if (filePath) {
+        return new Response(fs.readFileSync(filePath), { status: 200 });
+      } else {
+        return new Response('Not Found', { status: 404 });
+      }
     });
   }
 }

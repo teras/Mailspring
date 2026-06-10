@@ -1,5 +1,5 @@
 import path from 'path';
-import fs from 'fs-plus';
+import fs from 'fs';
 import { BrowserWindow, dialog, app } from 'electron';
 import { atomicWriteFileSync } from '../fs-utils';
 import { localized } from '../intl';
@@ -30,9 +30,9 @@ export default class ConfigPersistenceManager {
 
   initializeConfigDirectory() {
     if (!fs.existsSync(this.configDirPath)) {
-      fs.makeTreeSync(this.configDirPath);
+      fs.mkdirSync(this.configDirPath, { recursive: true });
       const templateConfigDirPath = path.join(this.resourcePath, 'dot-mailspring');
-      fs.copySync(templateConfigDirPath, this.configDirPath);
+      fs.cpSync(templateConfigDirPath, this.configDirPath, { recursive: true });
     }
 
     try {
@@ -185,7 +185,7 @@ export default class ConfigPersistenceManager {
   emitChangeEvent = ({ sourceWebcontentsId }: { sourceWebcontentsId?: number } = {}) => {
     global.application.config.updateSettings(this.settings);
 
-    BrowserWindow.getAllWindows().forEach(win => {
+    BrowserWindow.getAllWindows().forEach((win) => {
       if (win.webContents && win.webContents.id !== sourceWebcontentsId) {
         win.webContents.send('on-config-reloaded', this.settings);
       }

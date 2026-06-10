@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { PropTypes, Utils, ComponentRegistry } from 'mailspring-exports';
+import { Utils, ComponentRegistry } from 'mailspring-exports';
 
 import InjectedComponentErrorBoundary from './injected-component-error-boundary';
 import InjectedComponentLabel from './injected-component-label';
@@ -65,16 +65,6 @@ export default class InjectedComponent extends React.Component<
      an error will be thrown.
 
   */
-  static propTypes = {
-    matching: PropTypes.object.isRequired,
-    className: PropTypes.string,
-    exposedProps: PropTypes.object,
-    fallback: PropTypes.func,
-    style: PropTypes.object,
-    requiredMethods: PropTypes.arrayOf(PropTypes.string),
-    onComponentDidChange: PropTypes.func,
-  };
-
   static defaultProps = {
     style: {},
     className: '',
@@ -144,8 +134,8 @@ export default class InjectedComponent extends React.Component<
     }
   };
 
-  _setRequiredMethods = methods => {
-    methods.forEach(method => {
+  _setRequiredMethods = (methods) => {
+    methods.forEach((method) => {
       Object.defineProperty(this, method, {
         configurable: true,
         enumerable: true,
@@ -157,7 +147,7 @@ export default class InjectedComponent extends React.Component<
   _verifyRequiredMethods = () => {
     if (this.state.component) {
       const component = this.state.component;
-      this.props.requiredMethods.forEach(method => {
+      this.props.requiredMethods.forEach((method) => {
         if (component.prototype[method] === undefined) {
           throw new Error(
             `${

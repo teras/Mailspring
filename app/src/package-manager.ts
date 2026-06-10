@@ -1,8 +1,8 @@
 import path from 'path';
-import fs from 'fs-plus';
+import fs from 'fs';
 import { shell } from 'electron';
 import { localized } from './intl';
-import Package from './package';
+import Package, { isValidPackageName } from './package';
 
 export default class PackageManager {
   packageDirectories: string[] = [];
@@ -13,7 +13,19 @@ export default class PackageManager {
   configDirPath: string;
   identityPresent: boolean;
 
-  constructor({ configDirPath, devMode, safeMode, resourcePath, specMode }) {
+  constructor({
+    configDirPath,
+    devMode,
+    safeMode,
+    resourcePath,
+    specMode,
+  }: {
+    configDirPath: string;
+    devMode: boolean;
+    safeMode: boolean;
+    resourcePath: string;
+    specMode: boolean;
+  }) {
     this.resourcePath = resourcePath;
     this.configDirPath = configDirPath;
     this.identityPresent = !!AppEnv.config.get('identity');
@@ -65,6 +77,10 @@ export default class PackageManager {
           if (err instanceof Package.NoPackageJSONError) {
             continue;
           }
+          if (err instanceof Package.InvalidPackageNameError) {
+            console.error(err.message);
+            continue;
+          }
           const wrapped = new Error(
             localized(`Unable to read package.json for %@: %@`, filename, err.toString())
           );
@@ -105,7 +121,7 @@ export default class PackageManager {
     }
 
     const disabled = AppEnv.config.get('core.disabledPackages');
-    if (pkg.isOptional() && disabled.includes(pkg.name)) {
+    if (pkg.isOptional() && Array.isArray(disabled) && disabled.includes(pkg.name)) {
       return;
     }
 
@@ -125,8 +141,21 @@ export default class PackageManager {
       return;
     }
 
-    this.active[pkg.name] = pkg;
-    pkg.activate();
+    try {
+      this.active[pkg.name] = pkg;
+      pkg.activate();
+    } catch (err) {
+      delete this.active[pkg.name];
+      for (const d of pkg.disposables) {
+        d.dispose();
+      }
+      pkg.disposables = [];
+      AppEnv.reportError(
+        new Error(
+          localized(`Failed to activate plugin %@: %@`, pkg.name, err.message || err.toString())
+        )
+      );
+    }
   }
 
   deactivatePackages() {}
@@ -150,13 +179,26 @@ export default class PackageManager {
   // Installing and Creating Packages
 
   installPackageManually() {
+    const response = require('@electron/remote').dialog.showMessageBoxSync({
+      type: 'warning',
+      buttons: [localized('Cancel'), localized('Continue')],
+      defaultId: 0,
+      cancelId: 0,
+      message: localized('Only install plugins from sources you trust'),
+      detail: localized(
+        'Mailspring plugins run in the application and have access to your email data. Only install plugins from developers you trust.'
+      ),
+    });
+    if (response !== 1) {
+      return;
+    }
     AppEnv.showOpenDialog(
       {
         title: localized('Choose Directory'),
         buttonLabel: localized('Choose'),
         properties: ['openDirectory'],
       },
-      filenames => {
+      (filenames) => {
         if (!filenames || filenames.length === 0) {
           return;
         }
@@ -205,12 +247,54 @@ export default class PackageManager {
       );
     }
 
+    if (!isValidPackageName(json.name)) {
+      return callback(
+        new Error(
+          localized(
+            `The plugin or theme you selected has an invalid or missing "name" field in its package.json. Names must match /^[a-zA-Z0-9._-]+$/.`
+          )
+        )
+      );
+    }
+
     // copy the package into a new directory based on it's name
-    const packageFinalDir = path.join(this.configDirPath, 'packages', json.name);
-    fs.copySync(packagePath, packageFinalDir);
+    const packagesRoot = path.join(this.configDirPath, 'packages');
+    const packageFinalDir = path.join(packagesRoot, json.name);
+    const resolvedFinalDir = path.resolve(packageFinalDir);
+    const resolvedPackagesRoot = path.resolve(packagesRoot);
+    if (
+      resolvedFinalDir !== path.join(resolvedPackagesRoot, json.name) ||
+      path.dirname(resolvedFinalDir) !== resolvedPackagesRoot
+    ) {
+      return callback(
+        new Error(
+          localized(
+            `The plugin or theme you selected has an unsafe "name" field in its package.json.`
+          )
+        )
+      );
+    }
+    let pkg: Package;
+    try {
+      fs.cpSync(packagePath, packageFinalDir, { recursive: true });
+      pkg = new Package(packageFinalDir);
+    } catch (err) {
+      try {
+        fs.rmSync(packageFinalDir, { recursive: true, force: true });
+      } catch (cleanupErr) {
+        // best effort
+      }
+      return callback(
+        new Error(
+          localized(
+            `Failed to install the plugin or theme: %@`,
+            err && err.message ? err.message : err.toString()
+          )
+        )
+      );
+    }
 
     // activate the package
-    const pkg = new Package(packageFinalDir);
     this.available[pkg.name] = pkg;
     if (pkg.isTheme()) {
       AppEnv.themes.setActiveTheme(pkg.name);

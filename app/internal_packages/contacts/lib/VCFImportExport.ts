@@ -2,7 +2,6 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import vCard from 'vcf';
-import { v4 } from 'uuid';
 import { Contact, SyncbackContactTask, Actions, AccountStore, localized } from 'mailspring-exports';
 import { parse, fromVCF } from './ContactInfoMapping';
 import { formatDisplayName, serializeBirthday, serializeAddress } from './VCFHelpers';
@@ -21,7 +20,7 @@ export function contactToVCFString(contact: Contact): string {
   const { data } = parse(contact);
 
   card.set('version', '3.0');
-  card.set('uid', contact.id || v4());
+  card.set('uid', contact.id || crypto.randomUUID());
 
   if (data.name) {
     const {
@@ -115,10 +114,7 @@ export function vcfStringToContacts(vcfContent: string, accountId: string): Cont
 
       // Inject VERSION:3.0 if missing so safeParseVCard doesn't throw.
       if (!vcardString.match(/^VERSION:/im)) {
-        vcardString = vcardString.replace(
-          /BEGIN:VCARD\r\n/i,
-          'BEGIN:VCARD\r\nVERSION:3.0\r\n'
-        );
+        vcardString = vcardString.replace(/BEGIN:VCARD\r\n/i, 'BEGIN:VCARD\r\nVERSION:3.0\r\n');
       }
 
       // Always replace (or inject) the UID with a fresh UUID. Imported contacts
@@ -131,7 +127,7 @@ export function vcfStringToContacts(vcfContent: string, accountId: string): Cont
       // having to match the line terminator (which may be \r\n, \n, or absent at
       // EOF), and [ \t]* avoids the horizontal-whitespace-only match that \s* would
       // incorrectly extend across blank lines in files with inter-property gaps.
-      const newUID = v4();
+      const newUID = crypto.randomUUID();
       vcardString = vcardString.replace(/^[ \t]*UID:[^\r\n]*/im, '');
       vcardString = vcardString.replace(/END:VCARD/i, `UID:${newUID}\r\nEND:VCARD`);
 
@@ -173,7 +169,7 @@ export function exportContactsToFile(contacts: Contact[]) {
   if (contacts.length === 0) return;
   const defaultName =
     contacts.length === 1 ? `${contacts[0].name || 'contact'}.vcf` : 'contacts.vcf';
-  AppEnv.showSaveDialog({ defaultPath: defaultName }, filePath => {
+  AppEnv.showSaveDialog({ defaultPath: defaultName }, (filePath) => {
     if (!filePath) return;
     try {
       fs.writeFileSync(filePath, contactsToVCFFileContent(contacts), 'utf-8');
@@ -256,7 +252,7 @@ export function importContactsFromFile(accountId: string) {
       filters: [{ name: 'VCard Files', extensions: ['vcf', 'vcard'] }],
       properties: ['openFile', 'multiSelections'],
     },
-    filePaths => {
+    (filePaths) => {
       if (!filePaths || filePaths.length === 0) return;
       importContactsFromPaths(filePaths, accountId);
     }

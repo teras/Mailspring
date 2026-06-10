@@ -193,7 +193,7 @@
 
         &:focus {
           outline: none;
-          box-shadow: 0 0 0 2px fade(@accent-primary, 40%);
+          box-shadow: 0 0 0 2px rgb(from @accent-primary r g b / 40%);
         }
       }
 
@@ -308,7 +308,7 @@
 
       &:focus {
         outline: none;
-        box-shadow: 0 0 0 2px fade(@accent-primary, 40%);
+        box-shadow: 0 0 0 2px rgb(from @accent-primary r g b / 40%);
       }
     }
   }
@@ -355,7 +355,7 @@
       }
 
       &.active {
-        background-color: fade(@accent-primary, 15%);
+        background-color: rgb(from @accent-primary r g b / 15%);
         color: @accent-primary;
       }
 
@@ -467,7 +467,7 @@
       &:focus {
         outline: none;
         border-color: @accent-primary;
-        box-shadow: 0 0 0 2px fade(@accent-primary, 20%);
+        box-shadow: 0 0 0 2px rgb(from @accent-primary r g b / 20%);
       }
     }
 
@@ -581,8 +581,8 @@
     background: @input-bg;
     border-bottom-left-radius: @border-radius-base;
     border-bottom-right-radius: @border-radius-base;
-    box-shadow: 0 0.5px 0 rgba(0, 0, 0, 0.15), 0 -0.5px 0 rgba(0, 0, 0, 0.15),
-      0.5px 0 0 rgba(0, 0, 0, 0.15), -0.5px 0 0 rgba(0, 0, 0, 0.15), 0 4px 7px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 0.5px 0 @btn-border-color, 0 -0.5px 0 @btn-border-color,
+      0.5px 0 0 @btn-border-color, -0.5px 0 0 @btn-border-color, 0 4px 7px @btn-border-color;
     padding-top: @padding-small-vertical;
     max-height: 350px;
     overflow-y: auto;

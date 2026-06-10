@@ -70,7 +70,16 @@ export class EventHeader extends React.Component<EventHeaderProps, EventHeaderSt
     fs.readFile(AttachmentStore.pathForFile(file), async (err, data) => {
       if (err || !this._mounted) return;
 
-      const { event, root } = CalendarUtils.parseICSString(data.toString());
+      let parsed: ReturnType<typeof CalendarUtils.parseICSString>;
+      try {
+        parsed = CalendarUtils.parseICSString(data.toString());
+      } catch (e) {
+        console.warn(
+          `EventHeader: Could not parse ICS data from attachment ${file.filename}: ${e.message}`
+        );
+        return;
+      }
+      const { event, root } = parsed;
 
       const method = root.getFirstPropertyValue('method');
       const methodLower = (typeof method === 'string' ? method : 'request').toLowerCase();
@@ -88,16 +97,20 @@ export class EventHeader extends React.Component<EventHeaderProps, EventHeaderSt
           icsuid: event.uid,
           accountId: message.accountId,
         })
-      ).subscribe(calEvent => {
+      ).subscribe((calEvent) => {
         if (!this._mounted || !calEvent) return;
-        this.setState({
-          icsEvent: CalendarUtils.parseICSString(calEvent.ics).event,
-        });
+        try {
+          this.setState({
+            icsEvent: CalendarUtils.parseICSString(calEvent.ics).event,
+          });
+        } catch (e) {
+          console.warn(`EventHeader: Could not parse ICS data from calendar event: ${e.message}`);
+        }
       });
     });
   }
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(prevProps: EventHeaderProps, prevState: EventHeaderState) {
     if (prevState.inflight) {
       this.setState({ inflight: undefined });
     }
@@ -166,8 +179,8 @@ export class EventHeader extends React.Component<EventHeaderProps, EventHeaderSt
             {icsMethod === 'cancel'
               ? this._renderCancellation()
               : icsMethod === 'request'
-              ? this._renderRSVP()
-              : this._renderSenderResponse()}
+                ? this._renderRSVP()
+                : this._renderSenderResponse()}
           </div>
         </div>
       </div>
@@ -179,7 +192,7 @@ export class EventHeader extends React.Component<EventHeaderProps, EventHeaderSt
     const from = this.props.message.from[0];
     if (!from) return false;
 
-    const sender = CalendarUtils.cleanParticipants(icsEvent).find(p => p.email === from.email);
+    const sender = CalendarUtils.cleanParticipants(icsEvent).find((p) => p.email === from.email);
     if (!sender) return false;
 
     const verb: { [key: string]: string } = {

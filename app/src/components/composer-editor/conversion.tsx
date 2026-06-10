@@ -183,7 +183,7 @@ const TEXT_RULE_IMPROVED: Rule = {
       };
     }
   },
-  serialize: (obj, children) => {
+  serialize: (obj: any, children: string) => {
     if (obj.object === 'string') {
       return children.split('\n').reduce((array, text, i) => {
         if (i !== 0) array.push(<br />);

@@ -10,10 +10,7 @@ import {
 import MailspringStore from 'mailspring-store';
 
 import { PLUGIN_ID } from './send-reminders-constants';
-import {
-  updateReminderMetadata,
-  transferReminderMetadataFromDraftToThread,
-} from './send-reminders-utils';
+import { updateReminderMetadata } from './send-reminders-utils';
 
 class SendRemindersStore extends MailspringStore {
   _lastFocusedThread = null;
@@ -22,16 +19,15 @@ class SendRemindersStore extends MailspringStore {
   activate() {
     this._unsubscribers = [
       FocusedContentStore.listen(this._onFocusedContentChanged),
-      Actions.draftDeliverySucceeded.listen(this._onDraftDeliverySucceeded),
       DatabaseStore.listen(this._onDatabaseChanged),
     ];
   }
 
   deactivate() {
-    this._unsubscribers.forEach(unsub => unsub());
+    this._unsubscribers.forEach((unsub) => unsub());
   }
 
-  _sendReminderEmail = async (thread, sentHeaderMessageId) => {
+  _sendReminderEmail = async (thread: Thread, sentHeaderMessageId: string) => {
     const body = `
       <strong>Mailspring Reminder:</strong> This thread has been moved to the top of
       your inbox by Mailspring because no one has replied to your message.</p>
@@ -41,18 +37,19 @@ class SendRemindersStore extends MailspringStore {
     Actions.queueTask(SendDraftTask.forSending(draft, { silent: true }));
   };
 
-  _onDraftDeliverySucceeded = ({ headerMessageId, accountId }) => {
-    // when a draft is sent a thread may be created for it for the first time.
-    // Move the metadata from the message to the thread for much easier book-keeping.
-    transferReminderMetadataFromDraftToThread({ headerMessageId, accountId });
-  };
-
   _onDatabaseChanged = ({ type, objects, objectClass }: DatabaseChangeRecord<Thread>) => {
     if (objectClass !== Thread.name) {
       return;
     }
 
     if (!AppEnv.isMainWindow()) {
+      return;
+    }
+
+    // If threads with reminders were deleted, there's nothing to clean up — the
+    // metadata is gone with the thread. Just skip processing to avoid operating
+    // on deleted models.
+    if (type === 'unpersist') {
       return;
     }
 

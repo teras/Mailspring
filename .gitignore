@@ -79,3 +79,6 @@ client_secret.json
 .claude/worktrees/
 .basil/
 pkg/
+/test-results
+/playwright-report
+/playwright/test-results/

@@ -1,12 +1,11 @@
 import _ from 'underscore';
 import React, { Component } from 'react';
-import PropTypes from 'prop-types';
 import { ListensToObservable } from 'mailspring-component-kit';
 import { localized } from 'mailspring-exports';
 import ThreadListStore from './thread-list-store';
 
 function getObservable() {
-  return ThreadListStore.selectionObservable().map(items => items.length);
+  return ThreadListStore.selectionObservable().map((items) => items.length);
 }
 
 function getStateFromObservable(selectionCount) {
@@ -18,10 +17,6 @@ function getStateFromObservable(selectionCount) {
 
 class SelectedItemsStack extends Component<{ selectionCount: number }> {
   static displayName = 'SelectedItemsStack';
-
-  static propTypes = {
-    selectionCount: PropTypes.number,
-  };
 
   static containerRequired = false;
 
@@ -40,7 +35,7 @@ class SelectedItemsStack extends Component<{ selectionCount: number }> {
       <div className="selected-items-stack">
         <div className="selected-items-stack-content">
           <div className="stack">
-            {_.times(cardCount, idx => {
+            {_.times(cardCount, (idx) => {
               let deg = idx * 0.9;
 
               if (idx === 1) {

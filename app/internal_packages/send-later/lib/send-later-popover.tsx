@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import { localized, DateUtils } from 'mailspring-exports';
 import { DatePickerPopover } from 'mailspring-component-kit';
 
@@ -13,7 +12,11 @@ const SendLaterOptions = {
   [localized('Next Week')]: DateUtils.nextWeek,
 };
 
-function SendLaterPopover(props) {
+function SendLaterPopover(props: {
+  sendLaterDate?: Date;
+  onAssignSendLaterDate: (date: Date) => void;
+  onCancelSendLater: () => void;
+}) {
   let footer;
   const { onAssignSendLaterDate, onCancelSendLater, sendLaterDate } = props;
   const header = <span key="send-later-header">{localized('Send Later')}:</span>;
@@ -39,10 +42,5 @@ function SendLaterPopover(props) {
   );
 }
 SendLaterPopover.displayName = 'SendLaterPopover';
-SendLaterPopover.propTypes = {
-  sendLaterDate: PropTypes.instanceOf(Date),
-  onAssignSendLaterDate: PropTypes.func.isRequired,
-  onCancelSendLater: PropTypes.func.isRequired,
-};
 
 export default SendLaterPopover;

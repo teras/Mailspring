@@ -22,6 +22,23 @@
     width: 100%;
     margin-top: -1px;
     overflow: auto;
+
+    &::-webkit-scrollbar {
+      width: 8px;
+    }
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: fade(@text-color, 20%);
+      border-radius: 4px;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+      &:hover {
+        background: fade(@text-color, 35%);
+        background-clip: padding-box;
+      }
+    }
   }
 
   .item {
@@ -51,7 +68,7 @@
   }
 
   .item.divider {
-    font-weight: @headings-font-weight;
+    font-weight: @font-weight-semi-bold;
     color: @border-color-divider;
     font-size: @font-size-small;
     text-transform: uppercase;
@@ -84,7 +101,7 @@
 
   .item:not(.active):not(.selected):hover {
     text-decoration: none;
-    background-color: fade(@black, 3%);
+    background-color: fade(@text-color, 5%);
   }
 }
 body.platform-win32 {
@@ -102,8 +119,8 @@ body.platform-win32 {
     background: @background-secondary;
     width: 250px;
     max-height: 400px;
-    box-shadow: 0 0.5px 0 rgba(0, 0, 0, 0.15), 0 -0.5px 0 rgba(0, 0, 0, 0.15),
-      0.5px 0 0 rgba(0, 0, 0, 0.15), -0.5px 0 0 rgba(0, 0, 0, 0.15), 0 4px 7px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 0.5px 0 @standard-shadow-color, 0 -0.5px 0 @standard-shadow-color,
+      0.5px 0 0 @standard-shadow-color, -0.5px 0 0 @standard-shadow-color, 0 4px 7px @standard-shadow-color;
 
     .header-container {
       border-bottom: 0;

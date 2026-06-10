@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import _ from 'underscore';
 import _str from 'underscore.string';
 import { ConfigLike, ConfigSchemaLike } from '../types';
@@ -21,15 +20,8 @@ interface ConfigSchemaItemProps {
 class ConfigSchemaItem extends React.Component<ConfigSchemaItemProps> {
   static displayName = 'ConfigSchemaItem';
 
-  static propTypes = {
-    config: PropTypes.object,
-    configSchema: PropTypes.object,
-    keyName: PropTypes.string,
-    keyPath: PropTypes.string,
-  };
-
   _appliesToPlatform() {
-    if (!this.props.configSchema.platform) {
+    if (!this.props.configSchema.platforms) {
       return true;
     } else if (this.props.configSchema.platforms.indexOf(process.platform) !== -1) {
       return true;
@@ -37,12 +29,12 @@ class ConfigSchemaItem extends React.Component<ConfigSchemaItemProps> {
     return false;
   }
 
-  _onChangeChecked = event => {
+  _onChangeChecked = (event: React.ChangeEvent<HTMLInputElement>) => {
     this.props.config.toggle(this.props.keyPath);
     event.target.blur();
   };
 
-  _onChangeValue = event => {
+  _onChangeValue = (event: React.ChangeEvent<HTMLSelectElement>) => {
     this.props.config.set(this.props.keyPath, event.target.value);
     event.target.blur();
   };

@@ -1,5 +1,5 @@
 /* eslint global-require: 0 */
-import utf7 from '../../utf7';
+import { imapUtf7 } from '../../utils/imap-utf7';
 import { Model, AttributeValues } from './model';
 import * as Attributes from '../attributes';
 import { localized } from '../../intl';
@@ -7,7 +7,7 @@ import { localized } from '../../intl';
 // We look for a few standard categories and display them in the Mailboxes
 // portion of the left sidebar. Note that these may not all be present on
 // a particular account.
-const ToObject = arr => {
+const ToObject = (arr) => {
   return arr.reduce((o, v) => {
     o[v] = v;
     return o;
@@ -75,7 +75,7 @@ Section: Models
 */
 export class Category extends Model {
   get displayName() {
-    const decoded = utf7.imap.decode(this.path) as string;
+    const decoded = imapUtf7.decode(this.path) as string;
 
     for (const prefix of ['INBOX', '[Gmail]', '[Mailspring]']) {
       if (decoded.startsWith(prefix) && decoded.length > prefix.length + 1) {
@@ -124,12 +124,12 @@ export class Category extends Model {
   static HiddenRoles = Object.keys(HiddenRoleMap);
   static LocalizedStringForRole = LocalizedStringForRole;
 
-  static categoriesSharedRole(cats) {
+  static categoriesSharedRole(cats: Category[]) {
     if (!cats || cats.length === 0) {
       return null;
     }
     const role = cats[0].role;
-    if (!cats.every(cat => cat.role === role)) {
+    if (!cats.every((cat) => cat.role === role)) {
       return null;
     }
     return role;

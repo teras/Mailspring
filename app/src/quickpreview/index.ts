@@ -27,6 +27,7 @@ const QuickPreviewCSP = [
 
 let quickPreviewWindow = null;
 let captureWindow = null;
+let captureWindowInUse = false;
 const captureQueue = [];
 
 const filesRoot = __dirname.replace('app.asar', 'app.asar.unpacked');
@@ -92,10 +93,10 @@ const CrossplatformStrategies = {
 
 const CrossplatformStrategiesBetterThanQuicklook = ['snarkdown', 'prism'];
 
-function strategyForPreviewing(ext) {
+function strategyForPreviewing(ext: string) {
   if (ext.startsWith('.')) ext = ext.substr(1);
 
-  const strategy = Object.keys(CrossplatformStrategies).find(strategy =>
+  const strategy = Object.keys(CrossplatformStrategies).find((strategy) =>
     CrossplatformStrategies[strategy].includes(ext)
   );
 
@@ -169,27 +170,27 @@ const PreviewWindowMenuTemplate: Electron.MenuItemConstructorOptions[] = [
       {
         label: 'Reload',
         accelerator: 'CmdOrCtrl+R',
-        click: function(item, focusedWindow) {
+        click: function (item, focusedWindow) {
           if (focusedWindow) (focusedWindow as Electron.BrowserWindow).reload();
         },
       },
       {
         label: 'Toggle Full Screen',
-        accelerator: (function() {
+        accelerator: (function () {
           if (process.platform === 'darwin') return 'Ctrl+Command+F';
           else return 'F11';
         })(),
-        click: function(item, focusedWindow) {
+        click: function (item, focusedWindow) {
           if (focusedWindow) focusedWindow.setFullScreen(!focusedWindow.isFullScreen());
         },
       },
       {
         label: 'Toggle Developer Tools',
-        accelerator: (function() {
+        accelerator: (function () {
           if (process.platform === 'darwin') return 'Alt+Command+I';
           else return 'Ctrl+Shift+I';
         })(),
-        click: function(item, focusedWindow) {
+        click: function (item, focusedWindow) {
           if (focusedWindow) (focusedWindow as Electron.BrowserWindow).webContents.toggleDevTools();
         },
       },
@@ -197,14 +198,14 @@ const PreviewWindowMenuTemplate: Electron.MenuItemConstructorOptions[] = [
   },
 ];
 
-export function canPossiblyPreviewExtension(file) {
+export function canPossiblyPreviewExtension(file: File) {
   if (file.size > FileSizeLimit) {
     return false;
   }
   return !!strategyForPreviewing(file.displayExtension());
 }
 
-export function displayQuickPreviewWindow(filePath) {
+export function displayQuickPreviewWindow(filePath: string) {
   const isPDF = filePath.endsWith('.pdf');
   const strategy = strategyForPreviewing(path.extname(filePath));
 
@@ -293,8 +294,18 @@ export async function generatePreview({
 
 // Private
 
-async function _generateCrossplatformPreview({ file, filePath, previewPath, strategy }) {
-  return new Promise(resolve => {
+async function _generateCrossplatformPreview({
+  file,
+  filePath,
+  previewPath,
+  strategy,
+}: {
+  file: File;
+  filePath: string;
+  previewPath: string;
+  strategy: string;
+}) {
+  return new Promise((resolve) => {
     captureQueue.push({ file, filePath, previewPath, strategy, resolve });
 
     if (!captureWindow || captureWindow.isDestroyed()) {
@@ -340,20 +351,45 @@ function _createCaptureWindow() {
 
 async function _generateNextCrossplatformPreview() {
   if (captureQueue.length === 0) {
-    if (captureWindow && !captureWindow.isDestroyed()) {
-      captureWindow.destroy();
-    } else {
-      console.warn(`Thumbnail generation finished but window is already destroyed.`);
+    // Don't tear down the window if a generation is already in progress — that
+    // invocation will schedule the next call to _generateNextCrossplatformPreview
+    // once it finishes, which will then reach this branch and clean up properly.
+    if (!captureWindowInUse) {
+      if (captureWindow && !captureWindow.isDestroyed()) {
+        captureWindow.destroy();
+      } else {
+        console.warn(`Thumbnail generation finished but window is already destroyed.`);
+      }
+      captureWindow = null;
     }
-    captureWindow = null;
     return;
   }
 
   const { strategy, filePath, previewPath, resolve } = captureQueue.pop();
 
+  // Mark the window as in-use before the async token generation so that a
+  // concurrent invocation reaching the queue-empty branch above does not
+  // destroy the window while we are suspended at the await below.
+  captureWindowInUse = true;
+
   // Generate an opaque token for the preview path instead of passing the path directly
   // Token is generated via IPC to ensure it's stored in the main process
-  const previewToken = await generatePreviewToken(previewPath);
+  let previewToken: string;
+  try {
+    previewToken = await generatePreviewToken(previewPath);
+  } catch (err) {
+    console.error('Quickpreview failed to generate token:', err);
+    captureWindowInUse = false;
+    process.nextTick(_generateNextCrossplatformPreview);
+    resolve(false);
+    return;
+  }
+
+  // The renderer process may have crashed while we were awaiting the token above.
+  // Recreate the window so generation can continue.
+  if (!captureWindow || captureWindow.isDestroyed()) {
+    captureWindow = _createCaptureWindow();
+  }
 
   // Start the thumbnail generation
   captureWindow
@@ -381,7 +417,8 @@ async function _generateNextCrossplatformPreview() {
     onFinalize(true);
   };
 
-  onFinalize = success => {
+  onFinalize = (success) => {
+    captureWindowInUse = false;
     clearTimeout(timer);
     if (captureWindow) {
       captureWindow.removeListener('page-title-updated', onRendererSuccess);
@@ -401,7 +438,7 @@ async function _generateQuicklookPreview({ filePath }: { filePath: string }) {
   const dirQuoted = path.dirname(filePath).replace(/"/g, '\\"');
   const pathQuoted = filePath.replace(/"/g, '\\"');
 
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     const cmd = '/usr/bin/qlmanage';
     const args = [
       '-t',

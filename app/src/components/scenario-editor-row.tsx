@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import Rx, { Disposable } from 'rx-lite';
 import { Flexbox } from 'mailspring-component-kit';
 
@@ -22,11 +21,6 @@ type SourceSelectState = {
 
 class SourceSelect extends React.Component<SourceSelectProps, SourceSelectState> {
   static displayName = 'SourceSelect';
-  static propTypes = {
-    value: PropTypes.string,
-    onChange: PropTypes.func.isRequired,
-    options: PropTypes.oneOfType([PropTypes.object, PropTypes.array]).isRequired,
-  };
 
   _subscription?: Disposable;
 
@@ -60,7 +54,7 @@ class SourceSelect extends React.Component<SourceSelectProps, SourceSelectState>
     }
     this._subscription = null;
     if (props.options instanceof (Rx.Observable as any)) {
-      this._subscription = (props.options as Rx.Observable<Item[]>).subscribe(options =>
+      this._subscription = (props.options as Rx.Observable<Item[]>).subscribe((options) =>
         this.setState({ options })
       );
     } else {
@@ -68,7 +62,7 @@ class SourceSelect extends React.Component<SourceSelectProps, SourceSelectState>
     }
   }
 
-  _onChange = event => {
+  _onChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     this.props.onChange({
       target: {
         value: event.target.value === SOURCE_SELECT_NULL ? null : event.target.value,
@@ -110,30 +104,22 @@ interface ScenarioEditorRowProps {
 }
 export default class ScenarioEditorRow extends React.Component<ScenarioEditorRowProps> {
   static displayName = 'ScenarioEditorRow';
-  static propTypes = {
-    instance: PropTypes.object.isRequired,
-    removable: PropTypes.bool,
-    templates: PropTypes.array.isRequired,
-    onChange: PropTypes.func,
-    onInsert: PropTypes.func,
-    onRemove: PropTypes.func,
-  };
 
-  _onChangeValue = event => {
+  _onChangeValue = (event: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
     const instance = JSON.parse(JSON.stringify(this.props.instance));
     instance.value = event.target.value;
     this.props.onChange(instance);
   };
 
-  _onChangeComparator = event => {
+  _onChangeComparator = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const instance = JSON.parse(JSON.stringify(this.props.instance));
     instance.comparatorKey = event.target.value;
     this.props.onChange(instance);
   };
 
-  _onChangeTemplate = event => {
+  _onChangeTemplate = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const instance = JSON.parse(JSON.stringify(this.props.instance));
-    const newTemplate = this.props.templates.find(t => t.key === event.target.value);
+    const newTemplate = this.props.templates.find((t) => t.key === event.target.value);
     this.props.onChange(newTemplate.coerceInstance(instance));
   };
 
@@ -151,7 +137,7 @@ export default class ScenarioEditorRow extends React.Component<ScenarioEditorRow
   }
 
   _renderComparator(template: Template) {
-    const options = Object.keys(template.comparators).map(key => (
+    const options = Object.keys(template.comparators).map((key) => (
       <option key={key} value={key}>
         {template.comparators[key].name}
       </option>
@@ -188,18 +174,22 @@ export default class ScenarioEditorRow extends React.Component<ScenarioEditorRow
       <div className="actions">
         {this.props.removable && (
           <div className="btn" onClick={this.props.onRemove}>
-            &minus;
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+              <path d="M1 5h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
           </div>
         )}
         <div className="btn" onClick={this.props.onInsert}>
-          +
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
         </div>
       </div>
     );
   }
 
   render() {
-    const template = this.props.templates.find(t => t.key === this.props.instance.templateKey);
+    const template = this.props.templates.find((t) => t.key === this.props.instance.templateKey);
     if (!template) {
       return (
         <span> Could not find template for instance key: {this.props.instance.templateKey}</span>

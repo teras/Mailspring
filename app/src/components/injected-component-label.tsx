@@ -1,6 +1,5 @@
 /* eslint react/prefer-stateless-function: 0 */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { ComponentRegistryDescriptor } from '../registries/component-registry';
 
 type InjectedComponentLabelProps = {
@@ -9,10 +8,6 @@ type InjectedComponentLabelProps = {
 
 export default class InjectedComponentLabel extends React.Component<InjectedComponentLabelProps> {
   static displayName = 'InjectedComponentLabel';
-
-  static propTypes = {
-    matching: PropTypes.object,
-  };
 
   render() {
     const matchingDescriptions = [];
@@ -23,7 +18,7 @@ export default class InjectedComponentLabel extends React.Component<InjectedComp
         val = val.id;
       }
       if (key === 'locations') {
-        val = val.map(v => v.id);
+        val = val.map((v) => v.id);
       }
       matchingDescriptions.push(`${key}: ${val}`);
     }

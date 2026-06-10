@@ -2,15 +2,15 @@ import _ from 'underscore';
 import { exec } from 'child_process';
 import React, { CSSProperties } from 'react';
 import ReactDOM from 'react-dom';
-import { PropTypes, Utils } from 'mailspring-exports';
+import { Utils } from 'mailspring-exports';
 
 // This is a stripped down version of
 // https://github.com/michaelvillar/dynamics.js/blob/master/src/dynamics.coffee#L1179,
 //
-const SpringBounceFactory = options => {
+const SpringBounceFactory = (options) => {
   const frequency = Math.max(1, options.frequency / 20);
   const friction = 20 ** (options.friction / 100);
-  return t => {
+  return (t) => {
     return 1 - (friction / 10) ** -t * (1 - t) * Math.cos(frequency * t);
   };
 };
@@ -46,7 +46,7 @@ if (process.platform === 'darwin') {
   // vertical, not horizontal, behavior.
 }
 
-type SwipeContainerProps = {
+type SwipeContainerProps = React.HTMLProps<HTMLDivElement> & {
   shouldEnableSwipe?: (...args: any[]) => any;
   onSwipeLeft?: (...args: any[]) => any;
   onSwipeLeftClass?: string | ((...args: any[]) => any);
@@ -70,15 +70,15 @@ export default class SwipeContainer extends React.Component<
 > {
   static displayName = 'SwipeContainer';
 
-  static propTypes = {
-    children: PropTypes.object.isRequired,
-    shouldEnableSwipe: PropTypes.func,
-    onSwipeLeft: PropTypes.func,
-    onSwipeLeftClass: PropTypes.oneOfType([PropTypes.string, PropTypes.func]),
-    onSwipeRight: PropTypes.func,
-    onSwipeRightClass: PropTypes.oneOfType([PropTypes.string, PropTypes.func]),
-    onSwipeCenter: PropTypes.func,
-  };
+  static ownPropKeys = [
+    'children',
+    'shouldEnableSwipe',
+    'onSwipeLeft',
+    'onSwipeLeftClass',
+    'onSwipeRight',
+    'onSwipeRightClass',
+    'onSwipeCenter',
+  ];
 
   static defaultProps = {
     shouldEnableSwipe: () => true,
@@ -165,7 +165,7 @@ export default class SwipeContainer extends React.Component<
     // }
   };
 
-  _onDragWithVelocity = velocityX => {
+  _onDragWithVelocity = (velocityX) => {
     if (this.tracking === false || !this._isEnabled()) {
       return;
     }
@@ -190,7 +190,7 @@ export default class SwipeContainer extends React.Component<
     const fullDist = fullDistance as number;
     const threshDist = thresholdDistance as number;
 
-    const clipToMax = v => Math.max(-fullDist, Math.min(fullDist, v));
+    const clipToMax = (v) => Math.max(-fullDist, Math.min(fullDist, v));
     const currentX = clipToMax(this.state.currentX + velocityX);
     const estimatedSettleX = clipToMax(currentX + velocityX * 5);
     const lastDragX = currentX;
@@ -242,7 +242,7 @@ export default class SwipeContainer extends React.Component<
     }
   };
 
-  _onTouchStart = e => {
+  _onTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     if (this.trackingTouchIdentifier === null && e.targetTouches.length > 0) {
       const touch = e.targetTouches.item(0);
       this.trackingTouchIdentifier = touch.identifier;
@@ -252,7 +252,7 @@ export default class SwipeContainer extends React.Component<
     }
   };
 
-  _onTouchMove = e => {
+  _onTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
     if (this.trackingTouchIdentifier === null) {
       return;
     }
@@ -298,7 +298,7 @@ export default class SwipeContainer extends React.Component<
     }
   };
 
-  _onTouchEnd = e => {
+  _onTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
     if (this.trackingTouchIdentifier === null) {
       return;
     }
@@ -311,7 +311,7 @@ export default class SwipeContainer extends React.Component<
     }
   };
 
-  _onSwipeActionCompleted = rowWillDisappear => {
+  _onSwipeActionCompleted = (rowWillDisappear) => {
     let delay = 0;
     if (rowWillDisappear) {
       delay = 550;
@@ -371,7 +371,7 @@ export default class SwipeContainer extends React.Component<
 
   render() {
     const { currentX, targetX } = this.state;
-    const otherProps = Utils.fastOmit(this.props, Object.keys(SwipeContainer.propTypes));
+    const otherProps = Utils.fastOmit(this.props, SwipeContainer.ownPropKeys);
     const backingStyles: CSSProperties = { top: 0, bottom: 0, position: 'absolute' };
     let backingClass = 'swipe-backing';
 
@@ -410,7 +410,7 @@ export default class SwipeContainer extends React.Component<
         {...otherProps}
         style={{ touchAction: 'pan-x pan-y', ...otherProps.style }}
       >
-        <div style={backingStyles} className={backingClass} />
+        <div style={backingStyles} className={backingClass} aria-hidden="true" />
         <div style={{ transform: `translate3d(${currentX}px, 0, 0)` }}>{this.props.children}</div>
       </div>
     );

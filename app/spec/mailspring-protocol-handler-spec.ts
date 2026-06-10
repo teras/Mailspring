@@ -9,6 +9,6 @@ describe('"mailspring" protocol URL', () => {
     request.open('GET', 'mailspring://account-sidebar/package.json', true);
     request.send();
 
-    waitsFor('request to be done', () => called === true);
+    waitsFor(() => called === true, 'request to be done');
   });
 });

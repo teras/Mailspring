@@ -1,7 +1,7 @@
 /* eslint global-require: 0 */
 /* eslint import/no-dynamic-require: 0 */
 import path from 'path';
-import fs from 'fs-plus';
+import fs from 'fs';
 import { ipcRenderer } from 'electron';
 import { Disposable } from 'event-kit';
 import * as Utils from './flux/models/utils';
@@ -42,7 +42,7 @@ export default class MenuManager {
   //
   // Returns a {Disposable} on which `.dispose()` can be called to remove the
   // added menu items.
-  add(items) {
+  add(items: IMenuItem[]) {
     const cloned = Utils.deepClone(items);
     for (const item of cloned) {
       this.merge(this.template, item);
@@ -52,7 +52,7 @@ export default class MenuManager {
     return new Disposable(() => this.remove(items));
   }
 
-  remove(items) {
+  remove(items: IMenuItem[]) {
     for (const item of items) {
       this.unmerge(this.template, item);
     }
@@ -68,12 +68,12 @@ export default class MenuManager {
     window.requestAnimationFrame(() => {
       this.pendingUpdateOperation = false;
 
-      MenuHelpers.forEachMenuItem(this.template, item => {
+      MenuHelpers.forEachMenuItem(this.template, (item) => {
         if (item.command && item.command.startsWith('application:') === false) {
           item.enabled = AppEnv.commands.listenerCountForCommand(item.command) > 0;
         }
         if (item.submenu != null) {
-          item.enabled = !item.submenu.every(subitem => subitem.enabled === false);
+          item.enabled = !item.submenu.every((subitem) => subitem.enabled === false);
         }
         if (item.hideWhenDisabled) {
           item.visible = item.enabled;
@@ -86,7 +86,7 @@ export default class MenuManager {
 
   loadBaseItems() {
     const dir = path.join(this.resourcePath, 'menus');
-    const platformMenuPath = fs.resolve(dir, process.platform, ['js', 'json']);
+    const platformMenuPath = path.join(dir, `${process.platform}.js`);
     const { menu } = require(platformMenuPath);
     this.template = [];
     this.add(menu);
@@ -94,18 +94,18 @@ export default class MenuManager {
 
   // Merges an item in a submenu aware way such that new items are always
   // appended to the bottom of existing menus where possible.
-  merge(menu, item) {
+  merge(menu: IMenuItem[], item: IMenuItem) {
     return MenuHelpers.merge(menu, item);
   }
 
-  unmerge(menu, item) {
+  unmerge(menu: IMenuItem[], item: IMenuItem) {
     return MenuHelpers.unmerge(menu, item);
   }
 
   // OSX can't handle displaying accelerators for multiple keystrokes.
   // If they are sent across, it will stop processing accelerators for the rest
   // of the menu items.
-  filterMultipleKeystroke(keystrokesByCommand) {
+  filterMultipleKeystroke(keystrokesByCommand: Record<string, string[]>) {
     if (!keystrokesByCommand) {
       return {};
     }
@@ -130,7 +130,7 @@ export default class MenuManager {
     return filtered;
   }
 
-  sendToBrowserProcess(template, keystrokesByCommand) {
+  sendToBrowserProcess(template: IMenuItem[], keystrokesByCommand: Record<string, string[]>) {
     const filtered = this.filterMultipleKeystroke(keystrokesByCommand);
     return ipcRenderer.send('update-application-menu', template, filtered);
   }

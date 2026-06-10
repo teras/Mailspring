@@ -109,6 +109,19 @@ class KeyManager {
   }
 
   async _writeKeyHash(keys: KeySet) {
+    if (!safeStorage.isEncryptionAvailable()) {
+      const platformHint =
+        process.platform === 'linux'
+          ? localized(
+              ' On Linux, Mailspring requires a secret service such as GNOME Keyring or KWallet. Please ensure one is installed and running, then restart Mailspring.'
+            )
+          : '';
+      throw new Error(
+        localized(
+          `Mailspring could not store your password securely because encryption is not available on this system.`
+        ) + platformHint
+      );
+    }
     const enrcyptedCredentials = await safeStorage.encryptString(JSON.stringify(keys));
     AppEnv.config.set(configCredentialsKey, enrcyptedCredentials);
   }
@@ -117,10 +130,12 @@ class KeyManager {
     const clickedButton = require('@electron/remote').dialog.showMessageBoxSync({
       type: 'error',
       buttons: [localized('Mailspring Help'), localized('Quit')],
-      message: localized(
-        `Mailspring could not store your password securely. For more information, visit %@`,
-        'https://community.getmailspring.com/t/password-management-error/199'
-      ),
+      message:
+        err.message ||
+        localized(
+          `Mailspring could not store your password securely. For more information, visit %@`,
+          'https://community.getmailspring.com/t/password-management-error/199'
+        ),
     });
 
     if (clickedButton == 0) {
@@ -129,7 +144,10 @@ class KeyManager {
     }
 
     // tell the app to exit and rethrow the error to ensure code relying
-    // on the passwords being saved never runs (saving identity for example)
+    // on the passwords being saved never runs (saving identity for example).
+    // Mark as user-visible so the global error handler does not also report
+    // it to Sentry — the user has already been informed via the dialog above.
+    (err as any).noSentry = true;
     require('@electron/remote').app.quit();
     throw err;
   }

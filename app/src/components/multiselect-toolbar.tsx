@@ -1,15 +1,13 @@
 import { Utils, localized } from 'mailspring-exports';
-import React, { Component } from 'react';
-import { CSSTransitionGroup } from 'react-transition-group';
-import PropTypes from 'prop-types';
+import React from 'react';
+import { CSSTransition, TransitionGroup } from 'react-transition-group';
 
 type MultiselectToolbarProps = {
-  toolbarElement: JSX.Element,
-  collection: string,
-  onClearSelection: (...args: any[]) => any,
-  selectionCount: number
+  toolbarElement: JSX.Element;
+  collection: string;
+  onClearSelection: (...args: any[]) => any;
+  selectionCount: number;
 };
-
 
 /*
  * MultiselectToolbar renders a toolbar inside a horizontal bar and displays
@@ -18,68 +16,40 @@ type MultiselectToolbarProps = {
  * The toolbar, or set of buttons, must be passed in as props.toolbarElement
  *
  * It will also animate its mounting and unmounting
- * @class MultiselectToolbar
  */
-class MultiselectToolbar extends Component<MultiselectToolbarProps> {
-  static displayName = 'MultiselectToolbar';
-
-  static propTypes = {
-    toolbarElement: PropTypes.element.isRequired,
-    collection: PropTypes.string.isRequired,
-    onClearSelection: PropTypes.func.isRequired,
-    selectionCount: PropTypes.node,
-  };
-
-  shouldComponentUpdate(nextProps, nextState) {
-    return !Utils.isEqualReact(nextProps, this.props) || !Utils.isEqualReact(nextState, this.state);
+function selectionLabel(selectionCount: number, collection: string) {
+  if (selectionCount === 0) {
+    return '';
   }
-
-  selectionLabel = () => {
-    const { selectionCount, collection } = this.props;
-    if (selectionCount === 0) {
-      return '';
-    }
-
-    let noun = '';
-    if (collection === 'thread') {
-      noun = selectionCount > 1 ? localized('Threads') : localized('Thread');
-    } else if (collection === 'draft') {
-      noun = selectionCount > 1 ? localized('Drafts') : localized('Draft');
-    }
-
-    return `${selectionCount} ${noun.toLocaleLowerCase()} ${localized(`selected`)}`;
-  };
-
-  renderToolbar() {
-    const { toolbarElement, onClearSelection } = this.props;
-    return (
-      <div className="absolute" key="absolute">
-        <div className="inner">
-          {toolbarElement}
-          <div className="centered">{this.selectionLabel()}</div>
-
-          <button style={{ order: 100 }} className="btn btn-toolbar" onClick={onClearSelection}>
-            {localized('Clear Selection')}
-          </button>
-        </div>
-      </div>
-    );
+  let noun = '';
+  if (collection === 'thread') {
+    noun = selectionCount > 1 ? localized('Threads') : localized('Thread');
+  } else if (collection === 'draft') {
+    noun = selectionCount > 1 ? localized('Drafts') : localized('Draft');
   }
-
-  render() {
-    const { selectionCount } = this.props;
-    return (
-      <CSSTransitionGroup
-        className={'selection-bar'}
-        transitionName="selection-bar-absolute"
-        component="div"
-        transitionLeaveTimeout={200}
-        transitionEnterTimeout={200}
-      >
-        {selectionCount > 0 ? this.renderToolbar() : undefined}
-      </CSSTransitionGroup>
-    );
-  }
+  return `${selectionCount} ${noun.toLocaleLowerCase()} ${localized(`selected`)}`;
 }
+
+const MultiselectToolbar: React.FC<MultiselectToolbarProps> = React.memo(
+  ({ toolbarElement, collection, onClearSelection, selectionCount }) => (
+    <TransitionGroup className={'selection-bar'} component="div">
+      {selectionCount > 0 ? (
+        <CSSTransition key="absolute" classNames="selection-bar-absolute" timeout={200}>
+          <div className="absolute">
+            <div className="inner">
+              {toolbarElement}
+              <div className="centered">{selectionLabel(selectionCount, collection)}</div>
+              <button style={{ order: 100 }} className="btn btn-toolbar" onClick={onClearSelection}>
+                {localized('Clear Selection')}
+              </button>
+            </div>
+          </div>
+        </CSSTransition>
+      ) : undefined}
+    </TransitionGroup>
+  ),
+  (prev, next) => Utils.isEqualReact(prev, next)
+);
+MultiselectToolbar.displayName = 'MultiselectToolbar';
 
 export default MultiselectToolbar;

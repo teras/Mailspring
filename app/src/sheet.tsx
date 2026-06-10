@@ -1,11 +1,11 @@
 import React, { CSSProperties } from 'react';
-import PropTypes from 'prop-types';
 
 import { localized, Utils, ComponentRegistry, WorkspaceStore } from 'mailspring-exports';
 import { InjectedComponentSet } from './components/injected-component-set';
 import { ResizableRegion } from './components/resizable-region';
 import { Flexbox } from './components/flexbox';
 import { SheetDeclaration } from './flux/stores/workspace-store';
+import { SheetDepthContext } from './sheet-context';
 
 const FLEX = 10000;
 
@@ -46,21 +46,11 @@ export default class Sheet extends React.Component<SheetProps, SheetState> {
     onColumnSizeChanged: () => {},
   };
 
-  static childContextTypes = {
-    sheetDepth: PropTypes.number,
-  };
-
   private unlisteners = [];
 
   constructor(props) {
     super(props);
     this.state = this._buildState();
-  }
-
-  getChildContext() {
-    return {
-      sheetDepth: this.props.depth,
-    };
   }
 
   componentDidMount() {
@@ -70,7 +60,7 @@ export default class Sheet extends React.Component<SheetProps, SheetState> {
     ];
   }
 
-  shouldComponentUpdate(nextProps, nextState) {
+  shouldComponentUpdate(nextProps: SheetProps, nextState: SheetState) {
     return !Utils.isEqualReact(nextProps, this.props) || !Utils.isEqual(nextState, this.state);
   }
 
@@ -84,7 +74,7 @@ export default class Sheet extends React.Component<SheetProps, SheetState> {
   }
 
   componentWillUnmount() {
-    this.unlisteners.forEach(u => u());
+    this.unlisteners.forEach((u) => u());
     this.unlisteners = [];
   }
 
@@ -105,7 +95,7 @@ export default class Sheet extends React.Component<SheetProps, SheetState> {
             data-column={idx}
             role={ariaRole}
             aria-label={ariaLabel}
-            onResize={w => this._onColumnResize(column, w)}
+            onResize={(w) => this._onColumnResize(column, w)}
             initialWidth={width}
             minWidth={minWidth}
             maxWidth={maxWidth}
@@ -145,12 +135,12 @@ export default class Sheet extends React.Component<SheetProps, SheetState> {
     });
   }
 
-  _onColumnResize = (column, width) => {
+  _onColumnResize = (column: SheetColumn, width: number) => {
     AppEnv.storeColumnWidth({ id: column.location.id, width: width });
     this.props.onColumnSizeChanged(this);
   };
 
-  _buildState(props = this.props) {
+  _buildState(props: SheetProps = this.props) {
     const state = {
       mode: WorkspaceStore.layoutMode(),
       columns: [],
@@ -238,16 +228,18 @@ export default class Sheet extends React.Component<SheetProps, SheetState> {
     // http://philipwalton.com/articles/what-no-one-told-you-about-z-index/
 
     return (
-      <div
-        data-role="Sheet"
-        style={style}
-        className={`sheet mode-${this.state.mode}`}
-        data-id={this.props.data.id}
-      >
-        <Flexbox direction="row" style={{ overflow: 'hidden' }}>
-          {this._columnFlexboxElements()}
-        </Flexbox>
-      </div>
+      <SheetDepthContext.Provider value={this.props.depth}>
+        <div
+          data-role="Sheet"
+          style={style}
+          className={`sheet mode-${this.state.mode}`}
+          data-id={this.props.data.id}
+        >
+          <Flexbox direction="row" style={{ overflow: 'hidden' }}>
+            {this._columnFlexboxElements()}
+          </Flexbox>
+        </div>
+      </SheetDepthContext.Provider>
     );
   }
 }

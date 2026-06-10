@@ -4,7 +4,6 @@ import {
   IdentityStore,
   Contact,
   FeatureUsageStore,
-  PropTypes,
   DOMUtils,
   RegExpUtils,
   Thread,
@@ -33,19 +32,16 @@ class TimeInTimezone extends React.Component<{ timeZone: string }, { tick: numbe
 
   scheduleTick = () => {
     // schedules for the next minute change each minute
-    this._timer = setTimeout(() => {
-      this.setState({ tick: this.state.tick + 1 }, this.scheduleTick);
-    }, 60000 - (Date.now() % 60000));
+    this._timer = setTimeout(
+      () => {
+        this.setState({ tick: this.state.tick + 1 }, this.scheduleTick);
+      },
+      60000 - (Date.now() % 60000)
+    );
   };
 
   render() {
-    return (
-      <strong>
-        {`Currently ${moment()
-          .tz(this.props.timeZone)
-          .format('h:mma')}`}
-      </strong>
-    );
+    return <strong>{`Currently ${moment().tz(this.props.timeZone).format('h:mma')}`}</strong>;
   }
 }
 
@@ -54,12 +50,6 @@ class SocialProfileLink extends React.Component<{
   service: string;
   hostname: string;
 }> {
-  static propTypes = {
-    service: PropTypes.string,
-    handle: PropTypes.string,
-    hostname: PropTypes.string,
-  };
-
   render() {
     const { handle, service, hostname } = this.props;
 
@@ -82,11 +72,6 @@ class SocialProfileLink extends React.Component<{
 }
 
 class TextBlockWithAutolinkedElements extends React.Component<{ text: string; className: string }> {
-  static propTypes = {
-    className: PropTypes.string,
-    text: PropTypes.string,
-  };
-
   render() {
     if (!this.props.text) {
       return false;
@@ -120,11 +105,6 @@ class TextBlockWithAutolinkedElements extends React.Component<{ text: string; cl
 }
 
 class IconRow extends React.Component<{ node: React.ReactChild; icon: string }> {
-  static propTypes = {
-    node: PropTypes.node,
-    icon: PropTypes.string,
-  };
-
   render() {
     const { node, icon } = this.props;
 
@@ -147,10 +127,6 @@ class IconRow extends React.Component<{ node: React.ReactChild; icon: string }> 
 }
 
 class LocationRow extends React.Component<{ location: string }> {
-  static propTypes = {
-    location: PropTypes.string,
-  };
-
   render() {
     return (
       <IconRow
@@ -229,10 +205,6 @@ export default class SidebarParticipantProfile extends React.Component<
 > {
   static displayName = 'SidebarParticipantProfile';
 
-  static propTypes = {
-    contact: PropTypes.object,
-  };
-
   static containerStyles = {
     order: 0,
   };
@@ -290,7 +262,7 @@ export default class SidebarParticipantProfile extends React.Component<
     if (!this.state.loading) {
       this.setState({ loading: true });
     }
-    ParticipantProfileDataSource.find(this.props.contact).then(result => {
+    ParticipantProfileDataSource.find(this.props.contact).then((result) => {
       if (!this._mounted) {
         return;
       }
@@ -298,8 +270,8 @@ export default class SidebarParticipantProfile extends React.Component<
     });
   };
 
-  _onSelect = event => {
-    const el = event.target;
+  _onSelect = (event: React.MouseEvent<HTMLElement>) => {
+    const el = event.target as HTMLElement;
     const sel = document.getSelection();
     if (el.contains(sel.anchorNode) && !sel.isCollapsed) {
       return;

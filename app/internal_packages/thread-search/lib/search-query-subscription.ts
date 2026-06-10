@@ -22,7 +22,7 @@ class SearchQuerySubscription extends MutableQuerySubscription<Thread> {
   _imapSearchDisposable: (() => void) | null = null;
   _pendingSearchQueries: Set<string> = new Set();
 
-  constructor(searchQuery, accountIds) {
+  constructor(searchQuery: string, accountIds: string[]) {
     super(null, { emitResultSet: true });
     this._searchQuery = searchQuery;
     this._accountIds = accountIds;
@@ -70,12 +70,12 @@ class SearchQuerySubscription extends MutableQuerySubscription<Thread> {
     }
   }
 
-  _addThreadIdsToSearch(ids = []) {
+  _addThreadIdsToSearch(ids: string[] = []) {
     const currentResults = this._set && this._set.ids().length > 0;
     let searchIds = ids;
     if (currentResults) {
       const currentResultIds = this._set.ids();
-      searchIds = _.uniq(currentResultIds.concat(ids));
+      searchIds = [...new Set(currentResultIds.concat(ids))];
     }
     const dbQuery = DatabaseStore.findAll<Thread>(Thread)
       .where({ id: searchIds })
@@ -198,9 +198,9 @@ class SearchQuerySubscription extends MutableQuerySubscription<Thread> {
       role: 'SearchBarResults',
     });
 
-    this._extDisposables = searchExtensions.map(ext => {
+    this._extDisposables = searchExtensions.map((ext) => {
       return ext.observeThreadIdsForQuery(this._searchQuery).subscribe((ids = []) => {
-        const allIds = _.compact(_.flatten(ids));
+        const allIds = ids.flat().filter(Boolean);
         if (allIds.length === 0) return;
         this._addThreadIdsToSearch(allIds);
       });
@@ -208,8 +208,8 @@ class SearchQuerySubscription extends MutableQuerySubscription<Thread> {
   }
 
   onLastCallbackRemoved() {
-    this._connections.forEach(conn => conn.end());
-    this._extDisposables.forEach(disposable => disposable.dispose());
+    this._connections.forEach((conn) => conn.end());
+    this._extDisposables.forEach((disposable) => disposable.dispose());
     if (this._imapSearchDisposable) {
       this._imapSearchDisposable();
       this._imapSearchDisposable = null;

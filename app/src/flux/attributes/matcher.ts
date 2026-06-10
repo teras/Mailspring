@@ -84,14 +84,14 @@ export class Matcher {
     return this.val;
   }
 
-  evaluate(model: typeof Model) {
+  evaluate(model: Model) {
     let modelValue = model[this.attr.modelKey];
     if (modelValue instanceof Function) {
       modelValue = modelValue();
     }
     const matcherValue = this.val;
 
-    const asId = v => (v && v.id ? v.id : v);
+    const asId = (v) => (v && v.id ? v.id : v);
 
     switch (this.comparator) {
       case '=':
@@ -120,7 +120,7 @@ export class Matcher {
       }
       case 'containsAny': {
         const idSet = new Set(modelValue.map(asId));
-        return matcherValue.some(submatcherValue => idSet.has(asId(submatcherValue)));
+        return matcherValue.some((submatcherValue) => idSet.has(asId(submatcherValue)));
       }
       case 'startsWith':
         return modelValue.startsWith(matcherValue);
@@ -150,7 +150,7 @@ export class Matcher {
     }
   }
 
-  whereSQL(klass) {
+  whereSQL(klass: typeof Model) {
     const val = this.comparator === 'like' ? `%${this.val}%` : this.val;
     let escaped = null;
 
@@ -191,7 +191,7 @@ export class Matcher {
       case 'startsWith': {
         const escapedVal =
           typeof val === 'string'
-            ? val.replace(/'/g, singleQuoteEscapeSequence).replace(/[\\%_]/g, c => `\\${c}`)
+            ? val.replace(/'/g, singleQuoteEscapeSequence).replace(/[\\%_]/g, (c) => `\\${c}`)
             : val;
         return `\`${klass.name}\`.\`${this.attr.tableColumn}\` LIKE '${escapedVal}%' ESCAPE '\\'`;
       }
@@ -222,8 +222,8 @@ export class OrCompositeMatcher extends Matcher {
     return null;
   }
 
-  evaluate(model) {
-    return this.children.some(matcher => matcher.evaluate(model));
+  evaluate(model: Model) {
+    return this.children.some((matcher) => matcher.evaluate(model));
   }
 
   joinSQL(klass: typeof Model) {
@@ -238,7 +238,7 @@ export class OrCompositeMatcher extends Matcher {
   }
 
   whereSQL(klass: typeof Model) {
-    const wheres = this.children.map(matcher => matcher.whereSQL(klass));
+    const wheres = this.children.map((matcher) => matcher.whereSQL(klass));
     return `(${wheres.join(' OR ')})`;
   }
 }
@@ -259,8 +259,8 @@ export class AndCompositeMatcher extends Matcher {
     return null;
   }
 
-  evaluate(model) {
-    return this.children.every(m => m.evaluate(model));
+  evaluate(model: Model) {
+    return this.children.every((m) => m.evaluate(model));
   }
 
   joinSQL(klass: typeof Model) {
@@ -275,7 +275,7 @@ export class AndCompositeMatcher extends Matcher {
   }
 
   whereSQL(klass: typeof Model) {
-    const wheres = this.children.map(m => m.whereSQL(klass));
+    const wheres = this.children.map((m) => m.whereSQL(klass));
     return `(${wheres.join(' AND ')})`;
   }
 }

@@ -37,36 +37,37 @@ export class MailboxPerspective {
     return new EmptyMailboxPerspective();
   }
 
-  static forDrafts(accountsOrIds) {
+  static forDrafts(accountsOrIds: string[]) {
     return new DraftsMailboxPerspective(accountsOrIds);
   }
 
-  static forCategory(category) {
+  static forCategory(category: Category) {
     return category ? new CategoryMailboxPerspective([category]) : this.forNothing();
   }
 
-  static forCategories(categories) {
-    return categories.length > 0 ? new CategoryMailboxPerspective(categories) : this.forNothing();
+  static forCategories(categories: Category[]) {
+    const valid = categories.filter(Boolean);
+    return valid.length > 0 ? new CategoryMailboxPerspective(valid) : this.forNothing();
   }
 
-  static forStandardCategories(accountsOrIds, ...names) {
+  static forStandardCategories(accountsOrIds: string[], ...names: string[]) {
     const categories = CategoryStore.getCategoriesWithRoles(accountsOrIds, ...names);
     return this.forCategories(categories);
   }
 
-  static forStarred(accountsOrIds) {
+  static forStarred(accountsOrIds: string[]) {
     return new StarredMailboxPerspective(accountsOrIds);
   }
 
-  static forUnread(categories) {
+  static forUnread(categories: Category[]) {
     return categories.length > 0 ? new UnreadMailboxPerspective(categories) : this.forNothing();
   }
 
-  static forInbox(accountsOrIds) {
+  static forInbox(accountsOrIds: string[]) {
     return this.forStandardCategories(accountsOrIds, 'inbox');
   }
 
-  static fromJSON(json) {
+  static fromJSON(json: { type: string; serializedCategories?: string; accountIds: string[] }) {
     try {
       if (json.type === CategoryMailboxPerspective.name) {
         const categories = JSON.parse(json.serializedCategories).map(Utils.convertToModel);
@@ -96,11 +97,11 @@ export class MailboxPerspective {
   iconName: string;
   _categoriesSharedRole?: string;
 
-  constructor(accountIds) {
+  constructor(accountIds: string[]) {
     this.accountIds = accountIds;
     if (
       !(accountIds instanceof Array) ||
-      !accountIds.every(aid => typeof aid === 'string' || typeof aid === 'number')
+      !accountIds.every((aid) => typeof aid === 'string' || typeof aid === 'number')
     ) {
       throw new Error(`${this.constructor.name}: You must provide an array of string "accountIds"`);
     }
@@ -110,7 +111,7 @@ export class MailboxPerspective {
     return { accountIds: this.accountIds, type: this.constructor.name };
   }
 
-  isEqual(other) {
+  isEqual(other: MailboxPerspective) {
     if (!other || this.constructor !== other.constructor) {
       return false;
     }
@@ -201,7 +202,7 @@ export class MailboxPerspective {
   }
 
   receiveThreadIds(threadIds: Array<Thread | string>) {
-    DatabaseStore.modelify<Thread>(Thread, threadIds).then(threads => {
+    DatabaseStore.modelify<Thread>(Thread, threadIds).then((threads) => {
       const tasks = TaskFactory.tasksForThreadsByAccountId(threads, (accountThreads, accountId) => {
         return this.actionsForReceivingThreads(accountThreads, accountId);
       });
@@ -221,19 +222,19 @@ export class MailboxPerspective {
       return false;
     }
     const accounts = AccountStore.accountsForItems(threads);
-    return accounts.every(acc => acc.canArchiveThreads());
+    return accounts.every((acc) => acc.canArchiveThreads());
   }
 
   canTrashThreads(threads: Thread[]) {
     return this.canMoveThreadsTo(threads, 'trash');
   }
 
-  canMoveThreadsTo(threads: Thread[], standardCategoryName) {
+  canMoveThreadsTo(threads: Thread[], standardCategoryName: string) {
     if (this.categoriesSharedRole() === standardCategoryName) {
       return false;
     }
     return AccountStore.accountsForItems(threads).every(
-      acc => CategoryStore.getCategoryByRole(acc, standardCategoryName) !== null
+      (acc) => CategoryStore.getCategoryByRole(acc, standardCategoryName) !== null
     );
   }
 
@@ -296,11 +297,11 @@ class StarredMailboxPerspective extends MailboxPerspective {
     });
   }
 
-  canReceiveThreadsFromAccountIds(threads) {
+  canReceiveThreadsFromAccountIds(threads: string[]) {
     return super.canReceiveThreadsFromAccountIds(threads);
   }
 
-  actionsForReceivingThreads(threads, accountId) {
+  actionsForReceivingThreads(threads: Thread[], accountId: string) {
     ChangeStarredTask =
       ChangeStarredTask || require('./flux/tasks/change-starred-task').ChangeStarredTask;
     return new ChangeStarredTask({
@@ -311,7 +312,7 @@ class StarredMailboxPerspective extends MailboxPerspective {
     });
   }
 
-  tasksForRemovingItems(threads, source?: string) {
+  tasksForRemovingItems(threads: Thread[], source?: string) {
     const task = TaskFactory.taskForInvertingStarred({
       threads: threads,
       source: 'Removed From List',
@@ -347,8 +348,8 @@ class EmptyMailboxPerspective extends MailboxPerspective {
 class CategoryMailboxPerspective extends MailboxPerspective {
   _categories: Category[];
 
-  constructor(_categories) {
-    super(_.uniq(_categories.map(c => c.accountId)));
+  constructor(_categories: Category[]) {
+    super([...new Set(_categories.map((c) => c.accountId))]);
     this._categories = _categories;
 
     if (this._categories.length === 0) {
@@ -371,19 +372,19 @@ class CategoryMailboxPerspective extends MailboxPerspective {
     return json;
   }
 
-  isEqual(other) {
+  isEqual(other: MailboxPerspective) {
     return (
       super.isEqual(other) &&
       _.isEqual(
-        this.categories().map(c => c.id),
-        other.categories().map(c => c.id)
+        this.categories().map((c) => c.id),
+        other.categories().map((c) => c.id)
       )
     );
   }
 
   threads(): QuerySubscription<Thread> {
     const query = DatabaseStore.findAll<Thread>(Thread)
-      .where([Thread.attributes.categories.containsAny(this.categories().map(c => c.id))])
+      .where([Thread.attributes.categories.containsAny(this.categories().map((c) => c.id))])
       .limit(0);
 
     if (this.isSent()) {
@@ -421,7 +422,7 @@ class CategoryMailboxPerspective extends MailboxPerspective {
   }
 
   hasSyncingCategories() {
-    return this._categories.some(cat => {
+    return this._categories.some((cat) => {
       const representedFolder =
         cat instanceof Folder ? cat : CategoryStore.getAllMailCategory(cat.accountId);
       return (
@@ -432,17 +433,17 @@ class CategoryMailboxPerspective extends MailboxPerspective {
   }
 
   isArchive() {
-    return this._categories.every(cat => cat.isArchive());
+    return this._categories.every((cat) => cat.isArchive());
   }
 
-  canReceiveThreadsFromAccountIds(threads) {
+  canReceiveThreadsFromAccountIds(threads: string[]) {
     return (
       super.canReceiveThreadsFromAccountIds(threads) &&
-      !this._categories.some(c => c.isLockedCategory())
+      !this._categories.some((c) => c.isLockedCategory())
     );
   }
 
-  actionsForReceivingThreads(threads, accountId) {
+  actionsForReceivingThreads(threads: Thread[], accountId: string) {
     FocusedPerspectiveStore =
       FocusedPerspectiveStore || require('./flux/stores/focused-perspective-store').default;
     ChangeLabelsTask =
@@ -458,8 +459,8 @@ class CategoryMailboxPerspective extends MailboxPerspective {
       return [];
     }
 
-    const myCat = this.categories().find(c => c.accountId === accountId);
-    const currentCat = current.categories().find(c => c.accountId === accountId);
+    const myCat = this.categories().find((c) => c.accountId === accountId);
+    const currentCat = current.categories().find((c) => c.accountId === accountId);
 
     // Don't drag and drop on ourselves
     // NOTE: currentCat can be nil in case of SearchPerspective
@@ -532,7 +533,7 @@ class CategoryMailboxPerspective extends MailboxPerspective {
   // - if finished category === "archive" remove the label
   // - if finished category === "trash" move to trash folder, keep labels intact
   //
-  tasksForRemovingItems(threads, source = 'Removed from list') {
+  tasksForRemovingItems(threads: Thread[], source = 'Removed from list') {
     ChangeLabelsTask =
       ChangeLabelsTask || require('./flux/tasks/change-labels-task').ChangeLabelsTask;
     ChangeFolderTask =
@@ -552,7 +553,8 @@ class CategoryMailboxPerspective extends MailboxPerspective {
     return TaskFactory.tasksForThreadsByAccountId(threads, (accountThreads, accountId) => {
       const acct = AccountStore.accountForId(accountId);
       const preferred = acct.preferredRemovalDestination();
-      const cat = this.categories().find(c => c.accountId === accountId);
+      if (!preferred) return null;
+      const cat = this.categories().find((c) => c.accountId === accountId);
       if (cat instanceof Label && preferred.role !== 'trash') {
         const inboxCat = CategoryStore.getInboxCategory(accountId);
         return new ChangeLabelsTask({
@@ -577,14 +579,14 @@ class UnreadMailboxPerspective extends CategoryMailboxPerspective {
   iconName = 'unread.png';
 
   threads(): QuerySubscription<Thread> {
-    return new UnreadQuerySubscription(this.categories().map(c => c.id));
+    return new UnreadQuerySubscription(this.categories().map((c) => c.id));
   }
 
   unreadCount() {
     return 0;
   }
 
-  actionsForReceivingThreads(threads, accountId) {
+  actionsForReceivingThreads(threads: Thread[], accountId: string) {
     ChangeUnreadTask =
       ChangeUnreadTask || require('./flux/tasks/change-unread-task').ChangeUnreadTask;
     const tasks = super.actionsForReceivingThreads(threads, accountId);
@@ -598,7 +600,7 @@ class UnreadMailboxPerspective extends CategoryMailboxPerspective {
     return tasks;
   }
 
-  tasksForRemovingItems(threads, source?: string) {
+  tasksForRemovingItems(threads: Thread[], source?: string) {
     ChangeUnreadTask =
       ChangeUnreadTask || require('./flux/tasks/change-unread-task').ChangeUnreadTask;
 

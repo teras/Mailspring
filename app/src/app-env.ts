@@ -11,7 +11,7 @@ import { APIError } from './flux/errors';
 import WindowEventHandler from './window-event-handler';
 import { isWaylandSession } from './browser/is-wayland';
 
-function ensureInteger(f, fallback) {
+function ensureInteger(f: number, fallback: number) {
   let int = f;
   if (isNaN(f) || f === undefined || f === null) {
     int = fallback;
@@ -135,8 +135,43 @@ export default class AppEnvConstructor {
     this.onWindowPropsReceived(() => {
       process.title = `Mailspring ${this.getWindowType()}`;
     });
+
+    // Shortcut phased out in April 2026, remove in June/July 2026
+    if (this.isMainWindow() && process.platform === 'win32') {
+      setTimeout(() => {
+        this.fixStaleWin32LaunchOnSystemStart();
+      }, 1000);
+    }
   }
 
+  fixStaleWin32LaunchOnSystemStart() {
+    if (!process.env.APPDATA) {
+      return;
+    }
+    if (window.localStorage.getItem('fixStaleWin32LaunchOnSystemStart')) {
+      return;
+    }
+
+    window.localStorage.setItem('fixStaleWin32LaunchOnSystemStart', 'true');
+
+    const shortcutPath = path.join(
+      process.env.APPDATA,
+      'Microsoft',
+      'Windows',
+      'Start Menu',
+      'Programs',
+      'Startup',
+      'Mailspring.lnk'
+    );
+    const fs = require('fs');
+    const exists = fs.existsSync(shortcutPath);
+    if (exists) {
+      fs.unlink(shortcutPath, () => {});
+      const { SystemStartService } = require('mailspring-exports');
+      const service = new SystemStartService();
+      service.configureToLaunchOnSystemStart();
+    }
+  }
   // This ties window.onerror and process.uncaughtException,handledRejection
   // to the publically callable `reportError` method. This will take care of
   // reporting errors if necessary and hooking into error handling
@@ -165,15 +200,15 @@ export default class AppEnvConstructor {
       return this.reportError(originalError, { url, line: newLine, column: newColumn });
     };
 
-    process.on('uncaughtException', error => {
+    process.on('uncaughtException', (error: Error) => {
       this.reportError(error);
     });
 
-    process.on('unhandledRejection', error => {
+    process.on('unhandledRejection', (error: Error) => {
       this.reportError(error);
     });
 
-    window.addEventListener('unhandledrejection', e => {
+    window.addEventListener('unhandledrejection', (e) => {
       // This event is supposed to look like {reason, promise}, according to
       // https://developer.mozilla.org/en-US/docs/Web/API/PromiseRejectionEvent
       // In practice, it can have different shapes, so we make our best guess
@@ -201,6 +236,11 @@ export default class AppEnvConstructor {
   //
   reportError(error, extra: any = {}) {
     // Check if this error should be ignored and not reported to Sentry
+    // Errors marked noSentry have already been displayed to the user via a dialog.
+    if (error && error.noSentry) {
+      return;
+    }
+
     const errorMessage = `${error}`.toLowerCase();
 
     // ResizeObserver errors happen infrequently but spam Sentry with thousands of reports
@@ -249,8 +289,8 @@ export default class AppEnvConstructor {
 
     if (
       error.message &&
-      ['EROFS', 'EPIPE', 'ENOSPC', 'EBUSY', 'EACCES', 'UNKNOWN: unknown error, open'].find(prefix =>
-        error.message.startsWith(prefix)
+      ['EROFS', 'EPIPE', 'ENOSPC', 'EBUSY', 'EACCES', 'UNKNOWN: unknown error, open'].find(
+        (prefix) => error.message.startsWith(prefix)
       )
     ) {
       // Don't fill Sentry with "couldn't open an attachment" type errors.
@@ -265,7 +305,7 @@ export default class AppEnvConstructor {
       return [];
     }
     const stackPaths = error.stack.match(/((?:\/[\w-_]+)+)/g) || [];
-    const stackPathComponents = _.uniq(_.flatten(stackPaths.map(p => p.split('/'))));
+    const stackPathComponents = [...new Set(stackPaths.flatMap((p) => p.split('/')))];
 
     const names = [];
     for (const pkg of this.packages.getActivePackages()) {
@@ -380,16 +420,16 @@ export default class AppEnvConstructor {
   //
   // * `width` The {Number} of pixels.
   // * `height` The {Number} of pixels.
-  setSize(width, height) {
+  setSize(width: number, height: number) {
     return this.getCurrentWindow().setSize(ensureInteger(width, 100), ensureInteger(height, 100));
   }
 
-  setMinimumWidth(minWidth) {
+  setMinimumWidth(minWidth: number) {
     const win = this.getCurrentWindow();
     const minHeight = win.getMinimumSize()[1];
     win.setMinimumSize(ensureInteger(minWidth, 0), minHeight);
 
-    const [currWidth, currHeight] = Array.from(win.getSize());
+    const [currWidth, currHeight] = win.getSize();
     if (minWidth > currWidth) {
       win.setSize(minWidth, currHeight);
     }
@@ -407,7 +447,7 @@ export default class AppEnvConstructor {
   //
   // * `x` The {Number} of pixels.
   // * `y` The {Number} of pixels.
-  setPosition(x, y) {
+  setPosition(x: number, y: number) {
     return ipcRenderer.send(
       'call-window-method',
       'setPosition',
@@ -477,7 +517,7 @@ export default class AppEnvConstructor {
   // - callback: A function to call when window props are received, just before
   //   the hot window is shown. The first parameter is the new windowProps.
   //
-  onWindowPropsReceived(callback) {
+  onWindowPropsReceived(callback: (...args: unknown[]) => void) {
     return this.emitter.on('window-props-received', callback);
   }
 
@@ -611,21 +651,21 @@ export default class AppEnvConstructor {
     }
   }
 
-  storeColumnWidth({ id, width }) {
+  storeColumnWidth({ id, width }: { id: string; width: number }) {
     if (this.savedState.columnWidths == null) {
       this.savedState.columnWidths = {};
     }
     this.savedState.columnWidths[id] = width;
   }
 
-  getColumnWidth(id) {
+  getColumnWidth(id: string) {
     if (this.savedState.columnWidths == null) {
       this.savedState.columnWidths = {};
     }
     return this.savedState.columnWidths[id];
   }
 
-  storeThreadListVerticalHeight(height) {
+  storeThreadListVerticalHeight(height: number) {
     this.savedState.threadListVerticalHeight = height;
   }
 
@@ -849,9 +889,7 @@ export default class AppEnvConstructor {
 
     let winToShow = null;
     if (showInMainWindow) {
-      winToShow = require('@electron/remote')
-        .getGlobal('application')
-        .getMainWindow();
+      winToShow = require('@electron/remote').getGlobal('application').getMainWindow();
     }
 
     if (!detail) {

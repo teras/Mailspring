@@ -44,7 +44,7 @@ export default class EmojiToolbarPopover extends React.Component<
   _mounted = false;
   _emojiPreloadImage = new Image();
 
-  constructor(props) {
+  constructor(props: EmojiToolbarPopoverProps) {
     super(props);
     const { categoryNames, categorizedEmoji, categoryPositions } = this.getStateFromStore();
     this.state = {
@@ -68,7 +68,7 @@ export default class EmojiToolbarPopover extends React.Component<
     this._mounted = false;
   }
 
-  onMouseDown = event => {
+  onMouseDown = (event: React.MouseEvent<HTMLCanvasElement>) => {
     const emojiName = this.calcEmojiByPosition(this.calcPosition(event));
     if (!emojiName) return null;
     this.props.onInsertEmoji(emojiName);
@@ -95,7 +95,7 @@ export default class EmojiToolbarPopover extends React.Component<
     }
   };
 
-  onHover = event => {
+  onHover = (event: React.MouseEvent<HTMLCanvasElement>) => {
     const emojiName = this.calcEmojiByPosition(this.calcPosition(event));
     if (emojiName) {
       this.setState({ emojiName: emojiName });
@@ -117,7 +117,7 @@ export default class EmojiToolbarPopover extends React.Component<
     }
   };
 
-  onChange = event => {
+  onChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const searchValue = event.target.value;
     if (searchValue.length > 0) {
       const searchMatches = this.findSearchMatches(searchValue);
@@ -191,7 +191,7 @@ export default class EmojiToolbarPopover extends React.Component<
     };
   };
 
-  scrollToCategory(category) {
+  scrollToCategory(category: string) {
     const container = document.querySelector('.emoji-finder-container .scroll-region-content');
     if (this.state.searchValue.length > 0) {
       this.setState({ searchValue: '' });
@@ -205,12 +205,12 @@ export default class EmojiToolbarPopover extends React.Component<
     this.setState({ activeTab: category });
   }
 
-  findSearchMatches(searchValue) {
+  findSearchMatches(searchValue: string) {
     return searchEmojiNames(searchValue);
   }
 
-  calcPosition(event) {
-    const rect = event.target.getBoundingClientRect();
+  calcPosition(event: React.MouseEvent<HTMLCanvasElement>) {
+    const rect = (event.target as HTMLCanvasElement).getBoundingClientRect();
     const position = {
       x: event.pageX - rect.left,
       y: event.pageY - rect.top,
@@ -218,7 +218,7 @@ export default class EmojiToolbarPopover extends React.Component<
     return position;
   }
 
-  calcEmojiByPosition = position => {
+  calcEmojiByPosition = (position) => {
     for (const category of Object.keys(this.state.categoryPositions)) {
       const LEFT_BOUNDARY = 8;
       const RIGHT_BOUNDARY = 201;
@@ -244,7 +244,7 @@ export default class EmojiToolbarPopover extends React.Component<
 
   renderTabs() {
     const tabs = [];
-    this.state.categoryNames.forEach(category => {
+    this.state.categoryNames.forEach((category) => {
       let className = `emoji-tab ${category.replace(/ /g, '-').toLowerCase()}`;
       if (category === this.state.activeTab) {
         className += ' active';
@@ -287,7 +287,13 @@ export default class EmojiToolbarPopover extends React.Component<
     renderNextCategory();
   }
 
-  renderCategory(category, i, ctx, pos, callback) {
+  renderCategory(
+    category: string,
+    i: number,
+    ctx: CanvasRenderingContext2D,
+    pos: { x: number; y: number },
+    callback: () => void
+  ) {
     const position = pos;
     if (i > 0) {
       position.x = 18;
@@ -349,7 +355,7 @@ export default class EmojiToolbarPopover extends React.Component<
             />
           </div>
           <canvas
-            ref={el => {
+            ref={(el) => {
               this._canvasEl = el;
             }}
             width="420"

@@ -1,11 +1,25 @@
 import _ from 'underscore';
-import { AndQueryExpression, SearchQueryExpressionVisitor } from './search-query-ast';
+import {
+  AndQueryExpression,
+  OrQueryExpression,
+  InQueryExpression,
+  FromQueryExpression,
+  ToQueryExpression,
+  SubjectQueryExpression,
+  GenericQueryExpression,
+  TextQueryExpression,
+  UnreadStatusQueryExpression,
+  StarredStatusQueryExpression,
+  QueryExpression,
+  DateQueryExpression,
+  SearchQueryExpressionVisitor,
+} from './search-query-ast';
 import { Folder } from '../../flux/models/folder';
 
 const TOP = 'top';
 
 class IMAPSearchQueryFolderFinderVisitor extends SearchQueryExpressionVisitor {
-  visit(root) {
+  visit(root: QueryExpression) {
     const result = this.visitAndGetResult(root);
     if (result === TOP) {
       return 'all';
@@ -13,7 +27,7 @@ class IMAPSearchQueryFolderFinderVisitor extends SearchQueryExpressionVisitor {
     return result;
   }
 
-  visitAnd(node) {
+  visitAnd(node: AndQueryExpression) {
     const lhs = this.visitAndGetResult(node.e1);
     const rhs = this.visitAndGetResult(node.e2);
     if (lhs === TOP) {
@@ -27,7 +41,7 @@ class IMAPSearchQueryFolderFinderVisitor extends SearchQueryExpressionVisitor {
     this._result = _.intersection(lhs, rhs);
   }
 
-  visitOr(node) {
+  visitOr(node: OrQueryExpression) {
     const lhs = this.visitAndGetResult(node.e1);
     const rhs = this.visitAndGetResult(node.e2);
     if (lhs === TOP || rhs === TOP) {
@@ -37,7 +51,7 @@ class IMAPSearchQueryFolderFinderVisitor extends SearchQueryExpressionVisitor {
     this._result = _.union(lhs, rhs);
   }
 
-  visitIn(node) {
+  visitIn(node: InQueryExpression) {
     const folderName = this.visitAndGetResult(node.text);
     this._result = [folderName];
   }
@@ -91,12 +105,12 @@ class IMAPSearchQueryFolderFinderVisitor extends SearchQueryExpressionVisitor {
 class IMAPSearchQueryExpressionVisitor extends SearchQueryExpressionVisitor {
   _folder: Folder;
 
-  constructor(folder) {
+  constructor(folder: Folder) {
     super();
     this._folder = folder;
   }
 
-  visit(root) {
+  visit(root: QueryExpression) {
     const result = this.visitAndGetResult(root);
     if (root instanceof AndQueryExpression) {
       return result;
@@ -104,7 +118,7 @@ class IMAPSearchQueryExpressionVisitor extends SearchQueryExpressionVisitor {
     return [result];
   }
 
-  visitAnd(node) {
+  visitAnd(node: AndQueryExpression) {
     const lhs = this.visitAndGetResult(node.e1);
     const rhs = this.visitAndGetResult(node.e2);
     this._result = [];
@@ -121,18 +135,18 @@ class IMAPSearchQueryExpressionVisitor extends SearchQueryExpressionVisitor {
     }
   }
 
-  visitOr(node) {
+  visitOr(node: OrQueryExpression) {
     const lhs = this.visitAndGetResult(node.e1);
     const rhs = this.visitAndGetResult(node.e2);
     this._result = ['OR', lhs, rhs];
   }
 
-  visitFrom(node) {
+  visitFrom(node: FromQueryExpression) {
     const text = this.visitAndGetResult(node.text);
     this._result = ['FROM', text];
   }
 
-  visitDate(node) {
+  visitDate(node: DateQueryExpression) {
     const text = this.visitAndGetResult(node.text);
     // Parse date and format for IMAP (DD-Mon-YYYY)
     const date = new Date(text);
@@ -144,34 +158,34 @@ class IMAPSearchQueryExpressionVisitor extends SearchQueryExpressionVisitor {
     this._result = [command, imapDate];
   }
 
-  visitTo(node) {
+  visitTo(node: ToQueryExpression) {
     const text = this.visitAndGetResult(node.text);
     this._result = ['TO', text];
   }
 
-  visitSubject(node) {
+  visitSubject(node: SubjectQueryExpression) {
     const text = this.visitAndGetResult(node.text);
     this._result = ['SUBJECT', text];
   }
 
-  visitGeneric(node) {
+  visitGeneric(node: GenericQueryExpression) {
     const text = this.visitAndGetResult(node.text);
     this._result = ['TEXT', text];
   }
 
-  visitText(node) {
+  visitText(node: TextQueryExpression) {
     this._result = node.token.s;
   }
 
-  visitUnread(node) {
+  visitUnread(node: UnreadStatusQueryExpression) {
     this._result = node.status ? 'UNSEEN' : 'SEEN';
   }
 
-  visitStarred(node) {
+  visitStarred(node: StarredStatusQueryExpression) {
     this._result = node.status ? 'FLAGGED' : 'UNFLAGGED';
   }
 
-  visitIn(node) {
+  visitIn(node: InQueryExpression) {
     const text = this.visitAndGetResult(node.text);
     this._result = text === this._folder.name ? 'ALL' : '!ALL';
   }
@@ -200,15 +214,15 @@ export default class IMAPSearchQueryBackend {
     return 'all';
   }
 
-  static compile(ast, folder) {
+  static compile(ast: QueryExpression, folder: Folder) {
     return new IMAPSearchQueryBackend().compile(ast, folder);
   }
 
-  static folderNamesForQuery(ast) {
+  static folderNamesForQuery(ast: QueryExpression) {
     return new IMAPSearchQueryFolderFinderVisitor().visit(ast);
   }
 
-  compile(ast, folder) {
+  compile(ast: QueryExpression, folder: Folder) {
     return new IMAPSearchQueryExpressionVisitor(folder).visit(ast);
   }
 }

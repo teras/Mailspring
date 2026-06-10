@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { ButtonDropdown, Menu } from 'mailspring-component-kit';
-import PropTypes from 'prop-types';
 
 type MultiselectDropdownProps = {
   className?: string;
@@ -28,17 +27,6 @@ Item can be string or object
 class MultiselectDropdown extends Component<MultiselectDropdownProps> {
   static displayName = 'MultiselectDropdown';
 
-  static propTypes = {
-    className: PropTypes.string,
-    items: PropTypes.array.isRequired,
-    itemChecked: PropTypes.func,
-    onToggleItem: PropTypes.func,
-    itemKey: PropTypes.func,
-    buttonText: PropTypes.string,
-    itemContent: PropTypes.func,
-    attachment: PropTypes.string,
-  };
-
   static defaultProps = {
     className: '',
     items: [],
@@ -49,11 +37,11 @@ class MultiselectDropdown extends Component<MultiselectDropdownProps> {
     itemContent: () => {},
   };
 
-  _onItemClick = item => {
+  _onItemClick = (item: any) => {
     this.props.onToggleItem(item);
   };
 
-  _renderItem = item => {
+  _renderItem = (item: any) => {
     const MenuItem = Menu.Item;
     return (
       <MenuItem
@@ -65,12 +53,12 @@ class MultiselectDropdown extends Component<MultiselectDropdownProps> {
     );
   };
 
-  _renderMenu = items => {
+  _renderMenu = (items: any[]) => {
     return (
       <Menu
         items={items}
         itemContent={this._renderItem}
-        itemKey={item => this.props.itemKey(item)}
+        itemKey={(item) => this.props.itemKey(item)}
         onSelect={() => {}}
       />
     );

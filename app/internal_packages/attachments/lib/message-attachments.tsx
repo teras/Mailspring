@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import PropTypes from 'prop-types';
 import { Actions, Utils, AttachmentStore, File } from 'mailspring-exports';
 import { AttachmentItem, ImageAttachmentItem } from 'mailspring-component-kit';
 
@@ -18,20 +17,12 @@ class MessageAttachments extends Component<MessageAttachmentsProps> {
 
   static containerRequired = false;
 
-  static propTypes = {
-    files: PropTypes.array,
-    downloads: PropTypes.object,
-    headerMessageId: PropTypes.string,
-    filePreviewPaths: PropTypes.object,
-    canRemoveAttachments: PropTypes.bool,
-  };
-
   static defaultProps = {
     downloads: {},
     filePreviewPaths: {},
   };
 
-  renderAttachment(AttachmentRenderer, file) {
+  renderAttachment(AttachmentRenderer: React.ComponentType<any>, file: File) {
     const { canRemoveAttachments, downloads, filePreviewPaths } = this.props;
     const download = downloads[file.id];
     const filePath = AttachmentStore.pathForFile(file);
@@ -66,12 +57,12 @@ class MessageAttachments extends Component<MessageAttachmentsProps> {
 
   render() {
     const { files } = this.props;
-    const nonImageFiles = files.filter(f => !Utils.shouldDisplayAsImage(f));
-    const imageFiles = files.filter(f => Utils.shouldDisplayAsImage(f));
+    const nonImageFiles = files.filter((f) => !Utils.shouldDisplayAsImage(f));
+    const imageFiles = files.filter((f) => Utils.shouldDisplayAsImage(f));
     return (
       <div>
-        {nonImageFiles.map(file => this.renderAttachment(AttachmentItem, file))}
-        {imageFiles.map(file => this.renderAttachment(ImageAttachmentItem, file))}
+        {nonImageFiles.map((file) => this.renderAttachment(AttachmentItem, file))}
+        {imageFiles.map((file) => this.renderAttachment(ImageAttachmentItem, file))}
       </div>
     );
   }

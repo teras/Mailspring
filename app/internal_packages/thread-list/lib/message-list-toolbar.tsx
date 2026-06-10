@@ -1,6 +1,5 @@
 import React from 'react';
-import PropTypes from 'prop-types';
-import { CSSTransitionGroup } from 'react-transition-group';
+import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import { Rx, FocusedContentStore, Thread } from 'mailspring-exports';
 import ThreadListStore from './thread-list-store';
 import InjectsToolbarButtons, { ToolbarRole } from './injects-toolbar-buttons';
@@ -21,25 +20,26 @@ function getObservable() {
   });
 }
 
-const MessageListToolbar = ({ items, injectedButtons }) => {
+const MessageListToolbar = ({
+  items,
+  injectedButtons,
+}: {
+  items: Thread[];
+  injectedButtons?: React.ReactElement;
+}) => {
   const shouldRender = items.length > 0;
 
   return (
-    <CSSTransitionGroup
-      className="message-toolbar-items"
-      transitionLeaveTimeout={125}
-      transitionEnterTimeout={125}
-      transitionName="opacity-125ms"
-    >
-      {shouldRender ? injectedButtons : undefined}
-    </CSSTransitionGroup>
+    <TransitionGroup className="message-toolbar-items" component="div">
+      {shouldRender ? (
+        <CSSTransition key="buttons" classNames="opacity-125ms" timeout={125}>
+          {injectedButtons}
+        </CSSTransition>
+      ) : undefined}
+    </TransitionGroup>
   );
 };
 MessageListToolbar.displayName = 'MessageListToolbar';
-MessageListToolbar.propTypes = {
-  items: PropTypes.array,
-  injectedButtons: PropTypes.element,
-};
 
 const toolbarProps = {
   getObservable,

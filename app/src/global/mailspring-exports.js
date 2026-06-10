@@ -113,6 +113,7 @@ lazyLoadAndRegisterTask(`DestroyCategoryTask`, 'destroy-category-task');
 lazyLoadAndRegisterTask(`SyncbackCategoryTask`, 'syncback-category-task');
 lazyLoadAndRegisterTask(`SyncbackMetadataTask`, 'syncback-metadata-task');
 lazyLoadAndRegisterTask(`GetMessageRFC2822Task`, 'get-message-rfc2822-task');
+lazyLoadAndRegisterTask(`GetManyRFC2822Task`, 'get-many-rfc2822-task');
 lazyLoadAndRegisterTask(`ExpungeAllInFolderTask`, 'expunge-all-in-folder-task');
 lazyLoadAndRegisterTask(`ChangeRoleMappingTask`, 'change-role-mapping-task');
 lazyLoadAndRegisterTask(`SendFeatureUsageEventTask`, 'send-feature-usage-event-task');
@@ -175,11 +176,13 @@ lazyLoadWithGetter(`PropTypes`, () => require('prop-types'));
 
 // React Components
 lazyLoad(`ComponentRegistry`, 'registries/component-registry');
+lazyLoadWithGetter(`SheetDepthContext`, () => require('../sheet-context').SheetDepthContext);
 
 // Utils
 lazyLoad(`Utils`, 'flux/models/utils');
 lazyLoad(`DOMUtils`, 'dom-utils');
 lazyLoad(`DateUtils`, 'date-utils');
+lazyLoadWithGetter(`imapUtf7`, () => require('../utils/imap-utf7').imapUtf7);
 lazyLoad(`CalendarUtils`, 'calendar-utils');
 lazyLoad(`ICSEventHelpers`, 'ics-event-helpers');
 lazyLoad(`FsUtils`, 'fs-utils');
@@ -191,6 +194,7 @@ lazyLoad(`Spellchecker`, 'spellchecker');
 lazyLoad(`MessageUtils`, 'flux/models/message-utils');
 
 // Services
+lazyLoad(`EmlUtils`, 'services/eml-utils');
 lazyLoad(`KeyManager`, 'key-manager');
 lazyLoad(`SoundRegistry`, 'registries/sound-registry');
 lazyLoad(`MailRulesTemplates`, 'mail-rules-templates');

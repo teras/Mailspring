@@ -1,6 +1,7 @@
 import _ from 'underscore';
 
 import { Model } from '../flux/models/model';
+import { Matcher } from '../flux/attributes/matcher';
 import DatabaseStore from '../flux/stores/database-store';
 import { ListDataSource } from './list-data-source';
 
@@ -13,7 +14,7 @@ export class ListSelection {
   _callback: () => void;
   _unlisten: () => void;
 
-  constructor(_view, callback) {
+  constructor(_view: ListDataSource, callback: () => void) {
     this._view = _view;
     this._callback = callback;
     if (!this._view) {
@@ -38,7 +39,7 @@ export class ListSelection {
   ids(): string[] {
     // ListTabular asks for ids /a lot/. Cache this value and clear it on trigger.
     if (this._caches.ids == null) {
-      this._caches.ids = this._items.map(i => i.id);
+      this._caches.ids = this._items.map((i) => i.id);
     }
     return this._caches.ids;
   }
@@ -55,7 +56,7 @@ export class ListSelection {
     this.set([]);
   }
 
-  set(items) {
+  set(items: Model[]) {
     this._items = [];
     for (const item of items) {
       if (!(item instanceof Model)) {
@@ -74,7 +75,7 @@ export class ListSelection {
       throw new Error('toggle must be called with a Model');
     }
 
-    const without = _.reject(this._items, t => t.id === item.id);
+    const without = this._items.filter((t) => t.id !== item.id);
     if (without.length < this._items.length) {
       this._items = without;
     } else {
@@ -91,7 +92,7 @@ export class ListSelection {
       throw new Error('add must be called with a Model');
     }
 
-    const updated = this._items.filter(t => t.id !== item.id);
+    const updated = this._items.filter((t) => t.id !== item.id);
     updated.push(item);
 
     if (updated.length !== this._items.length) {
@@ -116,17 +117,17 @@ export class ListSelection {
       }
     }
 
-    const itemIds = items.map(i => i.id);
-    const nextItems = this._items.filter(t => !itemIds.includes(t.id));
+    const itemIds = items.map((i) => i.id);
+    const nextItems = this._items.filter((t) => !itemIds.includes(t.id));
     if (nextItems.length < this._items.length) {
       this._items = nextItems;
       this.trigger();
     }
   }
 
-  removeItemsNotMatching(matchers) {
+  removeItemsNotMatching(matchers: Matcher[]) {
     const count = this._items.length;
-    this._items = this._items.filter(t => t.matches(matchers));
+    this._items = this._items.filter((t) => t.matches(matchers));
     if (this._items.length !== count) {
       this.trigger();
     }
@@ -158,16 +159,16 @@ export class ListSelection {
       const indexes = new Array(count)
         .fill(0)
         .map((val, idx) => (startIdx > endIdx ? startIdx - idx : startIdx + idx));
-      indexes.forEach(idx => {
+      indexes.forEach((idx) => {
         const idxItem = this._view.get(idx);
-        this._items = _.reject(this._items, t => t.id === idxItem.id);
+        this._items = this._items.filter((t) => t.id !== idxItem.id);
         this._items.push(idxItem);
       });
     }
     this.trigger();
   }
 
-  walk({ current, next }) {
+  walk({ current, next }: { current?: Model; next: Model }) {
     // When the user holds shift and uses the arrow keys to modify their selection,
     // we call that "walking". When walking you're usually selecting items. However,
     // if you're walking "back" through your selection in the same order you selected
@@ -199,7 +200,7 @@ export class ListSelection {
         // Important: As you walk over this item, remove it and re-push it on the selected
         // array even if it's already there. That way, the items in _items are always
         // in the order you walked over them, and you can walk back to deselect them.
-        this._items = _.reject(this._items, t => t.id === next.id);
+        this._items = this._items.filter((t) => t.id !== next.id);
         this._items.push(next);
       }
     }
@@ -207,7 +208,11 @@ export class ListSelection {
     return this.trigger();
   }
 
-  _applyChangeRecord(change) {
+  _applyChangeRecord(change: {
+    type: 'persist' | 'unpersist';
+    objectClass: string;
+    objects: Model[];
+  }) {
     if (this._items.length === 0) {
       return;
     }

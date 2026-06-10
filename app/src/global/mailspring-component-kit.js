@@ -10,7 +10,7 @@ module.exports = exports = {};
 if (AppEnv.isMainWindow()) {
   setTimeout(() => {
     const remaining = Object.keys(module.exports);
-    const fn = deadline => {
+    const fn = (deadline) => {
       let key = null;
       let bogus = 0; // eslint-disable-line
       while ((key = remaining.pop())) {
@@ -69,7 +69,6 @@ lazyLoad('DatePickerPopover', 'date-picker-popover');
 lazyLoad('Modal', 'modal');
 lazyLoad('Webview', 'webview');
 lazyLoad('FeatureUsedUpModal', 'feature-used-up-modal');
-lazyLoad('BillingModal', 'billing-modal');
 lazyLoad('OpenIdentityPageButton', 'open-identity-page-button');
 lazyLoad('Flexbox', 'flexbox');
 lazyLoad('RetinaImg', 'retina-img');
@@ -88,6 +87,7 @@ lazyLoad('MultiselectDropdown', 'multiselect-dropdown');
 lazyLoad('KeyCommandsRegion', 'key-commands-region');
 lazyLoad('BindGlobalCommands', 'bind-global-commands');
 lazyLoad('TabGroupRegion', 'tab-group-region');
+lazyLoadFrom('TabGroupContext', 'tab-group-region');
 lazyLoad('InjectedComponent', 'injected-component');
 lazyLoad('TokenizingTextField', 'tokenizing-text-field');
 lazyLoad('ParticipantsTextField', 'participants-text-field');

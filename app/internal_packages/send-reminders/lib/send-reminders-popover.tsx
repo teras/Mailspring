@@ -1,6 +1,5 @@
 import React from 'react';
 import moment from 'moment';
-import PropTypes from 'prop-types';
 import { localized, DateUtils } from 'mailspring-exports';
 import { DatePickerPopover } from 'mailspring-component-kit';
 
@@ -14,7 +13,11 @@ const SendRemindersOptions = {
   [localized('In a Month')]: () => DateUtils.monthsFromNow(1),
 };
 
-function SendRemindersPopover(props) {
+function SendRemindersPopover(props: {
+  reminderDate?: Date;
+  onRemind: (date: Date) => void;
+  onCancelReminder: () => void;
+}) {
   const { reminderDate, onRemind, onCancelReminder } = props;
   const header = <span key="reminders-header">{localized('Remind me if no one replies')}:</span>;
   const footer = [];
@@ -49,11 +52,5 @@ function SendRemindersPopover(props) {
   );
 }
 SendRemindersPopover.displayName = 'SendRemindersPopover';
-
-SendRemindersPopover.propTypes = {
-  reminderDate: PropTypes.instanceOf(Date),
-  onRemind: PropTypes.func,
-  onCancelReminder: PropTypes.func,
-};
 
 export default SendRemindersPopover;

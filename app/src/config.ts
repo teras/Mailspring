@@ -350,7 +350,7 @@ export default class Config {
     }
   }
 
-  _logError(prefix, error) {
+  _logError(prefix: string, error: Error) {
     error.message = `${prefix}: ${error.message}`;
     console.error(error.message);
     errorLogger.reportError(error);
@@ -384,9 +384,9 @@ export default class Config {
   //
   // Returns a {Disposable} with the following keys on which you can call
   // `.dispose()` to unsubscribe.
-  observe(keyPath, callback) {
+  observe(keyPath: string, callback: (value: unknown) => void) {
     callback(this.get(keyPath));
-    return this.onDidChangeKeyPath(keyPath, event => callback(event.newValue));
+    return this.onDidChangeKeyPath(keyPath, (event) => callback(event.newValue));
   }
 
   // Essential: Add a listener for changes to a given key path. If `keyPath` is
@@ -599,7 +599,7 @@ export default class Config {
     Section: Private methods managing global settings
     */
 
-  updateSettings = newSettings => {
+  updateSettings = (newSettings) => {
     if (!newSettings || _.isEmpty(newSettings)) {
       throw new Error(`Tried to update settings with false-y value: ${newSettings}`);
     }
@@ -623,7 +623,10 @@ export default class Config {
     return value;
   }
 
-  onDidChangeKeyPath(keyPath: string, callback) {
+  onDidChangeKeyPath(
+    keyPath: string,
+    callback: (event: { oldValue: unknown; newValue: unknown }) => void
+  ) {
     let oldValue = this.get(keyPath);
     return this.emitter.on('did-change', () => {
       const newValue = this.get(keyPath);
@@ -674,9 +677,9 @@ export default class Config {
 
   deepClone(object) {
     if (_.isArray(object)) {
-      return object.map(value => this.deepClone(value));
+      return object.map((value) => this.deepClone(value));
     } else if (isPlainObject(object)) {
-      return _.mapObject(object, value => this.deepClone(value));
+      return _.mapObject(object, (value) => this.deepClone(value));
     } else {
       return object;
     }

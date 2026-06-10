@@ -4,8 +4,6 @@
  * DS207: Consider shorter variations of null checks
  * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
  */
-import _ from 'underscore';
-
 const ItemSpecificities = new WeakMap();
 
 export type IMenuItem = {
@@ -36,7 +34,7 @@ export function merge(menu: IMenuItem[], item: IMenuItem, itemSpecificity?: numb
 
   if (matchingItem != null) {
     if (item.submenu != null) {
-      return item.submenu.map(submenuItem =>
+      return item.submenu.map((submenuItem) =>
         merge(matchingItem.submenu, submenuItem, itemSpecificity)
       );
     } else if (itemSpecificity) {
@@ -44,7 +42,7 @@ export function merge(menu: IMenuItem[], item: IMenuItem, itemSpecificity?: numb
         return (menu[matchingItemIndex] = item);
       }
     }
-  } else if (item.type !== 'separator' || (_.last(menu) || ({} as any)).type !== 'separator') {
+  } else if (item.type !== 'separator' || (menu.at(-1) || ({} as any)).type !== 'separator') {
     return menu.push(item);
   }
 }
@@ -103,7 +101,7 @@ export function normalizeLabel(label: string | null) {
 export function cloneMenuItem(item: IMenuItem) {
   item = { ...item };
   if (item.submenu != null) {
-    item.submenu = item.submenu.map(submenuItem => cloneMenuItem(submenuItem));
+    item.submenu = item.submenu.map((submenuItem) => cloneMenuItem(submenuItem));
   }
   return item;
 }

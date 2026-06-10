@@ -1,16 +1,10 @@
 import React from 'react';
-import { localized, PropTypes, Utils } from 'mailspring-exports';
-import { clipboard } from 'electron';
+import { localized, Utils } from 'mailspring-exports';
 
 class CopyButton extends React.Component<
   { copyValue: string; btnLabel: string } & React.HTMLProps<HTMLButtonElement>,
   { btnLabel: string }
 > {
-  static propTypes = {
-    btnLabel: PropTypes.string,
-    copyValue: PropTypes.string,
-  };
-
   _timeout = null;
 
   constructor(props) {
@@ -37,17 +31,26 @@ class CopyButton extends React.Component<
       return;
     }
     const { copyValue, btnLabel } = this.props;
-    clipboard.writeText(copyValue);
-    this.setState({ btnLabel: localized('Copied') });
-    this._timeout = setTimeout(() => {
-      this._timeout = null;
-      this.setState({ btnLabel: btnLabel });
-    }, 2000);
+    // Use a truthy sentinel to block re-entry while the async write is in-flight.
+    // clearTimeout(true) is a safe no-op, so componentWillUnmount is unaffected.
+    this._timeout = true as any;
+    navigator.clipboard
+      .writeText(copyValue)
+      .then(() => {
+        this.setState({ btnLabel: localized('Copied') });
+        this._timeout = setTimeout(() => {
+          this._timeout = null;
+          this.setState({ btnLabel: btnLabel });
+        }, 2000);
+      })
+      .catch(() => {
+        this._timeout = null;
+      });
   };
 
   render() {
     const { btnLabel } = this.state;
-    const otherProps = Utils.fastOmit(this.props, Object.keys(CopyButton.propTypes));
+    const otherProps = Utils.fastOmit(this.props, ['btnLabel', 'copyValue']);
     return (
       <button onClick={this._onCopy} {...otherProps}>
         {btnLabel}

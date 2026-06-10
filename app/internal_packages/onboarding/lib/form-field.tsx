@@ -1,7 +1,16 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
-const FormField = props => {
+const FormField = (props: {
+  field: string;
+  title: string;
+  type?: string;
+  style?: React.CSSProperties;
+  submitting?: boolean;
+  onFieldKeyPress?: (e: React.KeyboardEvent) => void;
+  onFieldChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  errorFieldNames?: string[];
+  account: Record<string, any>;
+}) => {
   const field = props.field;
   let val = props.account[field];
   if (props.field.includes('.')) {
@@ -24,18 +33,6 @@ const FormField = props => {
       />
     </span>
   );
-};
-
-FormField.propTypes = {
-  field: PropTypes.string,
-  title: PropTypes.string,
-  type: PropTypes.string,
-  style: PropTypes.object,
-  submitting: PropTypes.bool,
-  onFieldKeyPress: PropTypes.func,
-  onFieldChange: PropTypes.func,
-  errorFieldNames: PropTypes.array,
-  account: PropTypes.object,
 };
 
 export default FormField;

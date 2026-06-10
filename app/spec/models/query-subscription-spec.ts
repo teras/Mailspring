@@ -35,7 +35,7 @@ describe('QuerySubscription', function QuerySubscriptionSpecs() {
       describe('when initialModels are provided', () =>
         it('should apply the models and trigger', () => {
           const query = DatabaseStore.findAll<Thread>(Thread);
-          const threads = [1, 2, 3, 4, 5].map(i => new Thread({ id: i }));
+          const threads = [1, 2, 3, 4, 5].map((i) => new Thread({ id: i }));
           const subscription = new QuerySubscription(query, { initialModels: threads });
           expect(subscription._set).not.toBe(null);
         }));
@@ -51,9 +51,9 @@ describe('QuerySubscription', function QuerySubscriptionSpecs() {
   describe('addCallback', () =>
     it('should emit the last result to the new callback if one is available', () => {
       const cb = jasmine.createSpy('callback');
-      spyOn(QuerySubscription.prototype, 'update').andReturn();
+      spyOn(QuerySubscription.prototype, 'update').andReturn(undefined);
       const subscription = new QuerySubscription(DatabaseStore.findAll<Thread>(Thread));
-      subscription._lastResult = 'something';
+      (subscription as any)._lastResult = 'something';
       runs(() => {
         subscription.addCallback(cb);
         advanceClock();
@@ -222,8 +222,8 @@ describe('QuerySubscription', function QuerySubscriptionSpecs() {
     jasmine.unspy(Utils, 'generateTempId');
 
     describe('scenarios', () =>
-      scenarios.forEach(scenario => {
-        scenario.tests.forEach(test => {
+      scenarios.forEach((scenario) => {
+        scenario.tests.forEach((test) => {
           it(`with ${scenario.name}, should correctly apply ${test.name}`, () => {
             const subscription = new QuerySubscription(scenario.query);
             subscription._set = new MutableQueryResultSet();
@@ -235,7 +235,7 @@ describe('QuerySubscription', function QuerySubscriptionSpecs() {
             spyOn(subscription, 'update');
             spyOn(subscription, '_createResultAndTrigger');
             subscription._updateInFlight = false;
-            subscription.applyChangeRecord(test.change);
+            subscription.applyChangeRecord(test.change as any);
 
             if (test.mustUpdate) {
               expect(subscription.update).toHaveBeenCalledWith({ mustRefetchEntireRange: true });
@@ -245,12 +245,65 @@ describe('QuerySubscription', function QuerySubscriptionSpecs() {
               expect(subscription._set.models()).toEqual(test.nextModels);
             }
 
-            if (test.mustTriger) {
+            if ((test as any).mustTriger) {
               expect(subscription._createResultAndTrigger).toHaveBeenCalled();
             }
           });
         });
       }));
+  });
+
+  describe('_fetchRange', () => {
+    it('should reset _set instead of throwing when actual results do not reach the existing set', () => {
+      // Regression test for MAILSPRING-CLIENT-1A / MAILSPRING-CLIENT-17:
+      // When _set covers {50,70} and a fetch for range {30,50} returns only 16
+      // results (rangeIdsEnd = 46 < _offset = 50), contiguity must be checked
+      // against the actual results length, not the requested limit. Otherwise
+      // isContiguousWith({50,70}, {30,50}) passes (they share endpoint 50) but
+      // addIdsInRange throws "You can only add adjacent values (46 < 50)".
+      const query = DatabaseStore.findAll<Thread>(Thread)
+        .where(Thread.attributes.accountId.equal('a'))
+        .limit(20)
+        .offset(30);
+
+      const threads50to70 = Array.from(
+        { length: 20 },
+        (_, i) => new Thread({ id: `t${50 + i}`, accountId: 'a' })
+      );
+      const threads30to46 = Array.from(
+        { length: 16 },
+        (_, i) => new Thread({ id: `t${30 + i}`, accountId: 'a' })
+      );
+
+      // Prevent the constructor's update() from issuing a real DB query
+      spyOn(QuerySubscription.prototype, 'update').andReturn(undefined);
+
+      const subscription = new QuerySubscription(query);
+      subscription._set = new MutableQueryResultSet();
+      subscription._set.addModelsInRange(threads50to70, new QueryRange({ offset: 50, limit: 20 }));
+
+      // DB returns 16 results for the requested range of 20 — actual end is 46, not 50
+      spyOn(DatabaseStore, 'run').andReturn(Promise.resolve(threads30to46));
+
+      let completed = false;
+      spyOn(subscription, '_createResultAndTrigger').andCallFake(() => {
+        completed = true;
+      });
+
+      // _fetchRange requests range {30,50} but only 16 results come back
+      subscription._fetchRange(new QueryRange({ offset: 30, limit: 20 }), {
+        version: subscription._queryVersion,
+        fetchEntireModels: true,
+      });
+
+      waitsFor(() => completed, 'fetch to complete', 1000);
+
+      runs(() => {
+        // _set should be valid (reset and repopulated with the 16 partial results)
+        expect(subscription._set).not.toBe(null);
+        expect(subscription._set.ids()).toEqual(threads30to46.map((t) => t.id));
+      });
+    });
   });
 
   describe('update', () => {
@@ -277,7 +330,10 @@ describe('QuerySubscription', function QuerySubscriptionSpecs() {
       it('should fetch full full models only when the previous set is empty', () => {
         const subscription = new QuerySubscription(DatabaseStore.findAll<Thread>(Thread));
         subscription._set = new MutableQueryResultSet();
-        subscription._set.addModelsInRange([new Thread()], new QueryRange({ start: 0, end: 1 }));
+        subscription._set.addModelsInRange(
+          [new Thread({} as any)],
+          new QueryRange({ start: 0, end: 1 })
+        );
         subscription.update();
         advanceClock();
         expect(subscription._fetchRange).toHaveBeenCalledWith(QueryRange.infinite(), {
@@ -310,15 +366,18 @@ describe('QuerySubscription', function QuerySubscriptionSpecs() {
           spyOn(QueryRange, 'rangesBySubtracting').andReturn([customRange]);
           const subscription = new QuerySubscription(this.query);
           subscription._set = new MutableQueryResultSet();
-          subscription._set.addModelsInRange([new Thread()], new QueryRange({ start: 0, end: 1 }));
+          subscription._set.addModelsInRange(
+            [new Thread({} as any)],
+            new QueryRange({ start: 0, end: 1 })
+          );
 
           advanceClock();
-          subscription._fetchRange.reset();
+          (subscription._fetchRange as jasmine.Spy).reset();
           subscription._updateInFlight = false;
           subscription.update();
           advanceClock();
-          expect(subscription._fetchRange.callCount).toBe(1);
-          expect(subscription._fetchRange.calls[0].args).toEqual([
+          expect((subscription._fetchRange as jasmine.Spy).callCount).toBe(1);
+          expect((subscription._fetchRange as jasmine.Spy).calls[0].args).toEqual([
             customRange,
             { fetchEntireModels: true, version: 1 },
           ]);
@@ -332,15 +391,15 @@ describe('QuerySubscription', function QuerySubscriptionSpecs() {
           const range = new QueryRange({ start: 0, end: 1 });
           const subscription = new QuerySubscription(this.query);
           subscription._set = new MutableQueryResultSet();
-          subscription._set.addModelsInRange([new Thread()], range);
+          subscription._set.addModelsInRange([new Thread({} as any)], range);
 
           advanceClock();
-          subscription._fetchRange.reset();
+          (subscription._fetchRange as jasmine.Spy).reset();
           subscription._updateInFlight = false;
           subscription.update();
           advanceClock();
-          expect(subscription._fetchRange.callCount).toBe(1);
-          expect(subscription._fetchRange.calls[0].args).toEqual([
+          expect((subscription._fetchRange as jasmine.Spy).callCount).toBe(1);
+          expect((subscription._fetchRange as jasmine.Spy).calls[0].args).toEqual([
             this.query.range(),
             { fetchEntireModels: true, version: 1 },
           ]);

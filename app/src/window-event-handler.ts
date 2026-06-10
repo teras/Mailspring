@@ -33,6 +33,7 @@ const isTextInput = (node: EventTarget) => {
 export default class WindowEventHandler {
   unloadCallbacks = [];
   unloadCompleteCallbacks = [];
+  _openExternalErrorShown = false;
 
   constructor() {
     setTimeout(() => this.showDevModeMessages(), 1);
@@ -61,7 +62,7 @@ export default class WindowEventHandler {
       AppEnv.commands.dispatch(command, args[0]);
     });
 
-    window.onbeforeunload = e => {
+    window.onbeforeunload = (e: BeforeUnloadEvent) => {
       if (AppEnv.inSpecMode()) {
         return undefined;
       }
@@ -131,13 +132,17 @@ export default class WindowEventHandler {
     };
 
     AppEnv.commands.add(document.body, {
-      'core:copy': e => (isIFrame(e.target) ? webContents.copy() : document.execCommand('copy')),
-      'core:cut': e => (isIFrame(e.target) ? webContents.cut() : document.execCommand('cut')),
+      'core:copy': (e: CustomEvent) =>
+        isIFrame(e.target) ? webContents.copy() : document.execCommand('copy'),
+      'core:cut': (e: CustomEvent) =>
+        isIFrame(e.target) ? webContents.cut() : document.execCommand('cut'),
       'core:paste': () => webContents.paste(),
       'core:paste-and-match-style': () => webContents.pasteAndMatchStyle(),
-      'core:undo': e => (isTextInput(e.target) ? webContents.undo() : getUndoStore().undo()),
-      'core:redo': e => (isTextInput(e.target) ? webContents.redo() : getUndoStore().redo()),
-      'core:select-all': e =>
+      'core:undo': (e: CustomEvent) =>
+        isTextInput(e.target) ? webContents.undo() : getUndoStore().undo(),
+      'core:redo': (e: CustomEvent) =>
+        isTextInput(e.target) ? webContents.redo() : getUndoStore().redo(),
+      'core:select-all': (e: CustomEvent) =>
         isIFrame(e.target) || isTextInput(e.target)
           ? webContents.selectAll()
           : AppEnv.commands.dispatch('multiselect-list:select-all'),
@@ -241,7 +246,7 @@ export default class WindowEventHandler {
     });
 
     // Prevent form submits from changing the current window's URL
-    document.addEventListener('submit', event => {
+    document.addEventListener('submit', (event) => {
       if ((event.target as HTMLElement).nodeName === 'FORM') {
         event.preventDefault();
       }
@@ -261,7 +266,7 @@ export default class WindowEventHandler {
   }
 
   removeUnloadCallback(callback) {
-    this.unloadCallbacks = this.unloadCallbacks.filter(cb => cb !== callback);
+    this.unloadCallbacks = this.unloadCallbacks.filter((cb) => cb !== callback);
   }
 
   runUnloadCallbacks() {
@@ -303,11 +308,7 @@ export default class WindowEventHandler {
       callback();
     }
     setTimeout(() => {
-      if (
-        require('@electron/remote')
-          .getGlobal('application')
-          .isQuitting()
-      ) {
+      if (require('@electron/remote').getGlobal('application').isQuitting()) {
         require('@electron/remote').app.quit();
       } else if (AppEnv.isReloading) {
         AppEnv.isReloading = false;
@@ -364,11 +365,22 @@ export default class WindowEventHandler {
       // (T1927) Be sure to escape them once, and completely, before we try to open them. This logic
       // *might* apply to http/https as well but it's unclear.
       const sanitized = encodeURI(decodeURI(resolved));
-      require('@electron/remote')
-        .getGlobal('application')
-        .openUrl(sanitized);
+      require('@electron/remote').getGlobal('application').openUrl(sanitized);
     } else if (['http:', 'https:', 'tel:'].includes(protocol)) {
-      shell.openExternal(resolved, { activate: !metaKey });
+      shell.openExternal(resolved, { activate: !metaKey }).catch((err: Error) => {
+        if (!this._openExternalErrorShown) {
+          this._openExternalErrorShown = true;
+          AppEnv.showErrorDialog({
+            title: localized('Failed to Open Link'),
+            message: localized(
+              'Mailspring was unable to open the link in your browser.\n\n%@',
+              err.message
+            ),
+          });
+        } else {
+          console.error(`Failed to open link: ${err.message}`);
+        }
+      });
     }
     return;
   }

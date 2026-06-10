@@ -23,7 +23,9 @@
     }
     border-bottom: 1px solid @border-color-divider;
     .btn.btn-icon {
-      line-height: 27px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       height: 27px;
       margin-top: -1px;
       margin-right: 0;
@@ -72,7 +74,7 @@
         background: @accent-primary;
         color: @text-color-inverse;
         &:hover {
-          background: darken(@accent-primary, 5%);
+          background: color-mix(in srgb, @accent-primary, black 5%);
         }
       }
     }

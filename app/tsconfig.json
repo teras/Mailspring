@@ -2,15 +2,17 @@
   "compilerOptions": {
     "allowJs": true,
     "jsx": "react",
-    "target": "es2017",
+    "target": "es2024",
     "module": "commonjs",
     "moduleResolution": "node",
     "esModuleInterop": true,
     "experimentalDecorators": true,
-    "lib": ["es2017", "dom", "esnext.array"],
+    "useDefineForClassFields": false,
+    "lib": ["esnext", "dom", "dom.iterable"],
     "removeComments": true,
     "resolveJsonModule": true,
-    "inlineSourceMap": true,
+    "sourceMap": true,
+    "inlineSources": true,
     "outDir": "lib",
     "baseUrl": ".",
     "skipLibCheck": true,
@@ -18,5 +20,6 @@
       "*": ["node_modules/*", "src/global/*"]
     }
   },
-  "include": ["src/**/*", "internal_packages/**/*"]
+  "include": ["src/**/*", "internal_packages/**/*", "spec/**/*"],
+  "exclude": ["spec/spec-runner/jasmine.js"]
 }

@@ -5,6 +5,22 @@ import { ComposerEditorPluginToolbarComponentProps } from './types';
 
 // Helper Functions
 
+// Slate's `value.activeMarks` getter calls `Document.getActiveMarksAtRange`,
+// which can throw "Invalid attempt to destructure non-iterable instance" when
+// the value's selection references a node the document no longer contains
+// (e.g. mid-edit, after a paste, or when a stale value is rendered). We can't
+// fix Slate, so funnel every access through this helper: on throw, fall back
+// to an empty list. `.find` / `.some` work the same on arrays as on the
+// Immutable.Set Slate normally returns, and the next render picks up the
+// correct state once Slate re-normalizes.
+export function safeActiveMarks(value: Value): Mark[] {
+  try {
+    return value.activeMarks.toArray();
+  } catch (err) {
+    return [];
+  }
+}
+
 export interface IEditorToolbarConfigItem {
   type: string;
   tagNames?: string[];
@@ -22,9 +38,9 @@ export interface IEditorToolbarConfigItem {
   };
 }
 
-function removeMarksOfTypeInRange(editor: Editor, range: Range | Selection, type) {
+function removeMarksOfTypeInRange(editor: Editor, range: Range | Selection, type: string) {
   if (range.isCollapsed) {
-    const active = editor.value.activeMarks.find(m => m.type === type);
+    const active = safeActiveMarks(editor.value).find((m) => m.type === type);
     if (active) {
       editor.removeMark(active);
     }
@@ -34,7 +50,7 @@ function removeMarksOfTypeInRange(editor: Editor, range: Range | Selection, type
   const texts = document.getTextsAtRange(range as any);
   const { start, end } = range;
 
-  texts.forEach(node => {
+  texts.forEach((node) => {
     const { key } = node;
     let index = 0;
     let length = node.text.length;
@@ -43,7 +59,7 @@ function removeMarksOfTypeInRange(editor: Editor, range: Range | Selection, type
     if (key === end.key) length = end.offset;
     if (key === start.key && key === end.key) length = end.offset - start.offset;
 
-    node.getMarks().forEach(mark => {
+    node.getMarks().forEach((mark) => {
       if (mark.type === type) {
         (editor.removeMarkByKey as any)(key, index, length, mark, { normalize: true });
       }
@@ -51,39 +67,36 @@ function removeMarksOfTypeInRange(editor: Editor, range: Range | Selection, type
   });
 }
 
-export function expandSelectionToRangeOfMark(editor, type) {
+export function expandSelectionToRangeOfMark(editor: Editor, type: string) {
   const { selection, document } = editor.value;
   const node = document.getNode(selection.anchor.key);
   let start = selection.anchor.offset;
   let end = selection.anchor.offset;
 
   // expand backwards until the mark disappears
-  while (start > 0 && node.getMarksAtIndex(start).find(m => m.type === type)) {
+  while (start > 0 && (node as any).getMarksAtIndex(start).find((m) => m.type === type)) {
     start -= 1;
   }
   // expand forwards until the mark disappears
-  while (end < node.text.length - 1 && node.getMarksAtIndex(end + 1).find(m => m.type === type)) {
+  while (
+    end < node.text.length - 1 &&
+    (node as any).getMarksAtIndex(end + 1).find((m) => m.type === type)
+  ) {
     end += 1;
   }
 
   // expand selection
   editor.select({
-    anchor: { key: selection.anchor.key, offset: start },
-    focus: { key: selection.anchor.key, offset: end },
+    anchor: { key: selection.anchor.key, offset: start } as any,
+    focus: { key: selection.anchor.key, offset: end } as any,
     isFocused: true,
     isBackward: false,
-  });
+  } as any);
 }
 
 export function getActiveValueForMark(value: Value, type: string) {
-  try {
-    // https://sentry.io/organizations/foundry-376-llc/issues/1076378703
-    // This rarely throws "Invalid attempt to destructure non-iterable instance"
-    const active = value.activeMarks.find(m => m.type === type);
-    return (active && active.data.get('value')) || '';
-  } catch (err) {
-    return '';
-  }
+  const active = safeActiveMarks(value).find((m) => m.type === type);
+  return (active && active.data.get('value')) || '';
 }
 
 export function applyValueForMark(editor: Editor, type: string, markValue: any) {
@@ -108,7 +121,7 @@ export function BuildToggleButton({
 }: IEditorToolbarConfigItem) {
   return ({ editor, className, value }: ComposerEditorPluginToolbarComponentProps) => {
     const active = isActive(value);
-    const onMouseDown = e => {
+    const onMouseDown = (e: React.MouseEvent<HTMLButtonElement>) => {
       onToggle(editor, active);
       e.preventDefault();
     };
@@ -133,9 +146,9 @@ export function BuildMarkButtonWithValuePicker(config) {
       expanded: false,
     };
 
-    onPrompt = e => {
+    onPrompt = (e: React.MouseEvent) => {
       e.preventDefault();
-      const active = this.props.value.activeMarks.find(m => m.type === config.type);
+      const active = safeActiveMarks(this.props.value).find((m) => m.type === config.type);
       const fieldValue = (active && active.data.get(config.field)) || '';
       this.setState({ expanded: true, fieldValue: fieldValue }, () => {
         setTimeout(() => {
@@ -145,7 +158,7 @@ export function BuildMarkButtonWithValuePicker(config) {
       });
     };
 
-    onConfirm = e => {
+    onConfirm = (e: React.MouseEvent | React.KeyboardEvent) => {
       e.preventDefault();
 
       // attach the URL value to the LINK that was created when we opened the link modal
@@ -153,7 +166,7 @@ export function BuildMarkButtonWithValuePicker(config) {
       const { fieldValue } = this.state;
 
       if (fieldValue.trim() === '') {
-        this.onRemove(e);
+        this.onRemove(e as React.MouseEvent);
         this.setState({ expanded: false, fieldValue: '' });
         return;
       }
@@ -164,7 +177,7 @@ export function BuildMarkButtonWithValuePicker(config) {
           [config.field]: fieldValue,
         },
       });
-      const active = value.activeMarks.find(m => m.type === config.type);
+      const active = safeActiveMarks(value).find((m) => m.type === config.type);
       if (active) {
         // update the active mark
         expandSelectionToRangeOfMark(editor, config.type);
@@ -173,12 +186,7 @@ export function BuildMarkButtonWithValuePicker(config) {
         editor.focus();
       } else if (value.selection.isCollapsed) {
         // apply new mark to new text
-        editor
-          .addMark(newMark)
-          .insertText(fieldValue)
-          .removeMark(newMark)
-          .insertText(' ')
-          .focus();
+        editor.addMark(newMark).insertText(fieldValue).removeMark(newMark).insertText(' ').focus();
       } else {
         // apply new mark to selected text
         removeMarksOfTypeInRange(editor, value.selection, config.type);
@@ -189,10 +197,10 @@ export function BuildMarkButtonWithValuePicker(config) {
       this.setState({ expanded: false, fieldValue: '' });
     };
 
-    onRemove = e => {
+    onRemove = (e: React.MouseEvent) => {
       e.preventDefault();
       const { value, editor } = this.props;
-      const active = value.activeMarks.find(m => m.type === config.type);
+      const active = safeActiveMarks(value).find((m) => m.type === config.type);
       if (value.selection.isCollapsed) {
         const anchorNode = value.document.getNode(value.selection.anchor.key);
         const expanded = value.selection.moveToRangeOfNode(anchorNode);
@@ -202,8 +210,8 @@ export function BuildMarkButtonWithValuePicker(config) {
       }
     };
 
-    onBlur = e => {
-      if (!this._el.contains(e.relatedTarget)) {
+    onBlur = (e: React.FocusEvent) => {
+      if (!this._el.contains(e.relatedTarget as Node)) {
         this.setState({ expanded: false });
       }
     };
@@ -212,11 +220,11 @@ export function BuildMarkButtonWithValuePicker(config) {
       const { value, className } = this.props;
       const { expanded } = this.state;
 
-      const active = value.activeMarks.find(m => m.type === config.type);
+      const active = safeActiveMarks(value).find((m) => m.type === config.type);
       return (
         <div
           className={`${className} link-picker`}
-          ref={el => (this._el = el)}
+          ref={(el) => (this._el = el)}
           tabIndex={-1}
           onBlur={this.onBlur}
         >
@@ -235,10 +243,10 @@ export function BuildMarkButtonWithValuePicker(config) {
                 type="text"
                 placeholder={config.placeholder}
                 value={this.state.fieldValue}
-                ref={el => (this._inputEl = el)}
+                ref={(el) => (this._inputEl = el)}
                 onBlur={this.onBlur}
-                onChange={e => this.setState({ fieldValue: e.target.value })}
-                onKeyDown={e => {
+                onChange={(e) => this.setState({ fieldValue: e.target.value })}
+                onKeyDown={(e) => {
                   if (e.which === 13) {
                     this.onConfirm(e);
                   }
@@ -260,7 +268,7 @@ export function BuildColorPicker(config) {
   > {
     _el: HTMLElement;
 
-    constructor(props) {
+    constructor(props: ComposerEditorPluginToolbarComponentProps) {
       super(props);
       this.state = {
         expanded: false,
@@ -271,8 +279,8 @@ export function BuildColorPicker(config) {
       this.setState({ expanded: !this.state.expanded });
     };
 
-    _onBlur = e => {
-      if (!this._el.contains(e.relatedTarget)) {
+    _onBlur = (e: React.FocusEvent) => {
+      if (!this._el.contains(e.relatedTarget as Node)) {
         this.setState({ expanded: false });
       }
     };
@@ -302,7 +310,7 @@ export function BuildColorPicker(config) {
         <div
           tabIndex={-1}
           onBlur={this._onBlur}
-          ref={el => (this._el = el)}
+          ref={(el) => (this._el = el)}
           className={`color-picker ${this.props.className}`}
         >
           <button
@@ -324,11 +332,12 @@ export function BuildColorPicker(config) {
 
 export function BuildFontPicker(config) {
   return class FontPicker extends React.Component<ComposerEditorPluginToolbarComponentProps> {
-    _onSetValue = e => {
+    _onSetValue = (e: React.ChangeEvent<HTMLSelectElement>) => {
       const { editor } = this.props;
-      let markValue = e.target.value !== config.default ? e.target.value : null;
+      let markValue: string | number | null =
+        e.target.value !== config.default ? e.target.value : null;
       if (!(typeof config.options[0].value === 'string')) {
-        markValue = markValue / 1;
+        markValue = Number(markValue);
       }
       applyValueForMark(editor, config.type, markValue);
     };

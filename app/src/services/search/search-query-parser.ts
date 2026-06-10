@@ -34,7 +34,7 @@ const nextStringToken = (text: string): [SearchQueryToken, string] => {
   throw new Error('Expected string but ran out of input');
 };
 
-const isWhitespace = c => {
+const isWhitespace = (c) => {
   switch (c) {
     case ' ':
     case '\t':
@@ -188,7 +188,7 @@ const consumeExpectedToken = (text: string, token: string) => {
   return afterTok;
 };
 
-const parseText = (text: string): [QueryExpression, string] => {
+const parseText = (text: string): [TextQueryExpression, string] => {
   const [tok, afterTok] = nextToken(text);
   if (tok === null) {
     throw new Error('Expected text but none available');

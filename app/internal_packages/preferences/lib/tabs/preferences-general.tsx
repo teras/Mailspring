@@ -1,7 +1,6 @@
 /* eslint global-require: 0*/
 import React from 'react';
-import PropTypes from 'prop-types';
-import rimraf from 'rimraf';
+import fs from 'fs';
 import { localized } from 'mailspring-exports';
 import ConfigSchemaItem from './config-schema-item';
 import WorkspaceSection from './workspace-section';
@@ -14,11 +13,6 @@ class PreferencesGeneral extends React.Component<{
   configSchema: ConfigSchemaLike;
 }> {
   static displayName = 'PreferencesGeneral';
-
-  static propTypes = {
-    config: PropTypes.object,
-    configSchema: PropTypes.object,
-  };
 
   _onReboot = () => {
     console.log('general relaunch');
@@ -39,7 +33,7 @@ class PreferencesGeneral extends React.Component<{
     });
 
     if (chosen === 1) {
-      rimraf(AppEnv.getConfigDirPath(), { disableGlob: true }, err => {
+      fs.rm(AppEnv.getConfigDirPath(), { recursive: true, force: true }, (err) => {
         if (err) {
           return AppEnv.showErrorDialog(
             localized(

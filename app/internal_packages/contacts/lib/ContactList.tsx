@@ -13,7 +13,6 @@ import {
 import { ContactsPerspective, Store } from './Store';
 import { writeContactsToTempVCF, importContactsFromPaths } from './VCFImportExport';
 import { ContactListContextMenu } from './ContactListContextMenu';
-import _ from 'underscore';
 
 const ContactColumn = new ListTabular.Column({
   name: 'Item',
@@ -84,13 +83,13 @@ class ContactListWithData extends React.Component<ContactListProps, ContactListS
     new ContactListContextMenu(contacts).displayMenu();
   };
 
-  _onDragItems = (event, items) => {
+  _onDragItems = (event: React.DragEvent, items: Contact[]) => {
     const data = {
-      ids: items.map(c => c.id),
-      accountIds: _.uniq(items.map(t => t.accountId)),
+      ids: items.map((c) => c.id),
+      accountIds: [...new Set(items.map((t) => t.accountId))],
     };
     event.dataTransfer.effectAllowed = 'move';
-    event.dataTransfer.dragEffect = 'move';
+    event.dataTransfer.dropEffect = 'move';
 
     const canvas = CanvasUtils.canvasForDragging('contacts', data.ids.length);
     event.dataTransfer.setDragImage(canvas, 10, 10);
@@ -138,7 +137,7 @@ class ContactListWithData extends React.Component<ContactListProps, ContactListS
     this._dragCounter = 0;
     this.setState({ draggingFiles: false });
 
-    const vcfFiles = Array.from(e.dataTransfer.files).filter(f => {
+    const vcfFiles = Array.from(e.dataTransfer.files).filter((f) => {
       const lower = f.name.toLowerCase();
       return lower.endsWith('.vcf') || lower.endsWith('.vcard');
     });
@@ -158,7 +157,7 @@ class ContactListWithData extends React.Component<ContactListProps, ContactListS
     }
 
     importContactsFromPaths(
-      vcfFiles.map(f => webUtils.getPathForFile(f)),
+      vcfFiles.map((f) => webUtils.getPathForFile(f)),
       perspective.accountId
     );
   };
@@ -236,7 +235,7 @@ const ContactListSearchWithData = (props: ContactListSearchWithDataProps) => {
         placeholder={`${localized('Search')} ${
           props.perspective.type === 'unified' ? 'All Contacts' : props.perspective.label
         }`}
-        onChange={e => props.setSearch(e.currentTarget.value)}
+        onChange={(e) => props.setSearch(e.currentTarget.value)}
       />
       {props.search.length > 0 && (
         <RetinaImg
@@ -255,7 +254,7 @@ export const ContactListSearch = ListensToFluxStore(ContactListSearchWithData, {
   getStateFromStores: () => ({
     perspective: Store.perspective(),
     search: Store.search(),
-    setSearch: s => Store.setSearch(s),
+    setSearch: (s) => Store.setSearch(s),
   }),
 });
 ContactListSearch.displayName = 'ContactListSearch';

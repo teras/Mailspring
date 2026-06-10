@@ -12,10 +12,10 @@ export const TaskFactory = {
     threads: Thread[],
     callback: (accountThreads: Thread[], accountId: string) => Task | Task[]
   ) {
-    const byAccount = {};
-    threads.forEach(thread => {
+    const byAccount: { [accountId: string]: { accountThreads: Thread[]; accountId: string } } = {};
+    threads.forEach((thread) => {
       if (!(thread instanceof Thread)) {
-        throw new Error('tasksForApplyingCategories: `threads` must be instances of Thread');
+        throw new Error('tasksForThreadsByAccountId: `threads` must be instances of Thread');
       }
       const { accountId } = thread;
       if (!byAccount[accountId]) {
@@ -24,13 +24,13 @@ export const TaskFactory = {
       byAccount[accountId].accountThreads.push(thread);
     });
 
-    const tasks = [];
+    const tasks: Task[] = [];
     Object.values(byAccount).forEach(({ accountThreads, accountId }) => {
       const taskOrTasks = callback(accountThreads, accountId);
       if (taskOrTasks && taskOrTasks instanceof Array) {
         tasks.push(...taskOrTasks);
       } else if (taskOrTasks) {
-        tasks.push(taskOrTasks);
+        tasks.push(taskOrTasks as Task);
       }
     });
     return tasks;
@@ -94,7 +94,7 @@ export const TaskFactory = {
     source: string;
     canBeUndone?: boolean;
   }) {
-    const unread = threads.every(t => t.unread === false);
+    const unread = threads.every((t) => t.unread === false);
     return new ChangeUnreadTask({ threads, unread, source, canBeUndone });
   },
 
@@ -113,7 +113,7 @@ export const TaskFactory = {
   },
 
   taskForInvertingStarred({ threads, source }: { threads: Thread[]; source: string }) {
-    const starred = threads.every(t => t.starred === false);
+    const starred = threads.every((t) => t.starred === false);
     return new ChangeStarredTask({ threads, starred, source });
   },
 };

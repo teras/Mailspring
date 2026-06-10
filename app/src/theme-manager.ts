@@ -1,12 +1,26 @@
 import { ipcRenderer } from 'electron';
-import { Emitter } from 'event-kit';
+import { Emitter, Disposable } from 'event-kit';
 import path from 'path';
-import fs from 'fs-plus';
+import fs from 'fs';
 import { localized } from './intl';
-import LessCompileCache from './less-compile-cache';
+import LessCompileCache from './compile-cache-less';
 import PackageManager from './package-manager';
 
 const CONFIG_THEME_KEY = 'core.theme';
+const CONFIG_USE_SYSTEM_ACCENT_KEY = 'core.appearance.useSystemAccent';
+const CONFIG_LIGHT_THEME_KEY = 'core.appearance.lightThemeName';
+const CONFIG_DARK_THEME_KEY = 'core.appearance.darkThemeName';
+const SYSTEM_ACCENT_SOURCE_PATH = 'system-accent:dynamic';
+export const AUTOMATIC_THEME_NAME = 'ui-automatic';
+export const LIGHT_THEME_NAME = 'ui-light';
+export const DARK_THEME_NAME = 'ui-dark';
+
+function buildSystemAccentCSS(color: string): string {
+  return `:root {
+  --system-accent: ${color};
+  --system-accent-dark: color-mix(in srgb, ${color}, black 10%);
+}`;
+}
 
 /**
  * The ThemeManager observes the user's theme selection and ensures that
@@ -34,11 +48,21 @@ export default class ThemeManager {
 
   private themeValueCache: { emailTextColor?: string } = {};
 
+  private _systemAccentColor: string | null = null;
+  private _systemAccentDisposable: Disposable | null = null;
+  private _systemDarkMode = false;
+
   constructor({ packageManager, resourcePath, configDirPath, safeMode }) {
     this.packageManager = packageManager;
     this.resourcePath = resourcePath;
     this.configDirPath = configDirPath;
     this.safeMode = safeMode;
+
+    // Prime the system dark-mode state synchronously so the initial theme
+    // resolution in activateThemePackage() picks the right light/dark variant
+    // without a flash of the wrong theme.
+    this._systemDarkMode = !!ipcRenderer.sendSync('get-system-dark-mode-sync');
+
     this.lessCache = new LessCompileCache({
       configDirPath: this.configDirPath,
       resourcePath: this.resourcePath,
@@ -46,6 +70,45 @@ export default class ThemeManager {
     });
 
     AppEnv.config.onDidChange(CONFIG_THEME_KEY, () => this.updateThemePackageAndRecomputeLESS());
+    AppEnv.config.onDidChange(CONFIG_USE_SYSTEM_ACCENT_KEY, () => this.applySystemAccent());
+    AppEnv.config.onDidChange(CONFIG_LIGHT_THEME_KEY, () => {
+      if (this.isAutomaticModeSelected()) this.updateThemePackageAndRecomputeLESS();
+    });
+    AppEnv.config.onDidChange(CONFIG_DARK_THEME_KEY, () => {
+      if (this.isAutomaticModeSelected()) this.updateThemePackageAndRecomputeLESS();
+    });
+
+    ipcRenderer.on('system-accent-color-changed', (_event, color: string | null) => {
+      this._systemAccentColor = color;
+      this.applySystemAccent();
+    });
+    ipcRenderer.invoke('get-system-accent-color').then((color: string | null) => {
+      this._systemAccentColor = color;
+      this.applySystemAccent();
+    });
+
+    ipcRenderer.on('system-dark-mode-changed', (_event, darkMode: boolean) => {
+      this._systemDarkMode = !!darkMode;
+      if (this.isAutomaticModeSelected()) {
+        this.updateThemePackageAndRecomputeLESS();
+      }
+    });
+  }
+
+  // New users (no `core.theme` saved in config) default to automatic mode so
+  // the app follows their OS appearance. Existing users keep whatever they set.
+  // In spec/safe mode we fall back to the concrete light theme so headless
+  // test environments don't follow the auto-resolution path (which depends on
+  // packages like ui-dark/ui-automatic not being present in the spec fixtures).
+  private getConfiguredThemeName(): string {
+    const configured = AppEnv.config.get(CONFIG_THEME_KEY);
+    if (configured) return configured;
+    if (this.safeMode || AppEnv.inSpecMode()) return LIGHT_THEME_NAME;
+    return AUTOMATIC_THEME_NAME;
+  }
+
+  private isAutomaticModeSelected() {
+    return !this.baseThemeOnly && this.getConfiguredThemeName() === AUTOMATIC_THEME_NAME;
   }
 
   // Called from the onboarding window to disable any custom theme
@@ -71,10 +134,11 @@ export default class ThemeManager {
 
   reloadCoreStyles() {
     console.log('Reloading /static and /internal_packages to incorporate LESS changes');
-    const reloadStylesIn = folder => {
-      fs.listTreeSync(folder)
-        .filter(stylePath => stylePath.endsWith('.less'))
-        .forEach(stylePath => {
+    const reloadStylesIn = (folder: string) => {
+      (fs.readdirSync(folder, { recursive: true }) as string[])
+        .map((f) => path.join(folder, f))
+        .filter((stylePath) => stylePath.endsWith('.less'))
+        .forEach((stylePath) => {
           const styleEl = document.head.querySelector(`[source-path="${stylePath}"]`);
           if (styleEl) styleEl.textContent = this.cssContentsOfStylesheet(stylePath);
         });
@@ -100,14 +164,44 @@ export default class ThemeManager {
     if (this.baseThemeOnly) {
       return this.getBaseTheme();
     }
+    const configured = this.getConfiguredThemeName();
+    if (configured === AUTOMATIC_THEME_NAME) {
+      const resolvedName = this._systemDarkMode
+        ? this.getConfiguredDarkThemeName()
+        : this.getConfiguredLightThemeName();
+      return this.packageManager.getPackageNamed(resolvedName) || this.getBaseTheme();
+    }
+    return this.packageManager.getPackageNamed(configured) || this.getBaseTheme();
+  }
+
+  getConfiguredLightThemeName(): string {
+    return AppEnv.config.get(CONFIG_LIGHT_THEME_KEY) || LIGHT_THEME_NAME;
+  }
+
+  getConfiguredDarkThemeName(): string {
+    return AppEnv.config.get(CONFIG_DARK_THEME_KEY) || DARK_THEME_NAME;
+  }
+
+  setLightTheme(packageName: string) {
+    AppEnv.config.set(CONFIG_LIGHT_THEME_KEY, packageName);
+  }
+
+  setDarkTheme(packageName: string) {
+    AppEnv.config.set(CONFIG_DARK_THEME_KEY, packageName);
+  }
+
+  // Returns the theme the user selected, which may be "ui-automatic" (unresolved).
+  getActiveThemeSetting() {
+    if (this.baseThemeOnly) {
+      return this.getBaseTheme();
+    }
     return (
-      this.packageManager.getPackageNamed(AppEnv.config.get(CONFIG_THEME_KEY)) ||
-      this.getBaseTheme()
+      this.packageManager.getPackageNamed(this.getConfiguredThemeName()) || this.getBaseTheme()
     );
   }
 
   getAvailableThemes() {
-    return this.packageManager.getAvailablePackages().filter(p => p.isTheme());
+    return this.packageManager.getAvailablePackages().filter((p) => p.isTheme());
   }
 
   // Set the active theme.
@@ -154,6 +248,25 @@ export default class ThemeManager {
     return paths;
   }
 
+  // Writes a <style> tag setting the --system-accent CSS custom properties
+  // when the user opted into system accent and the OS provided a color.
+  // Otherwise removes the tag so per-theme fallbacks in LESS take over.
+  applySystemAccent() {
+    const enabled = AppEnv.config.get(CONFIG_USE_SYSTEM_ACCENT_KEY) !== false;
+    const color = enabled ? this._systemAccentColor : null;
+
+    if (this._systemAccentDisposable) {
+      this._systemAccentDisposable.dispose();
+      this._systemAccentDisposable = null;
+    }
+    if (color) {
+      this._systemAccentDisposable = AppEnv.styles.addStyleSheet(buildSystemAccentCSS(color), {
+        sourcePath: SYSTEM_ACCENT_SOURCE_PATH,
+        priority: 2,
+      });
+    }
+  }
+
   // Section: Private
   // ------
 
@@ -176,9 +289,14 @@ export default class ThemeManager {
 
   resolveStylesheetPath(stylesheetPath) {
     if (path.extname(stylesheetPath).length > 0) {
-      return fs.resolveOnLoadPath(stylesheetPath);
+      const p = path.resolve(__dirname, stylesheetPath);
+      return fs.existsSync(p) ? p : null;
     }
-    return fs.resolveOnLoadPath(stylesheetPath, ['css', 'less']);
+    for (const ext of ['css', 'less']) {
+      const p = path.resolve(__dirname, `${stylesheetPath}.${ext}`);
+      if (fs.existsSync(p)) return p;
+    }
+    return null;
   }
 
   cssContentsOfStylesheet(stylesheetPath) {

@@ -1,4 +1,4 @@
-import fs from 'fs-plus';
+import fs from 'fs';
 import path from 'path';
 import mousetrap from 'mousetrap';
 import { ipcRenderer } from 'electron';
@@ -12,16 +12,17 @@ By default, Mousetrap stops all hotkeys within text inputs. Override this to
 more specifically block only hotkeys that have no modifier keys (things like
 Gmail's "x", while allowing standard hotkeys.)
 */
-mousetrap.prototype.stopCallback = (e, element, combo) => {
+mousetrap.prototype.stopCallback = (e: KeyboardEvent, element: HTMLElement, combo: string) => {
   if (suspended) {
     return true;
   }
 
   // Slate handles undo/redo itself in slate-react's `after` plugin but doesn't stop
   // propagation. Because of this, we need to make sure we do not fire core:undo or core:redo.
+  const target = e.target as HTMLElement;
   const withinSlateEditor =
-    e.target.isContentEditable &&
-    (e.target.hasAttribute('data-slate-editor') || e.target.closest('[data-slate-editor]'));
+    target.isContentEditable &&
+    (target.hasAttribute('data-slate-editor') || target.closest('[data-slate-editor]'));
   if (withinSlateEditor && /(mod|command|ctrl)\+(z|y)/.test(combo)) {
     return true;
   }
@@ -31,15 +32,37 @@ mousetrap.prototype.stopCallback = (e, element, combo) => {
     return true;
   }
 
+  if ((e as any).isPropagationStopped()) {
+    return true;
+  }
+  // Also treat anything inside an open composer as text input so that focus
+  // landing on composer chrome (footer, attachment area, between recipient
+  // chips, etc.) doesn't let plain keys fall through to global shortcuts.
   const withinTextInput =
     element.tagName === 'INPUT' ||
     element.tagName === 'SELECT' ||
     element.tagName === 'TEXTAREA' ||
-    element.isContentEditable;
+    element.isContentEditable ||
+    !!element.closest('.composer-outer-wrap');
   if (withinTextInput) {
     const isPlainKey = !/(mod|command|ctrl)/.test(combo);
     const isReservedTextEditingShortcut = /(mod|command|ctrl)\+(a|x|c|v|left|right)/.test(combo);
-    return isPlainKey || isReservedTextEditingShortcut;
+    if (isPlainKey || isReservedTextEditingShortcut) {
+      return true;
+    }
+  }
+
+  // Stop mousetrap from firing global commands when focus is within a tree widget
+  // (e.g. the mailbox outline view), so the tree's own arrow-key navigation works.
+  // withinTextInput runs first so that typing in an inline composer inside the tree
+  // is handled correctly before we apply tree-specific logic.
+  const withinTree =
+    !!element.closest('[role="tree"]') ||
+    !!element.closest('[data-usesarrowkeys]:has(:focus-visible)');
+  if (withinTree) {
+    const isPlainKey = !/(mod|command|ctrl)/.test(combo);
+    const isArrowKey = /(left|right|up|down)/.test(combo);
+    return isPlainKey && isArrowKey;
   }
   return false;
 };
@@ -50,7 +73,7 @@ class KeymapFile {
   _path: string;
   _manager: KeymapManager;
 
-  constructor(manager, filePath) {
+  constructor(manager: KeymapManager, filePath: string) {
     this._manager = manager;
     this._path = filePath;
   }
@@ -68,7 +91,7 @@ class KeymapFile {
     }
 
     this._bindings = {};
-    Object.keys(keymaps).forEach(command => {
+    Object.keys(keymaps).forEach((command) => {
       let keystrokesArray = keymaps[command];
       if (!(keystrokesArray instanceof Array)) {
         keystrokesArray = [keystrokesArray];
@@ -200,18 +223,18 @@ export default class KeymapManager {
     }
   };
 
-  loadKeymap(filePath) {
+  loadKeymap(filePath: string) {
     const file = new KeymapFile(this, filePath);
     this._files.push(file);
     file.load();
 
     return new Disposable(() => {
-      this._files = this._files.filter(f => f !== file);
+      this._files = this._files.filter((f) => f !== file);
       this.keymapCacheInvalidated();
     });
   }
 
-  ensureKeystrokesRegistered(keystrokes) {
+  ensureKeystrokesRegistered(keystrokes: string) {
     if (this._registered[keystrokes]) {
       return;
     }
@@ -261,7 +284,7 @@ export default class KeymapManager {
     this._emitter.emit('on-did-reload-keymap');
   }
 
-  onDidReloadKeymap = callback => {
+  onDidReloadKeymap = (callback: () => void) => {
     return this._emitter.on('on-did-reload-keymap', callback);
   };
 
@@ -269,7 +292,7 @@ export default class KeymapManager {
     return this._bindingsCache;
   }
 
-  getBindingsForCommand(command) {
+  getBindingsForCommand(command: string) {
     return this._bindingsCache[command] || [];
   }
 }

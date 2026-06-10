@@ -1,7 +1,6 @@
 import _ from 'underscore';
 import React, { Component, CSSProperties } from 'react';
 import { findDOMNode } from 'react-dom';
-import PropTypes from 'prop-types';
 
 import * as Actions from '../flux/actions';
 import compose from './decorators/compose';
@@ -54,22 +53,6 @@ type FixedPopoverState = {
 class FixedPopover extends Component<FixedPopoverProps, FixedPopoverState> {
   static Directions = Direction;
 
-  static propTypes = {
-    children: PropTypes.element,
-    direction: PropTypes.string,
-    fallbackDirection: PropTypes.string,
-    closeOnAppBlur: PropTypes.bool,
-    originRect: PropTypes.shape({
-      bottom: PropTypes.number,
-      top: PropTypes.number,
-      right: PropTypes.number,
-      left: PropTypes.number,
-      height: PropTypes.number,
-      width: PropTypes.number,
-    }),
-    focusElementWithTabIndex: PropTypes.func,
-  };
-
   static defaultProps = {
     closeOnAppBlur: true,
   };
@@ -78,7 +61,7 @@ class FixedPopover extends Component<FixedPopoverProps, FixedPopoverState> {
   updateCount = 0;
   fallback: Direction;
 
-  constructor(props) {
+  constructor(props: FixedPopoverProps) {
     super(props);
     this.fallback = this.props.fallbackDirection;
     this.state = {
@@ -105,7 +88,7 @@ class FixedPopover extends Component<FixedPopoverProps, FixedPopoverState> {
     _.defer(this.onPopoverRendered);
   }
 
-  shouldComponentUpdate(nextProps, nextState) {
+  shouldComponentUpdate(nextProps: FixedPopoverProps, nextState: FixedPopoverState) {
     return !_.isEqual(this.state, nextState) || !_.isEqual(this.props, nextProps);
   }
 
@@ -154,17 +137,17 @@ class FixedPopover extends Component<FixedPopoverProps, FixedPopoverState> {
     }
   };
 
-  onBlur = event => {
+  onBlur = (event: React.FocusEvent<HTMLDivElement>) => {
     const target = event.nativeEvent.relatedTarget;
     if (!this.props.closeOnAppBlur && target === null) {
       return;
     }
-    if (!target || !findDOMNode(this).contains(target)) {
+    if (!target || !findDOMNode(this).contains(target as Node)) {
       Actions.closePopover();
     }
   };
 
-  onKeyDown = event => {
+  onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Escape') {
       Actions.closePopover();
     }
@@ -205,7 +188,7 @@ class FixedPopover extends Component<FixedPopoverProps, FixedPopoverState> {
     offsetPadding = OFFSET_PADDING,
   }) => {
     const { overflows, overflowValues } = this.computeOverflows({ currentRect, windowDimensions });
-    const overflowCount = Object.keys(_.pick(overflows, val => val === true)).length;
+    const overflowCount = Object.keys(_.pick(overflows, (val) => val === true)).length;
 
     if (overflowCount > 0) {
       if (fallback) {
@@ -370,7 +353,4 @@ class FixedPopover extends Component<FixedPopoverProps, FixedPopoverState> {
   }
 }
 
-export default compose(
-  FixedPopover,
-  AutoFocuses
-);
+export default compose(FixedPopover, AutoFocuses);

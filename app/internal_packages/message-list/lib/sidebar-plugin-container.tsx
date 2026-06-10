@@ -1,5 +1,5 @@
 import React from 'react';
-import { localized, PropTypes, FocusedContactsStore, Contact } from 'mailspring-exports';
+import { localized, FocusedContactsStore, Contact } from 'mailspring-exports';
 import { InjectedComponentSet } from 'mailspring-component-kit';
 
 class FocusedContactStorePropsContainer extends React.Component<
@@ -49,7 +49,7 @@ class FocusedContactStorePropsContainer extends React.Component<
   }
 }
 
-const SidebarPluginContainerInner = props => {
+const SidebarPluginContainerInner = (props: { focusedContact?: Contact }) => {
   return (
     <InjectedComponentSet
       className="sidebar-contact-card"
@@ -61,10 +61,6 @@ const SidebarPluginContainerInner = props => {
       }}
     />
   );
-};
-
-SidebarPluginContainerInner.propTypes = {
-  focusedContact: PropTypes.object,
 };
 
 export class SidebarPluginContainer extends React.Component {

@@ -1,11 +1,8 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import { shell } from 'electron';
 import { localized } from 'mailspring-exports';
-import * as Actions from '../flux/actions';
 import { RetinaImg } from './retina-img';
-import BillingModal from './billing-modal';
-import { IdentityStore } from '../flux/stores/identity-store';
+import { OpenIdentityPageButton } from 'mailspring-component-kit';
 
 export default class FeatureUsedUpModal extends React.Component<{
   modalClass: string;
@@ -13,34 +10,8 @@ export default class FeatureUsedUpModal extends React.Component<{
   rechargeText: string;
   headerText: string;
 }> {
-  static propTypes = {
-    modalClass: PropTypes.string.isRequired,
-    headerText: PropTypes.string.isRequired,
-    rechargeText: PropTypes.string.isRequired,
-    iconUrl: PropTypes.string.isRequired,
-  };
-
-  private _fetchPromise: Promise<string>;
-
-  componentDidMount() {
-    this._fetchPromise = IdentityStore.fetchSingleSignOnURL('/payment?embedded=true');
-  }
-
   onGoToFeatures = () => {
     shell.openExternal('https://getmailspring.com/pro');
-  };
-
-  onUpgrade = async e => {
-    // Retrieve the SSO URL for the billing modal or wait for it to be retrieved
-    // before opening the modal.
-    const upgradeUrl = await this._fetchPromise;
-
-    e.stopPropagation();
-    Actions.openModal({
-      component: <BillingModal source="feature-limit" upgradeUrl={upgradeUrl} />,
-      width: BillingModal.IntrinsicWidth,
-      height: BillingModal.IntrinsicHeight,
-    });
   };
 
   render() {
@@ -73,9 +44,13 @@ export default class FeatureUsedUpModal extends React.Component<{
             </ul>
           </div>
 
-          <button className="btn btn-large btn-cta btn-emphasis" onClick={this.onUpgrade}>
-            {localized('Upgrade')}
-          </button>
+          <OpenIdentityPageButton
+            label={localized('Upgrade')}
+            path="/payment"
+            source="Used Up Modal"
+            campaign={this.props.modalClass}
+            isCTA={true}
+          />
         </div>
       </div>
     );

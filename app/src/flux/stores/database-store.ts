@@ -48,7 +48,7 @@ function handleUnrecoverableDatabaseError(
   });
 }
 
-async function openDatabase(dbPath) {
+async function openDatabase(dbPath: string) {
   try {
     const db = new Sqlite3(dbPath, { readonly: true, timeout: 10000 }) as Sqlite3.Database;
 
@@ -72,7 +72,7 @@ async function openDatabase(dbPath) {
   }
 }
 
-function databasePath(configDirPath, specMode = false) {
+function databasePath(configDirPath: string, specMode = false) {
   let dbPath = path.join(configDirPath, 'edgehill.db');
   if (specMode) {
     dbPath = path.join(configDirPath, 'edgehill.test.db');
@@ -155,7 +155,7 @@ class DatabaseStore extends MailspringStore {
     this._emitter.emit('ready');
   }
 
-  _prettyConsoleLog(qa) {
+  _prettyConsoleLog(qa: string) {
     const darkTheme =
         window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches,
       primaryColor = darkTheme ? 'white' : 'black',
@@ -194,14 +194,14 @@ class DatabaseStore extends MailspringStore {
       }
     }
 
-    q = q.split('|||');
+    const parts = q.split('|||');
     const colors = [];
     const msg = [];
-    for (let i = 0; i < q.length; i++) {
+    for (let i = 0; i < parts.length; i++) {
       if (i % 2 === 0) {
-        colors.push(q[i]);
+        colors.push(parts[i]);
       } else {
-        msg.push(q[i]);
+        msg.push(parts[i]);
       }
     }
 
@@ -307,11 +307,13 @@ class DatabaseStore extends MailspringStore {
         if (msec > 100) {
           const msgPrefix = msec > 100 ? 'DatabaseStore: query took more than 100ms - ' : '';
           if (query.startsWith(`SELECT `) && DEBUG_QUERY_PLANS) {
-            const plan = this._db.prepare(`EXPLAIN QUERY PLAN ${query}`).all(values);
-            const planString = `${plan.map(row => row.detail).join('\n')} for ${query}`;
+            const plan = this._db
+              .prepare<any, { detail: string }>(`EXPLAIN QUERY PLAN ${query}`)
+              .all(values);
+            const planString = `${plan.map((row) => row.detail).join('\n')} for ${query}`;
             const quiet = ['ThreadCounts', 'ThreadSearch', 'ContactSearch', 'COVERING INDEX'];
 
-            if (!quiet.find(str => planString.includes(str))) {
+            if (!quiet.find((str) => planString.includes(str))) {
               this._prettyConsoleLog(`${msgPrefix}${msec}msec: ${planString}`);
             }
           } else {
@@ -348,13 +350,14 @@ class DatabaseStore extends MailspringStore {
     if (!this._agent) {
       this._agentOpenQueries = {};
       this._agent = childProcess.fork(AGENT_PATH, [], { silent: true });
-      if (this._agent.stdout) this._agent.stdout.on('data', data => console.log(data.toString()));
-      if (this._agent.stderr) this._agent.stderr.on('data', data => console.error(data.toString()));
-      this._agent.on('close', code => {
+      if (this._agent.stdout) this._agent.stdout.on('data', (data) => console.log(data.toString()));
+      if (this._agent.stderr)
+        this._agent.stderr.on('data', (data) => console.error(data.toString()));
+      this._agent.on('close', (code) => {
         debug(`Query Agent: exited with code ${code}`);
         this._agent = null;
       });
-      this._agent.on('error', err => {
+      this._agent.on('error', (err) => {
         console.error(`Query Agent: failed to start or receive message: ${err.toString()}`);
         if (this._agent) this._agent.kill('SIGTERM');
         this._agent = null;
@@ -369,7 +372,7 @@ class DatabaseStore extends MailspringStore {
     }
 
     // eslint-disable-next-line no-async-promise-executor
-    return new Promise<AgentResponse>(async resolve => {
+    return new Promise<AgentResponse>(async (resolve) => {
       if (!this._agent) {
         // Something bad has happened and we were immediately unable to spawn the query helper.
         // Fall back to running the query in-process.
@@ -402,7 +405,7 @@ class DatabaseStore extends MailspringStore {
   //
   // Returns a {Query}
   //
-  find<T extends Model>(klass: typeof Model, id) {
+  find<T extends Model>(klass: typeof Model, id: string) {
     if (!klass) {
       throw new Error(`DatabaseStore::find - You must provide a class`);
     }
@@ -499,7 +502,7 @@ class DatabaseStore extends MailspringStore {
           modelsByString[model.id] = model;
         }
         return Promise.resolve(
-          arr.map(item => (item instanceof klass ? item : modelsByString[item as any]))
+          arr.map((item) => (item instanceof klass ? item : modelsByString[item as any]))
         ) as any;
       });
   }
@@ -515,7 +518,7 @@ class DatabaseStore extends MailspringStore {
   run<U>(modelQuery: Query<any>, options: { format: false }): Promise<U>;
 
   run(modelQuery: Query<any>, options = { format: true }): Promise<any> {
-    return this._query(modelQuery.sql(), [], modelQuery._background).then(result => {
+    return this._query(modelQuery.sql(), [], modelQuery._background).then((result) => {
       let transformed: any = modelQuery.inflateResult(result);
       if (options.format !== false) {
         transformed = modelQuery.formatResult(transformed);

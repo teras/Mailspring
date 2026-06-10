@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  PropTypes,
   MailspringAPIRequest,
   APIError,
   localized,
@@ -33,34 +32,23 @@ export default class MetadataComposerToggleButton extends React.Component<
 > {
   static displayName = 'MetadataComposerToggleButton';
 
-  static propTypes = {
-    iconUrl: PropTypes.string,
-    iconName: PropTypes.string,
-    pluginId: PropTypes.string.isRequired,
-    pluginName: PropTypes.string.isRequired,
-    metadataEnabledValue: PropTypes.object.isRequired,
-    errorMessage: PropTypes.func.isRequired,
-
-    draft: PropTypes.object.isRequired,
-    session: PropTypes.object.isRequired,
-  };
-
   constructor(props) {
     super(props);
 
+    const wantsDefault = this._isEnabledByDefault() && !this._isEnabled();
     this.state = {
       pending: false,
-      onByDefaultButUsedUp: false,
+      onByDefaultButUsedUp: wantsDefault && !FeatureUsageStore.isUsable(props.pluginId),
     };
   }
 
-  componentWillMount() {
-    if (this._isEnabledByDefault() && !this._isEnabled()) {
-      if (FeatureUsageStore.isUsable(this.props.pluginId)) {
-        this._setEnabled(true);
-      } else {
-        this.setState({ onByDefaultButUsedUp: true });
-      }
+  componentDidMount() {
+    if (
+      this._isEnabledByDefault() &&
+      !this._isEnabled() &&
+      FeatureUsageStore.isUsable(this.props.pluginId)
+    ) {
+      this._setEnabled(true);
     }
   }
 
@@ -165,7 +153,11 @@ export default class MetadataComposerToggleButton extends React.Component<
       >
         {this.state.onByDefaultButUsedUp ? (
           <div style={{ position: 'absolute', zIndex: 2, transform: 'translate(14px, -4px)' }}>
-            <RetinaImg name="tiny-warning-sign.png" mode={RetinaImg.Mode.ContentPreserve} aria-hidden="true" />
+            <RetinaImg
+              name="tiny-warning-sign.png"
+              mode={RetinaImg.Mode.ContentPreserve}
+              aria-hidden="true"
+            />
           </div>
         ) : null}
         <RetinaImg {...attrs} mode={RetinaImg.Mode.ContentIsMask} aria-hidden="true" />

@@ -1,5 +1,5 @@
 import React from 'react';
-import { CSSTransitionGroup } from 'react-transition-group';
+import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import { localized, WorkspaceStore } from 'mailspring-exports';
 
 import Sheet from './sheet';
@@ -32,7 +32,7 @@ export default class SheetContainer extends React.Component<
     this.unsubscribe = WorkspaceStore.listen(this._onStoreChange);
   }
 
-  componentDidCatch(error, info) {
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
     // We don't currently display the error, but we need to call setState within
     // this function or the component does not re-render after being reset.
     this.setState({ error: error.stack });
@@ -52,7 +52,7 @@ export default class SheetContainer extends React.Component<
     };
   }
 
-  _onColumnSizeChanged = sheet => {
+  _onColumnSizeChanged = (sheet: Sheet) => {
     const toolbar = this._toolbarComponents[sheet.props.depth];
     if (toolbar) {
       toolbar.recomputeLayout();
@@ -93,7 +93,7 @@ export default class SheetContainer extends React.Component<
     const components = this.state.stack.map((sheet, index) => (
       <Toolbar
         data={sheet}
-        ref={cm => {
+        ref={(cm) => {
           this._toolbarComponents[index] = cm;
         }}
         key={`${index}:${sheet.id}:toolbar`}
@@ -109,14 +109,14 @@ export default class SheetContainer extends React.Component<
         style={{ order: 0, zIndex: 3 }}
         onClick={this._onToolbarDoubleClick}
       >
-        {components[0]}
-        <CSSTransitionGroup
-          transitionLeaveTimeout={125}
-          transitionEnterTimeout={125}
-          transitionName="opacity-125ms"
-        >
-          {components.slice(1)}
-        </CSSTransitionGroup>
+        <div inert={this.state.stack.length > 1 ? '' : undefined}>{components[0]}</div>
+        <TransitionGroup component={null}>
+          {components.slice(1).map((comp) => (
+            <CSSTransition key={comp.key} classNames="opacity-125ms" timeout={125}>
+              {comp}
+            </CSSTransition>
+          ))}
+        </TransitionGroup>
       </header>
     );
   }
@@ -158,14 +158,14 @@ export default class SheetContainer extends React.Component<
           style={{ order: 2, flex: 1, position: 'relative', zIndex: 1 }}
           aria-label={localized('Email workspace')}
         >
-          {sheetComponents[0]}
-          <CSSTransitionGroup
-            transitionLeaveTimeout={125}
-            transitionEnterTimeout={125}
-            transitionName="sheet-stack"
-          >
-            {sheetComponents.slice(1)}
-          </CSSTransitionGroup>
+          <div inert={totalSheets > 1 ? '' : undefined}>{sheetComponents[0]}</div>
+          <TransitionGroup component={null}>
+            {sheetComponents.slice(1).map((comp) => (
+              <CSSTransition key={comp.key} classNames="sheet-stack" timeout={125}>
+                {comp}
+              </CSSTransition>
+            ))}
+          </TransitionGroup>
         </main>
 
         <footer style={{ order: 3, zIndex: 4 }}>

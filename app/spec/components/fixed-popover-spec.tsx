@@ -2,13 +2,15 @@ import React from 'react';
 import FixedPopover from '../../src/components/fixed-popover';
 import MTestUtils from '../mailspring-test-utils';
 
-const { Directions: { Up, Down, Left, Right } } = FixedPopover;
+const {
+  Directions: { Up, Down, Left, Right },
+} = FixedPopover;
 
-const makePopover = (props = {}) => {
+const makePopover = (props: any = {}) => {
   const originRect = props.originRect ? props.originRect : {};
   const popover = MTestUtils.renderIntoDocument(
     <FixedPopover {...props} originRect={originRect} />
-  );
+  ) as any;
   if (props.initialState) {
     popover.setState(props.initialState);
   }
@@ -26,7 +28,7 @@ describe('FixedPopover', function fixedPopover() {
       };
     });
 
-    const compute = (direction, { fallback, top, left, bottom, right }) => {
+    const compute = (direction, { fallback = undefined, top, left, bottom, right }) => {
       return this.popover.computeAdjustedOffsetAndDirection({
         direction,
         windowDimensions: this.windowDimensions,
@@ -88,7 +90,7 @@ describe('FixedPopover', function fixedPopover() {
         expect(direction).toEqual(Right);
       });
 
-      [Up, Down, Left, Right].forEach(dir => {
+      [Up, Down, Left, Right].forEach((dir) => {
         if (dir === Up || dir === Down) {
           it('moves left if its overflowing on the right', () => {
             const { offset, direction } = compute(dir, {

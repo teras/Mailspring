@@ -13,6 +13,22 @@ import {
 // Cache of calendar colors synced from CalDAV servers
 const calendarColorCache: Map<string, string> = new Map();
 
+// Cached theme text color - call invalidateThemeTextColorCache() on theme change
+let _themeTextColor: { r: number; g: number; b: number } | null | undefined = undefined;
+
+export function invalidateThemeTextColorCache() {
+  _themeTextColor = undefined;
+}
+
+function getThemeTextColor(): { r: number; g: number; b: number } | null {
+  if (_themeTextColor === undefined) {
+    const container = document.querySelector('.mailspring-calendar');
+    const color = container ? getComputedStyle(container).color : '';
+    _themeTextColor = (color ? parseColor(color) : null) ?? null;
+  }
+  return _themeTextColor;
+}
+
 // Version counter that increments when colors are updated - used to trigger re-renders
 let colorCacheVersion = 0;
 
@@ -154,9 +170,7 @@ export function calcColor(calendarId: string) {
  * Get event styling colors for Apple Calendar-style appearance.
  * Returns colors for the background (light), left band (solid), and text.
  */
-export function calcEventColors(
-  calendarId: string
-): {
+export function calcEventColors(calendarId: string): {
   background: string;
   band: string;
   text: string;
@@ -175,13 +189,19 @@ export function calcEventColors(
 
   const { r, g, b } = parsed;
 
+  const textParsed = getThemeTextColor();
+  const mix = 0.4; // 40% calendar color, 60% theme text color
+  const tr = textParsed ? Math.round(r * mix + textParsed.r * (1 - mix)) : Math.round(r * 0.7);
+  const tg = textParsed ? Math.round(g * mix + textParsed.g * (1 - mix)) : Math.round(g * 0.7);
+  const tb = textParsed ? Math.round(b * mix + textParsed.b * (1 - mix)) : Math.round(b * 0.7);
+
   return {
     // Light pastel background (15% opacity)
     background: `rgba(${r}, ${g}, ${b}, 0.15)`,
     // Solid color for left band
     band: `rgb(${r}, ${g}, ${b})`,
-    // Darker, more saturated color for text
-    text: `rgb(${Math.round(r * 0.7)}, ${Math.round(g * 0.7)}, ${Math.round(b * 0.7)})`,
+    // Calendar color mixed with theme text color for readability
+    text: `rgb(${tr}, ${tg}, ${tb})`,
   };
 }
 
@@ -290,7 +310,7 @@ export function getEditableCalendars(
   calendars: Calendar[],
   disabledCalendars: string[]
 ): Calendar[] {
-  return calendars.filter(c => !c.readOnly && !disabledCalendars.includes(c.id));
+  return calendars.filter((c) => !c.readOnly && !disabledCalendars.includes(c.id));
 }
 
 /**

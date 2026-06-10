@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import PropTypes from 'prop-types';
+import { Moment } from 'moment';
 import { localized, DateUtils, Actions, Thread } from 'mailspring-exports';
 import { RetinaImg, DateInput } from 'mailspring-component-kit';
 import * as SnoozeActions from './snooze-actions';
@@ -35,11 +35,6 @@ class SnoozePopover extends Component<{
 }> {
   static displayName = 'SnoozePopover';
 
-  static propTypes = {
-    threads: PropTypes.array.isRequired,
-    swipeCallback: PropTypes.func,
-  };
-
   static defaultProps = {
     swipeCallback: () => {},
   };
@@ -50,7 +45,7 @@ class SnoozePopover extends Component<{
     this.props.swipeCallback(this.didSnooze);
   }
 
-  onSnooze(date, itemLabel) {
+  onSnooze(date: Moment, itemLabel: string) {
     const utcDate = date.utc();
     const formatted = DateUtils.format(utcDate);
     SnoozeActions.snoozeThreads(this.props.threads, formatted, itemLabel);
@@ -62,7 +57,7 @@ class SnoozePopover extends Component<{
     Actions.popSheet();
   }
 
-  onSelectCustomDate = (date, inputValue) => {
+  onSelectCustomDate = (date: Moment | null, inputValue: string) => {
     if (date) {
       this.onSnooze(date, 'Custom');
     } else {
@@ -70,7 +65,7 @@ class SnoozePopover extends Component<{
     }
   };
 
-  renderItem = itemLabel => {
+  renderItem = (itemLabel: string) => {
     const date = SnoozeDatesFactory[itemLabel]();
     const iconName = SnoozeIconNames[itemLabel];
     const iconPath = `mailspring://thread-snooze/assets/ic-snoozepopover-${iconName}@2x.png`;
@@ -86,7 +81,7 @@ class SnoozePopover extends Component<{
     );
   };
 
-  renderRow = (options, idx) => {
+  renderRow = (options: string[], idx: number) => {
     const items = options.map(this.renderItem);
     return (
       <div key={`snooze-popover-row-${idx}`} className="snooze-row">

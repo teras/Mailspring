@@ -1,5 +1,4 @@
 import React from 'react';
-import { v4 } from 'uuid';
 import {
   Contact,
   localized,
@@ -41,7 +40,7 @@ function emptyContactForAccountId(accountId: string) {
           addresses: [],
         }
       : {
-          vcf: `BEGIN:VCARD\r\nVERSION:3.0\r\nUID:${v4()}\r\nEND:VCARD\r\n`,
+          vcf: `BEGIN:VCARD\r\nVERSION:3.0\r\nUID:${crypto.randomUUID()}\r\nEND:VCARD\r\n`,
           href: '',
         };
 
@@ -60,9 +59,9 @@ class ContactDetailWithFocus extends React.Component<ContactDetailProps, Contact
     this.state = this.getStateForProps();
   }
 
-  componentDidUpdate(prevProps) {
-    const prevContact = prevProps.contacts.find(c => c.id === prevProps.focusedId);
-    const newContact = this.props.contacts.find(c => c.id === this.props.focusedId);
+  componentDidUpdate(prevProps: ContactDetailProps) {
+    const prevContact = prevProps.contacts?.find((c) => c.id === prevProps.focusedId);
+    const newContact = this.props.contacts?.find((c) => c.id === this.props.focusedId);
 
     if (isEqual(prevContact, newContact) && prevProps.editing === this.props.editing) return;
     if (newContact && this.props.editing !== newContact.id) Store.setEditing(false);
@@ -75,7 +74,7 @@ class ContactDetailWithFocus extends React.Component<ContactDetailProps, Contact
     const contact =
       editing === 'new' && 'accountId' in perspective
         ? emptyContactForAccountId(perspective.accountId)
-        : contacts?.find(c => c.id === focusedId);
+        : contacts?.find((c) => c.id === focusedId);
 
     if (!contact) {
       return { metadata: null, data: null, contact: null };
@@ -128,7 +127,7 @@ class ContactDetailWithFocus extends React.Component<ContactDetailProps, Contact
             <ContactDetailEdit
               data={data}
               contact={contact}
-              onChange={changes => this.setState({ data: { ...data, ...changes } })}
+              onChange={(changes) => this.setState({ data: { ...data, ...changes } })}
             />
           ) : (
             <ContactDetailRead data={data} contact={contact} metadata={metadata} groups={groups} />
