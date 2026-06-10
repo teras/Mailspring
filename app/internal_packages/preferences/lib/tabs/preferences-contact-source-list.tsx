@@ -39,9 +39,7 @@ class PreferencesContactSourceList extends Component<PreferencesContactSourceLis
             </div>
           </div>
           {!source.enabled && (
-            <div style={{ color: '#999', fontSize: 11 }}>
-              {localized('Disabled')}
-            </div>
+            <div style={{ color: '#999', fontSize: 11 }}>{localized('Disabled')}</div>
           )}
         </Flexbox>
       </div>

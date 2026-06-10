@@ -10,7 +10,7 @@ import { localized } from '../../intl';
 export interface ContactInfoVCF {
   vcf: string;
   href: string;
-  photo?: string;  // Base64 encoded photo or URL from VCard
+  photo?: string; // Base64 encoded photo or URL from VCard
 }
 
 export interface ContactInfoGoogle {
@@ -587,8 +587,13 @@ export class Contact extends Model {
     // At this point, if the name is empty we'll use the email address
     // Also check for names that contain only control characters (e.g., \x1a from
     // failed charset conversion) - these should be treated as invalid names
-    const hasOnlyControlChars = name && name.length > 0 &&
-      !name.replace(/\s/g, '').split('').some(c => c.charCodeAt(0) > 31 && c.charCodeAt(0) !== 127);
+    const hasOnlyControlChars =
+      name &&
+      name.length > 0 &&
+      !name
+        .replace(/\s/g, '')
+        .split('')
+        .some((c) => c.charCodeAt(0) > 31 && c.charCodeAt(0) !== 127);
 
     if (!name || name.length === 0 || hasOnlyControlChars) {
       name = this.email || '';

@@ -15,7 +15,7 @@ export interface AvatarResult {
  * Clear the avatar cache - call this when contacts are synced
  */
 export function clearAvatarCache() {
-  Object.keys(avatarCache).forEach(key => delete avatarCache[key]);
+  Object.keys(avatarCache).forEach((key) => delete avatarCache[key]);
 }
 
 /**
@@ -80,7 +80,7 @@ export async function getAvatarForEmail(email: string): Promise<AvatarResult> {
  * Check if a Gravatar exists for an email (async with caching)
  */
 export function checkGravatar(email: string): Promise<string | null> {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     if (!email) {
       resolve(null);
       return;

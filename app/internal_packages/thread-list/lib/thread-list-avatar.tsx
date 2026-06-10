@@ -87,11 +87,11 @@ export default class ThreadListAvatar extends React.Component<Props, State> {
 
       if (iAmSender) {
         // I sent this message - look for recipients
-        const toRecipients = (firstMessage.to || []).filter(c => !c.isMe());
+        const toRecipients = (firstMessage.to || []).filter((c) => !c.isMe());
         if (toRecipients.length > 0) {
           contact = toRecipients[0];
         } else {
-          const ccRecipients = (firstMessage.cc || []).filter(c => !c.isMe());
+          const ccRecipients = (firstMessage.cc || []).filter((c) => !c.isMe());
           if (ccRecipients.length > 0) {
             contact = ccRecipients[0];
           } else {
@@ -105,7 +105,7 @@ export default class ThreadListAvatar extends React.Component<Props, State> {
 
     // Fallback to participants if message fields are empty
     if (!contact && thread.participants?.length > 0) {
-      contact = thread.participants.find(p => !p.isMe()) || thread.participants[0];
+      contact = thread.participants.find((p) => !p.isMe()) || thread.participants[0];
     }
 
     contactCache[cacheKey] = contact;

@@ -117,13 +117,13 @@ class SearchQuerySubscription extends MutableQuerySubscription<Thread> {
       // Get folders for this account
       DatabaseStore.findAll<Folder>(Folder)
         .where({ accountId })
-        .then(folders => {
+        .then((folders) => {
           let foldersToSearch: Folder[] = [];
 
           if (folderNames === 'all' || folderNames === IMAPSearchQueryBackend.ALL_FOLDERS()) {
             // Search inbox and sent folders by default
             foldersToSearch = folders.filter(
-              f => f.role === 'inbox' || f.role === 'sent' || f.role === 'all'
+              (f) => f.role === 'inbox' || f.role === 'sent' || f.role === 'all'
             );
             // If no special folders found, search the first few folders
             if (foldersToSearch.length === 0) {
@@ -132,7 +132,7 @@ class SearchQuerySubscription extends MutableQuerySubscription<Thread> {
           } else if (Array.isArray(folderNames)) {
             // Search specific folders
             foldersToSearch = folders.filter(
-              f => folderNames.includes(f.name) || folderNames.includes(f.displayName)
+              (f) => folderNames.includes(f.name) || folderNames.includes(f.displayName)
             );
           }
 
@@ -156,7 +156,7 @@ class SearchQuerySubscription extends MutableQuerySubscription<Thread> {
             });
           }
         })
-        .catch(err => {
+        .catch((err) => {
           console.error('Failed to get folders for IMAP search', err);
         });
     }
@@ -186,7 +186,7 @@ class SearchQuerySubscription extends MutableQuerySubscription<Thread> {
       id: results.messageIds,
     });
 
-    const threadIds = _.uniq(messages.map(m => m.threadId).filter(Boolean));
+    const threadIds = _.uniq(messages.map((m) => m.threadId).filter(Boolean));
 
     if (threadIds.length > 0) {
       this._addThreadIdsToSearch(threadIds);

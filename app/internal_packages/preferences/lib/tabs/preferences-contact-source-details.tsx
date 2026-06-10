@@ -52,7 +52,12 @@ class PreferencesContactSourceDetails extends Component<
     }
   }
 
-  _onFetchResult = (result: { sourceId: string; success: boolean; contactCount: number; error?: string }) => {
+  _onFetchResult = (result: {
+    sourceId: string;
+    success: boolean;
+    contactCount: number;
+    error?: string;
+  }) => {
     // Only handle result for the currently selected source
     if (result.sourceId !== this.props.source?.id) return;
 
@@ -105,7 +110,7 @@ class PreferencesContactSourceDetails extends Component<
   };
 
   _setState = (updates: Partial<CardDAVSource>) => {
-    this.setState(state => ({
+    this.setState((state) => ({
       source: state.source ? { ...state.source, ...updates } : null,
     }));
   };
@@ -144,7 +149,10 @@ class PreferencesContactSourceDetails extends Component<
   _fetchContacts = () => {
     const { source, password } = this.state;
     if (!source?.url || !source?.username || !source?.enabled) {
-      this.setState({ fetchStatus: 'error', fetchResult: { contactCount: 0, error: 'Missing configuration' } });
+      this.setState({
+        fetchStatus: 'error',
+        fetchResult: { contactCount: 0, error: 'Missing configuration' },
+      });
       return;
     }
 
@@ -277,7 +285,7 @@ class PreferencesContactSourceDetails extends Component<
           value={source.name}
           placeholder={localized('My Contacts')}
           onBlur={this._saveChanges}
-          onChange={e => this._setState({ name: e.target.value })}
+          onChange={(e) => this._setState({ name: e.target.value })}
         />
 
         <h6>{localized('CardDAV URL')}</h6>
@@ -288,7 +296,7 @@ class PreferencesContactSourceDetails extends Component<
             value={source.url}
             placeholder="https://example.com/remote.php/dav"
             onBlur={this._saveChanges}
-            onChange={e => {
+            onChange={(e) => {
               this._setState({ url: e.target.value });
               if (this.state.discoverStatus !== 'none' || this.state.connectionStatus !== 'none') {
                 this.setState({ discoverStatus: 'none', connectionStatus: 'none' });
@@ -321,7 +329,7 @@ class PreferencesContactSourceDetails extends Component<
           value={source.username}
           placeholder={localized('username')}
           onBlur={this._saveChanges}
-          onChange={e => {
+          onChange={(e) => {
             this._setState({ username: e.target.value });
             if (this.state.connectionStatus !== 'none') {
               this.setState({ connectionStatus: 'none' });
@@ -335,7 +343,7 @@ class PreferencesContactSourceDetails extends Component<
           value={password}
           placeholder="********"
           onBlur={this._savePassword}
-          onChange={e => {
+          onChange={(e) => {
             this.setState({ password: e.target.value });
             if (this.state.connectionStatus !== 'none') {
               this.setState({ connectionStatus: 'none' });
@@ -349,7 +357,7 @@ class PreferencesContactSourceDetails extends Component<
             <input
               type="checkbox"
               checked={source.enabled}
-              onChange={e => {
+              onChange={(e) => {
                 this._setState({ enabled: e.target.checked });
                 setTimeout(this._saveChanges, 0);
               }}

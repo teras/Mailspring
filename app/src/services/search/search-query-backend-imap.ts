@@ -150,7 +150,20 @@ class IMAPSearchQueryExpressionVisitor extends SearchQueryExpressionVisitor {
     const text = this.visitAndGetResult(node.text);
     // Parse date and format for IMAP (DD-Mon-YYYY)
     const date = new Date(text);
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     const imapDate = `${date.getDate()}-${months[date.getMonth()]}-${date.getFullYear()}`;
 
     // IMAP uses BEFORE for "before" and SINCE for "after"

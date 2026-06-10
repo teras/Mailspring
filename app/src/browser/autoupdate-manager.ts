@@ -6,7 +6,7 @@ import os from 'os';
 import fs from 'fs';
 import { localized } from '../intl';
 
-let autoUpdater = null;
+const autoUpdater = null;
 
 const IdleState = 'idle';
 const CheckingState = 'checking';

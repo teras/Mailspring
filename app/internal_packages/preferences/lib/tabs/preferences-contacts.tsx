@@ -8,7 +8,10 @@ interface PreferencesContactsState {
   selected: CardDAVSource | null;
 }
 
-class PreferencesContacts extends React.Component<Record<string, unknown>, PreferencesContactsState> {
+class PreferencesContacts extends React.Component<
+  Record<string, unknown>,
+  PreferencesContactsState
+> {
   static displayName = 'PreferencesContacts';
 
   constructor(props: Record<string, unknown>) {
@@ -47,7 +50,7 @@ class PreferencesContacts extends React.Component<Record<string, unknown>, Prefe
   };
 
   _onRemoveSource = (source: CardDAVSource) => {
-    const sources = this.state.sources.filter(s => s.id !== source.id);
+    const sources = this.state.sources.filter((s) => s.id !== source.id);
     this._saveSources(sources);
     this.setState({
       selected: sources.length > 0 ? sources[0] : null,
@@ -55,7 +58,7 @@ class PreferencesContacts extends React.Component<Record<string, unknown>, Prefe
   };
 
   _onSourceUpdated = (source: CardDAVSource, updates: Partial<CardDAVSource>) => {
-    const sources = this.state.sources.map(s => (s.id === source.id ? { ...s, ...updates } : s));
+    const sources = this.state.sources.map((s) => (s.id === source.id ? { ...s, ...updates } : s));
     this._saveSources(sources);
     if (this.state.selected?.id === source.id) {
       this.setState({ selected: { ...source, ...updates } });
