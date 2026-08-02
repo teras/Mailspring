@@ -1,5 +1,3 @@
-import { MailspringAPIRequest } from 'mailspring-exports';
-
 export interface GrammarError {
   offset: number;
   length: number;
@@ -116,34 +114,41 @@ export class LanguageToolBackend implements GrammarCheckBackend {
   async check(text: string, messageId: string, language?: string): Promise<GrammarError[]> {
     this._readConfig();
 
-    let data: LanguageToolResponse;
+    // De-Mailspring: query LanguageTool directly (public API by default) instead of
+    // routing through Mailspring's identity-gated proxy — no account required. Advanced
+    // users can point `core.composing.grammarCheckEndpoint` at a self-hosted instance.
+    const endpoint =
+      (AppEnv.config.get('core.composing.grammarCheckEndpoint') as string) ||
+      'https://api.languagetool.org/v2/check';
+
+    const params = new URLSearchParams();
+    params.set('text', text);
+    params.set('language', language || this.language || 'auto');
+    if (this.disabledRules.length) {
+      params.set('disabledRules', this.disabledRules.join(','));
+    }
+
+    let resp: Response;
     try {
-      data = await MailspringAPIRequest.makeRequest({
-        server: 'identity',
+      resp = await fetch(endpoint, {
         method: 'POST',
-        path: '/api/grammar/check',
-        json: true,
-        body: {
-          messageId,
-          text,
-          language: language || this.language,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Accept: 'application/json',
         },
+        body: params.toString(),
       });
     } catch (err) {
-      // 400 = quota reached ("Quota Reached")
-      if (err.statusCode === 400) {
-        throw new UsageExceededError();
-      }
-      // 429 = rate limited — surface as a transient error, caller will retry on next dirty check
-      if (err.statusCode === 429) {
-        throw new Error('Grammar check rate limit reached, please try again shortly.');
-      }
-      // 502 = LanguageTool backend unavailable
-      if (err.statusCode === 502) {
-        throw new Error('Grammar check service is temporarily unavailable.');
-      }
-      throw err;
+      throw new Error('Grammar check service is temporarily unavailable.');
     }
+    // 429 = rate limited — surface as a transient error, caller will retry on next dirty check
+    if (resp.status === 429) {
+      throw new Error('Grammar check rate limit reached, please try again shortly.');
+    }
+    if (!resp.ok) {
+      throw new Error('Grammar check service is temporarily unavailable.');
+    }
+    const data: LanguageToolResponse = await resp.json();
 
     const filtered = data.matches.filter((match) => match.rule.issueType !== 'misspelling');
 

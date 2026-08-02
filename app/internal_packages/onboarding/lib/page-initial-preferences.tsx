@@ -140,10 +140,13 @@ class InitialPreferencesOptions extends React.Component<
             ))}
           </select>
           <div style={{ paddingTop: 20 }}>
-            <NewsletterSignup
-              emailAddress={this.props.account.emailAddress}
-              name={this.props.account.name}
-            />
+            {/* DISABLED: newsletter signup posts the user's email to Mailspring's servers. */}
+            {false && (
+              <NewsletterSignup
+                emailAddress={this.props.account.emailAddress}
+                name={this.props.account.name}
+              />
+            )}
           </div>
         </div>
       </div>

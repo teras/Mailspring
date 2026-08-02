@@ -1,5 +1,4 @@
-import { MailspringAPIRequest, Utils, ContactAvatarService } from 'mailspring-exports';
-const { makeRequest } = MailspringAPIRequest;
+import { ContactAvatarService } from 'mailspring-exports';
 
 const CACHE_SIZE = 200;
 const CACHE_INDEX_KEY = 'pp-cache-v3-keys';

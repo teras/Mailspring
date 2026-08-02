@@ -144,8 +144,10 @@ module.exports = ErrorLogger = (function () {
       productName: 'Mailspring',
       companyName: 'Mailspring',
       submitURL: `https://id.getmailspring.com/report-crash?ver=${appVersion}&platform=${process.platform}`,
-      uploadToServer: true,
-      autoSubmit: true,
+      // DISABLED: never upload crash minidumps to the upstream server. Local-only
+      // client keeps crash collection on disk but phones nothing home.
+      uploadToServer: false,
+      autoSubmit: false,
       extra: {
         ver: appVersion,
         platform: process.platform,
