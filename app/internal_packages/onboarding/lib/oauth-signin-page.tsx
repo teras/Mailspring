@@ -34,6 +34,7 @@ interface OAuthSignInPageProps {
   onTryAgain: () => void;
   providerConfig: (typeof AccountProviders)[0];
   serviceName: string;
+  children?: React.ReactNode;
 }
 
 interface OAuthSignInPageState {
@@ -105,7 +106,7 @@ export default class OAuthSignInPage extends React.Component<
   }
 
   _onError(err) {
-    const isNetworkError = err.message?.includes('Failed to fetch');
+    const isNetworkError = err.message?.includes('Failed to fetch') || err.isNetworkError;
     this.setState({
       authStage: 'error',
       errorMessage: isNetworkError
@@ -115,7 +116,9 @@ export default class OAuthSignInPage extends React.Component<
         : err.message,
       errorLog: err.rawLog,
     });
-    if (!isNetworkError) {
+    // Don't report network errors or user-configuration errors (e.g. account has no mailbox)
+    // to Sentry — they are expected and shown directly to the user.
+    if (!isNetworkError && !err.isUserError) {
       AppEnv.reportError(err);
     }
   }
@@ -236,6 +239,7 @@ export default class OAuthSignInPage extends React.Component<
         </div>
         {this._renderHeader()}
         {this._renderNote()}
+        {this.state.authStage === 'initial' && this.props.children}
         {this._renderAlternative()}
       </div>
     );

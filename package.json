@@ -17,7 +17,8 @@
     "@types/react-dom": "^17.0.0"
   },
   "dependencies": {
-    "@electron/packager": "18.3.6",
+    "@electron/packager": "^20.0.1",
+    "@playwright/test": "^1.59.1",
     "@sentry/cli": "^2.43.0",
     "@types/better-sqlite3": "^7.6.3",
     "@types/debug": "^4.1.2",
@@ -45,9 +46,11 @@
     "@types/underscore.string": "^0.0.33",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
+    "better-sqlite3": "^12.8.0",
     "chalk": "1.x.x",
     "devtron": "^1.4.0",
-    "electron": "41.6.1",
+    "electron": "41.7.2",
+    "electron-playwright-helpers": "^2.1.0",
     "electron-winstaller": "5.4.0",
     "eslint": "^8.0.0",
     "eslint-config-prettier": "^9.0.0",
@@ -67,9 +70,7 @@
     "temp": "0.8.x",
     "typescript": "5.7.3",
     "underscore": "^1.13.1",
-    "@playwright/test": "^1.59.1",
-    "electron-playwright-helpers": "^2.1.0",
-    "better-sqlite3": "^12.8.0"
+    "zod": "^4.4.3"
   },
   "scripts": {
     "postinstall": "node scripts/postinstall.js",
@@ -82,5 +83,11 @@
     "test:e2e": "npx playwright test --config playwright/playwright.config.ts",
     "tsc-watch": "tsc -w -p ./app --noEmit",
     "build": "node app/build/build.js"
+  },
+  "allowScripts": {
+    "electron@41.7.2": true,
+    "better-sqlite3@12.9.0": true,
+    "highlight.js@9.18.5": true,
+    "electron-winstaller@5.4.0": true
   }
 }

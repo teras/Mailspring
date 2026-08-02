@@ -81,6 +81,13 @@ export const LocalizedErrorStrings = {
   ),
 };
 
+// LocalizedErrorStrings codes that, despite being "classified" by mailsync,
+// can also indicate a genuine Mailspring defect rather than a server/user
+// condition - a malformed-response parser regression, or corrupted local
+// identity state. These should keep reaching error reporting instead of
+// being treated as expected, user-actionable failures.
+const AMBIGUOUS_MAILSYNC_ERRORS = new Set(['ErrorParse', 'ErrorIdentityMissingFields']);
+
 export class MailsyncProcess extends EventEmitter {
   _proc: ChildProcess = null;
   _win = null;
@@ -248,7 +255,7 @@ export class MailsyncProcess extends EventEmitter {
         reject(err);
       });
 
-      this._proc.on('close', (code) => {
+      this._proc.on('close', (code, signal) => {
         try {
           const lastLine = buffer.toString('utf-8').split('\n').pop();
 
@@ -260,35 +267,73 @@ export class MailsyncProcess extends EventEmitter {
             // and may contain system errors (shared library issues, etc). Include this
             // in the logs so users can fix on their own or report detailed bugs.
             const rawLog = this._stripSecrets(buffer.toString());
-            const error = new Error(
-              `${localized(`An unknown error has occurred`)} mailsync: ${code}. ${rawLog}`
-            );
-            (error as any).rawLog = rawLog;
-            return reject(error);
+            return reject(this._buildCrashError(mode, code, signal, rawLog));
           }
 
           if (code === 0) {
             resolve({ response, buffer });
           } else {
             // Mailsync executed fine, and this is an mailsync error in JSON format
-            let msg = LocalizedErrorStrings[response.error] || response.error;
+            const isRecognizedMailsyncError = Object.prototype.hasOwnProperty.call(
+              LocalizedErrorStrings,
+              response.error
+            );
+            let msg = isRecognizedMailsyncError
+              ? LocalizedErrorStrings[response.error]
+              : response.error;
             if (response.error_service) {
               msg = `${msg} (${response.error_service.toUpperCase()})`;
             }
             const error = new Error(msg);
             (error as any).rawLog = this._stripSecrets(response.log);
+            // Errors mailsync explicitly classified (bad credentials, unreachable
+            // server, TLS/certificate problems, provider-side rate limits, etc.)
+            // describe the mail server or the user's settings, not a bug in
+            // Mailspring - except for the ambiguous codes above, which we still
+            // want reported if they occur. Callers that report unexpected errors
+            // to Sentry (e.g. oauth-signin-page's error handler) check this flag
+            // to avoid flooding error tracking with expected, user-actionable
+            // failures.
+            (error as any).isUserError =
+              isRecognizedMailsyncError && !AMBIGUOUS_MAILSYNC_ERRORS.has(response.error);
             return reject(error);
           }
         } catch (err) {
           const rawLog = this._stripSecrets(buffer.toString());
-          const error = new Error(
-            `${localized(`An unknown error has occurred`)} (mailsync: ${code})`
-          );
-          (error as any).rawLog = rawLog;
-          return reject(error);
+          return reject(this._buildCrashError(mode, code, signal, rawLog));
         }
       });
     });
+  }
+
+  // Called when the mailsync child process exits without producing a well-formed
+  // JSON response - either it crashed outright, or was terminated by a signal
+  // (in which case `code` is null and the message would otherwise be a useless
+  // "mailsync: null"). One common cause is an uncaught C++ exception while making
+  // an HTTPS request during the `test` mode used to validate a new account (e.g.
+  // refreshing an OAuth token): mailsync logs a `"offline":true,"retryable":true`
+  // marker for these before crashing, since they're almost always a local
+  // network/TLS interception issue rather than a bug we can act on. Detect that
+  // signature - scoped to `test`, since `migrate`/`resetCache` don't make network
+  // requests and shouldn't have unrelated crashes reclassified this way - and
+  // surface a friendly, localized, network-flagged error so callers can avoid
+  // reporting it to Sentry.
+  _buildCrashError(
+    mode: string,
+    code: number | null,
+    signal: NodeJS.Signals | null,
+    rawLog: string
+  ) {
+    const isNetworkFailure = mode === 'test' && /"offline"\s*:\s*true/.test(rawLog);
+    const exitDescription = signal ? `signal ${signal}` : `${code}`;
+    const error = isNetworkFailure
+      ? new Error(LocalizedErrorStrings.ErrorConnection)
+      : new Error(
+          `${localized(`An unknown error has occurred`)} mailsync: ${exitDescription}. ${rawLog}`
+        );
+    (error as any).rawLog = rawLog;
+    (error as any).isNetworkError = isNetworkFailure;
+    return error;
   }
 
   kill() {
@@ -332,9 +377,17 @@ export class MailsyncProcess extends EventEmitter {
         }
       });
     }
+    // Note: we intentionally do not re-emit this as an 'error' event on `this`.
+    // Nothing in the codebase attaches an 'error' listener to a MailsyncProcess
+    // instance, and Node's EventEmitter throws synchronously when an 'error'
+    // event has no listeners. That throw happened inside this same 'error'
+    // callback on `_proc`, which aborted the remaining `_proc.on('error', ...)`
+    // listener below (the one that actually cleans up and reports failure via
+    // 'close') before it could run — so a transient spawn failure (e.g. EIO)
+    // both crashed the app and prevented MailsyncBridge from ever marking the
+    // account as errored or retrying.
     this._proc.on('error', (err: Error) => {
       console.log(`Sync worker exited with ${err}`);
-      this.emit('error', err);
     });
 
     let cleanedUp = false;

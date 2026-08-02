@@ -1,5 +1,87 @@
 # Mailspring Changelog
 
+## 1.23.0 (7/19/2026)
+
+Features:
+
+- Added Office 365 shared mailbox support. (#2763) Thanks @Kevin-Hamilton!
+- Added the ability to export folders to mbox files. (#2765) Thanks @Kevin-Hamilton!
+- Added an option to count unread messages across all accounts. (#2779) Thanks @WebDevBar!
+- Added a toggle for email render mode. (#2737) Thanks @AidanWarner97!
+- Added an MCP server (off by default) that lets local agents interact with mail.
+- On Linux, added a taskbar unread badge for KDE and other non-Unity desktops. (#2756) Thanks @WebDevBar!
+
+Bug Fixes:
+
+- Fixed a composer crash on quoted emails with inline images. (#2776)
+- Fixed a composer crash when grammar-check decorations apply mid-composition. (#2775)
+- Fixed missing Slate attributes on the IMAGE_TYPE fallback node. (#2774)
+- Fixed a composer cut crash and suppressed Sentry noise from third-party plugins. (#2755)
+- Fixed a crash when dragging threads to the sidebar after a thread is deleted. (#2760)
+- Fixed a crash in `EventRSVPTask` when attendee ICS data goes stale. (#2770)
+- Fixed a crash in the translation plugin when the iframe `contentDocument` is not yet loaded. (#2752)
+- Fixed an onboarding crash when back-navigation empties the page stack. (#2750)
+- Fixed `navigator.clipboard.writeText` in `@electron/remote` MenuItem handlers. (#2754)
+- Fixed an `ERR_FILE_NOT_FOUND` crash in Show Original when the RFC822 fetch fails. (#2772)
+- Fixed null crashes in `SendDraftTask`, thread-sharing, and send-and-archive. (#2757)
+- Fixed a null crash in three IPC handlers when `BrowserWindow.fromWebContents()` returns null. (#2758)
+- Fixed cancellation of `GetManyRFC2822Task` (folder export). (#118) Thanks @Kevin-Hamilton!
+- Fixed handling of XDG paths. (#2761) Thanks @LinusDierheimer!
+- On Linux, fixed an EPIPE crash loop in the uncaughtException handler. (#2769)
+- On Linux, send `org.freedesktop.DBus.Hello` before emitting the badge signal. (#2778) Thanks @WebDevBar!
+- Stopped startup after a fatal `config.json` load failure. (#2764)
+- Guarded `nativeTheme` remote object access in `SystemTrayIconStore`. (#2753)
+- Guarded grammar check so it no longer emits warnings when logged out.
+
+Improvements:
+
+- Reduced Sentry noise: expected IMAP/SMTP auth and connection failures are no longer reported. (#2762)
+- Reduced Sentry noise from OAuth SSL failures and improved the mailsync crash message. (#2771)
+- Downgraded the unknown-feature warning from an error report to a console warning. (#2759)
+- Wrapped unhandled fetch errors in `APIError` in `makeRequest`. (#2766)
+- Fixed an uncaught 'error' event crash in `MailsyncProcess.sync()`. (#2773)
+- Fixed an unhandled rejection in `IdentityStore` background polling. (#2768)
+- Added a macOS 27 icon variant.
+
+Developer:
+
+- Upgraded `@electron/packager` to prevent build hangs on newer Node.js versions. (#2767) Thanks @wrench-exile-legacy!
+- Get the desktop name dynamically from `package.json` and stop hardcoding `Mailspring.desktop`. (#2748, #2777) Thanks @LinusDierheimer!
+- Use a template var as the icon value in `Mailspring.desktop`. (#2747) Thanks @LinusDierheimer!
+- Added branding colors to `appdata.xml`. (#2751) Thanks @LinusDierheimer!
+- Fall back to ad-hoc signing in the copy-to-app build phase. (#117) Thanks @Kevin-Hamilton!
+
+## 1.22.0 (6/13/2026)
+
+Features:
+
+- Added the ability to choose which themes apply in automatic light/dark mode. (#2732) Thanks @Jayphen!
+
+Bug Fixes:
+
+- Fixed null crash when clicking "Send now" on undo-send toast after the message had already been sent. (#2738)
+- Fixed two null-access crashes reported in Sentry (MAILSPRING-CLIENT-1G, MAILSPRING-CLIENT-18, MAILSPRING-CLIENT-2V). (#2740)
+- Fixed two Sentry crashes: null account in preferences and null window in app menu IPC. (#2741)
+- Fixed crash when archiving from search with label-based archive categories. (#2743)
+- Fixed null crash when removing threads with unsynced trash/archive category. (#2736)
+- Fixed Outlook account setup. (#2735) Thanks @Suchiman!
+- Fixed Windows print crash caused by invalid file URL. (#2733)
+- Fixed TOCTOU null-reference crash in draft body setter (MAILSPRING-CLIENT-S). (#2728)
+- Fixed `DefaultClientHelperMac` passing boolean to error callback, causing false Sentry reports. (#2731)
+- Fixed `AttributeDateTime.fromJSON` treating 0/falsy values as missing. (#2730)
+- Fixed quickpreview CSP clobbering the default session's app-wide CSP. (#2744) Thanks @dansleboby!
+- Fixed `QuerySubscription._fetchRange` contiguity check using actual result length. (#2734)
+- On Windows, fixed EPERM crash when forking background query agent. (#2745)
+
+Improvements:
+
+- Improved Microsoft OAuth: better email resolution and suppressed no-mailbox errors from Sentry. (#2746)
+- Added diagnostics around "draft not found" error on send and cleaned up waiting queues. (#2727)
+- Moved payment flow out of modal to launch on the web for newer Stripe integration.
+- Richer exceptions when account has no from address or when label is provided to ChangeFolderTask.
+- Draft reminders now use `thread:` metadata prefix so sync engine promotes them to thread on send. (#2729)
+- Sync engine now forwards identity-level refresh events from delta stream. (mailsync#115)
+
 ## 1.21.1 (5/19/2026)
 
 Bug Fixes:

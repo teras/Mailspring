@@ -44,8 +44,8 @@ export class ChangeFolderTask extends ChangeMailTask {
       const folders = [];
       const seenFolderIds = new Set<string>();
       for (const t of data.threads || []) {
-        const f = t.folders.find((f) => f.id !== data.folder?.id) || t.folders[0];
-        if (!seenFolderIds.has(f.id)) {
+        const f = t.folders?.find((f) => f?.id !== data.folder?.id) || t.folders?.[0];
+        if (f && !seenFolderIds.has(f.id)) {
           seenFolderIds.add(f.id);
           folders.push(f);
         }
@@ -72,7 +72,9 @@ export class ChangeFolderTask extends ChangeMailTask {
     super(data);
 
     if (this.folder && !(this.folder instanceof Folder)) {
-      throw new Error('ChangeFolderTask: You must provide a single folder.');
+      throw new Error(
+        `ChangeFolderTask: You must provide a single folder. Got ${typeof this.folder}: ${JSON.stringify(this.folder)}`
+      );
     }
   }
 

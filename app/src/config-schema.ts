@@ -178,6 +178,17 @@ export default {
             default: false,
             title: localized('Display conversations in descending chronological order'),
           },
+          emailRenderMode: {
+            type: 'string',
+            default: 'theme',
+            enum: ['theme', 'light', 'dark'],
+            enumLabels: [
+              localized('Match app theme'),
+              localized('Light email mode'),
+              localized('Dark email mode'),
+            ],
+            title: localized('Email body appearance'),
+          },
         },
       },
       composing: {
@@ -374,6 +385,11 @@ export default {
               localized('Show Total Count'),
             ],
             title: localized('Show badge on the app icon'),
+          },
+          countBadgeAllAccounts: {
+            type: 'boolean',
+            default: false,
+            title: localized('Count unread messages in all accounts, not just the selected folder'),
           },
         },
       },

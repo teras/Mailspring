@@ -117,6 +117,16 @@ export default class Application extends EventEmitter {
     const config = new Config();
     this.config = config;
     this.configPersistenceManager = new ConfigPersistenceManager({ configDirPath, resourcePath });
+
+    // If the user's config.json could not be read (eg: corrupted / truncated on disk)
+    // and they chose to quit from the error dialog, ConfigPersistenceManager has
+    // already called app.quit() and left `settings` empty. app.quit() does not halt
+    // synchronous execution, so without this check we'd continue on to config.load(),
+    // which throws because there are no settings to load, reporting a confusing
+    // "this.settings is empty" error on our way out the door. Stop here instead.
+    if (this.configPersistenceManager.userWantsToPreserveErrors) {
+      return;
+    }
     config.load();
 
     this.configMigrator = new ConfigMigrator(this.config);
@@ -401,14 +411,14 @@ export default class Application extends EventEmitter {
       }
     });
 
-    this.on('application:add-account', ({ existingAccountJSON } = {}) => {
+    this.on('application:add-account', ({ existingAccountJSON, o365SharedMailbox } = {}) => {
       const onboarding = this.windowManager.get(WindowManager.ONBOARDING_WINDOW);
       if (onboarding) {
         onboarding.show();
         onboarding.focus();
       } else {
         this.windowManager.ensureWindow(WindowManager.ONBOARDING_WINDOW, {
-          windowProps: { addingAccount: true, existingAccountJSON },
+          windowProps: { addingAccount: true, existingAccountJSON, o365SharedMailbox },
           title: localized('Add Account'),
         });
       }
@@ -576,6 +586,13 @@ export default class Application extends EventEmitter {
       } else if (app.setBadgeCount) {
         app.setBadgeCount(value.length ? value.replace('+', '') / 1 : 0);
       }
+      // app.setBadgeCount relies on libunity, which is absent on KDE/Fedora and
+      // many non-Ubuntu desktops (the badge silently no-ops there). Emit the raw
+      // Unity LauncherEntry signal so the taskbar badge works on those too.
+      if (process.platform === 'linux') {
+        const count = value && value.length ? parseInt(value.replace('+', ''), 10) || 0 : 0;
+        require('./linux-launcher-entry').emitLauncherEntryBadge(count);
+      }
     });
 
     const dockMenu = Menu.buildFromTemplate([
@@ -668,7 +685,9 @@ export default class Application extends EventEmitter {
 
     ipcMain.on('update-application-menu', (event, template, keystrokesByCommand) => {
       const win = BrowserWindow.fromWebContents(event.sender);
-      this.applicationMenu.update(win, template, keystrokesByCommand);
+      if (win) {
+        this.applicationMenu.update(win, template, keystrokesByCommand);
+      }
     });
 
     ipcMain.on('command', (event, command, ...args) => {
@@ -677,6 +696,7 @@ export default class Application extends EventEmitter {
 
     ipcMain.on('window-command', (event, command, ...args) => {
       const win = BrowserWindow.fromWebContents(event.sender);
+      if (!win) return;
       win.emit(command, ...args);
     });
 
@@ -699,6 +719,7 @@ export default class Application extends EventEmitter {
         return;
       }
       const win = BrowserWindow.fromWebContents(event.sender);
+      if (!win) return;
       if (!win[method]) {
         console.error(`Method ${method} does not exist on BrowserWindow!`);
         return;
@@ -870,6 +891,7 @@ export default class Application extends EventEmitter {
 
     ipcMain.on('resize-window', (event, params) => {
       const sourceWindow = BrowserWindow.fromWebContents(event.sender);
+      if (!sourceWindow) return;
       sourceWindow.setSize(params.width, params.height);
     });
 

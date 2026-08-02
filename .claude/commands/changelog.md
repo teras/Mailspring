@@ -27,6 +27,18 @@ Build a changelog entry for a new Mailspring release by analyzing git history.
 
 5. **Create the changelog entry** at the top of `CHANGELOG.md` following the format below.
 
+6. **Bump the version number** to the new release in both places (the real version lives in `app/`, not the root `package.json` which is a `0.0.1` placeholder):
+   - `app/package.json` — the `"version"` field.
+   - `app/package-lock.json` — the two top-of-file `"version"` fields (the root `"version"` on line ~3 and the `packages[""]."version"` on line ~9). Both must match.
+
+7. **Add a release entry** to the top of the `<releases>` list in `app/build/resources/linux/mailspring.metainfo.xml.in`, without reformatting the rest of the file:
+   ```xml
+   <release version="1.X.Y" date="YYYY-MM-DD">
+     <url type="details">https://github.com/Foundry376/Mailspring/releases/tag/1.X.Y</url>
+   </release>
+   ```
+   Note the date here is ISO format (`YYYY-MM-DD`), unlike the `M/D/YYYY` format used in the changelog heading. In both the the version string and the URL, 1.X.Y is a placeholder for the new version number.
+
 ## Changelog Format
 
 ```markdown
