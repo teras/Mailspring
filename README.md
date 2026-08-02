@@ -1,3 +1,35 @@
+# 🌱 Wellspring
+
+**Wellspring is a telemetry-free, privacy-respecting fork of
+[Mailspring](https://github.com/Foundry376/Mailspring)**, maintained by
+[@teras](https://github.com/teras). It stays close to upstream — we regularly merge
+their updates and keep full credit to the original authors — while removing
+everything that phones home to the vendor. Same great Mailspring, drawn from a
+cleaner source.
+
+### Why this fork exists
+
+Stock Mailspring is an excellent client, but it talks to the vendor's servers
+(`getmailspring.com`) for telemetry, crash reporting, update checks, account
+identity, and its subscription-gated *Pro* tier. This fork takes that out:
+
+- **No telemetry, no phone-home.** Nothing is sent to `getmailspring.com`; crash
+  reports are never uploaded.
+- **No account, no subscription.** You never sign in to a Mailspring identity, and
+  paywalled client-side features are simply available. (Features that only worked
+  through the vendor's cloud — read receipts, link tracking, shareable links — are
+  not available, by design.)
+- **Talks to your servers, not a vendor.** IMAP/SMTP, CardDAV/CalDAV and your
+  provider's OAuth only. A few optional conveniences (e.g. Gravatar avatars,
+  LanguageTool grammar check) use anonymous, free public services — never a backend
+  that can identify you or gate features behind a paywall.
+- **Independent releases** for Linux (deb/rpm), macOS (signed + notarized) and
+  Windows on the **[Releases page](https://github.com/teras/Wellspring/releases)**.
+
+Everything below is upstream's original README, unchanged.
+
+---
+
 # 💌 Mailspring
 
 **Mailspring is a new version of Nylas Mail maintained by one of the original authors. It's faster, leaner, and shipping today!** It replaces the JavaScript sync code in Nylas Mail with a new C++ sync engine based on [Mailcore2](https://github.com/MailCore/mailcore2). It uses roughly half the RAM and CPU of Nylas Mail and idles with almost zero "CPU Wakes", which translates to great battery life. It also has an entirely revamped composer and other great new features.

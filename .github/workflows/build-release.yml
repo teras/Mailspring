@@ -268,15 +268,15 @@ jobs:
           } > "$KEY_PATH"
           chmod 600 "$KEY_PATH"
 
-          ZIP=app/dist/Mailspring.zip
+          ZIP=app/dist/Wellspring.zip
           xcrun notarytool submit "$ZIP" --key "$KEY_PATH" --key-id "$KEY_ID" --issuer "$ISSUER" --wait
 
           mkdir -p stage
           ditto -x -k "$ZIP" stage/
-          xcrun stapler staple stage/Mailspring.app
+          xcrun stapler staple stage/Wellspring.app
 
           mkdir -p out
-          ditto -c -k --keepParent stage/Mailspring.app "out/Mailspring-macOS-${{ matrix.arch }}.zip"
+          ditto -c -k --keepParent stage/Wellspring.app "out/Wellspring-macOS-${{ matrix.arch }}.zip"
           rm -f "$KEY_PATH"
           ls -la out
 
@@ -397,7 +397,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path out | Out-Null
-          Compress-Archive -Path app/dist/mailspring-win32-x64/* -DestinationPath "out/Mailspring-Windows-x64.zip"
+          Compress-Archive -Path app/dist/Wellspring-win32-x64/* -DestinationPath "out/Wellspring-Windows-x64.zip"
 
       - uses: actions/upload-artifact@v4
         with:

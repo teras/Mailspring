@@ -100,7 +100,7 @@ export default class MailspringWindow extends EventEmitter {
     type GetConstructorArgs<T> = T extends new (options: infer U) => any ? U : never;
     const browserWindowOptions: GetConstructorArgs<typeof BrowserWindow> = {
       show: !hidden, // Show immediately unless hidden - workaround for Electron 39 Wayland issue
-      title: title || 'Mailspring',
+      title: title || 'Wellspring',
       frame,
       width,
       height,

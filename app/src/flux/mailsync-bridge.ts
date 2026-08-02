@@ -137,7 +137,7 @@ export default class MailsyncBridge {
 
   toggleVerboseLogging() {
     const { configDirPath } = AppEnv.getLoadSettings();
-    let message = localized('Thank you for helping debug Mailspring. Mailspring will now restart.');
+    let message = localized('Thank you for helping debug Wellspring. Wellspring will now restart.');
     let phrase = 'disabled';
 
     if (AppEnv.config.get(VERBOSE_UNTIL_KEY)) {
@@ -219,7 +219,7 @@ export default class MailsyncBridge {
     if (!this._clients[accountId]) {
       const { emailAddress } = AccountStore.accountForId(accountId) || { emailAddress: undefined };
       return AppEnv.showErrorDialog({
-        title: localized(`Mailspring is unable to sync %@`, emailAddress),
+        title: localized(`Wellspring is unable to sync %@`, emailAddress),
         message: localized(
           `In order to perform actions on this mailbox, you need to resolve the sync issue. Visit Preferences > Accounts for more information.`
         ),
@@ -277,7 +277,7 @@ export default class MailsyncBridge {
     } catch (error) {
       AppEnv.showErrorDialog({
         title: localized(`Cleanup Error`),
-        message: localized(`Mailspring was unable to reset the local cache. %@`, error),
+        message: localized(`Wellspring was unable to reset the local cache. %@`, error),
       });
     } finally {
       delete this._clients[account.id];

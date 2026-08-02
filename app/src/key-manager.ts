@@ -129,7 +129,7 @@ class KeyManager {
   _reportFatalError(err: Error) {
     const clickedButton = require('@electron/remote').dialog.showMessageBoxSync({
       type: 'error',
-      buttons: [localized('Mailspring Help'), localized('Quit')],
+      buttons: [localized('Wellspring Help'), localized('Quit')],
       message:
         err.message ||
         localized(

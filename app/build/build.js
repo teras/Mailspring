@@ -213,7 +213,8 @@ function buildPackagerOptions() {
       win32: path.resolve(appDir, 'build', 'resources', 'win', 'mailspring-square.ico'),
       linux: undefined,
     }[platform],
-    name: { darwin: 'Mailspring', win32: 'Mailspring', linux: 'mailspring' }[platform],
+    // User-facing app name, consistent across platforms.
+    name: { darwin: 'Wellspring', win32: 'Wellspring', linux: 'wellspring' }[platform],
     appCopyright: `Copyright (C) 2014-${new Date().getFullYear()} Foundry 376, LLC. All rights reserved.`,
     derefSymlinks: false,
     asar: {
@@ -292,7 +293,7 @@ function buildPackagerOptions() {
             // cannot match to a profile scoped to that binary.
             // Note: electron-osx-sign passes the .app bundle path (not the
             // inner executable path) when signing the top-level app bundle.
-            const isMainExecutable = filePath.endsWith('/Mailspring.app');
+            const isMainExecutable = filePath.endsWith('/Wellspring.app');
             return {
               hardenedRuntime: true,
               entitlements: path.resolve(
@@ -316,9 +317,9 @@ function buildPackagerOptions() {
       : undefined,
     win32metadata: {
       CompanyName: 'Foundry 376, LLC',
-      FileDescription: 'Mailspring',
+      FileDescription: 'Wellspring',
       LegalCopyright: `Copyright (C) 2014-${new Date().getFullYear()} Foundry 376, LLC. All rights reserved.`,
-      ProductName: 'Mailspring',
+      ProductName: 'Wellspring',
     },
     // NOTE: The following plist keys can NOT be set in the extra.plist since
     // they are manually overridden by electron-packager based on this config:
@@ -359,15 +360,15 @@ async function runPackager() {
 }
 
 async function createMacZip() {
-  const zipPath = path.join(outputDir, 'Mailspring.zip');
+  const zipPath = path.join(outputDir, 'Wellspring.zip');
   if (fs.existsSync(zipPath)) {
     fs.unlinkSync(zipPath);
   }
   const arch = process.env.OVERRIDE_TO_INTEL ? 'x64' : process.arch;
-  const cwd = path.join(outputDir, `Mailspring-darwin-${arch}`);
+  const cwd = path.join(outputDir, `Wellspring-darwin-${arch}`);
   await spawn({
     cmd: 'zip',
-    args: ['-9', '-y', '-r', '-9', '-X', zipPath, 'Mailspring.app'],
+    args: ['-9', '-y', '-r', '-9', '-X', zipPath, 'Wellspring.app'],
     opts: { cwd },
   });
   console.log(`>> Created ${zipPath}`);
@@ -385,7 +386,7 @@ const linuxArch = { ia32: 'i386', x64: 'amd64', arm64: 'arm64' }[process.arch];
 async function createDebInstaller() {
   if (!linuxArch) throw new Error(`Unsupported arch ${process.arch}`);
 
-  const contentsDir = path.join(outputDir, `mailspring-linux-${process.arch}`);
+  const contentsDir = path.join(outputDir, `wellspring-linux-${process.arch}`);
   const linuxAssetsDir = path.resolve(path.join(buildDir, 'resources', 'linux'));
 
   // `du` failures (e.g. permission errors) are non-fatal — fall back to a
@@ -404,28 +405,28 @@ async function createDebInstaller() {
     description: packageJSON.description,
     productName: packageJSON.productName,
     desktopName: packageJSON.desktopName || `${packageJSON.name}.desktop`,
-    linuxShareDir: '/usr/share/mailspring',
+    linuxShareDir: '/usr/share/wellspring',
     arch: linuxArch,
     section: 'mail',
     maintainer: 'Mailspring Team <support@getmailspring.com>',
     installedSize,
   };
   writeFromTemplate(path.join(linuxAssetsDir, 'debian', 'control.in'), data);
-  writeFromTemplate(path.join(linuxAssetsDir, 'Mailspring.desktop.in'), data);
-  writeFromTemplate(path.join(linuxAssetsDir, 'mailspring.metainfo.xml.in'), data);
+  writeFromTemplate(path.join(linuxAssetsDir, 'wellspring.desktop.in'), data);
+  writeFromTemplate(path.join(linuxAssetsDir, 'wellspring.metainfo.xml.in'), data);
 
   const icon = path.join(appDir, 'build', 'resources', 'linux', 'icons', '512.png');
   await spawn({
     cmd: path.join(appDir, 'script', 'mkdeb'),
     args: [packageJSON.version, linuxArch, icon, linuxAssetsDir, contentsDir, outputDir],
   });
-  console.log(`Created ${outputDir}/mailspring-${packageJSON.version}-${linuxArch}.deb`);
+  console.log(`Created ${outputDir}/wellspring-${packageJSON.version}-${linuxArch}.deb`);
 }
 
 async function createRpmInstaller() {
   if (!linuxArch) throw new Error(`Unsupported arch ${process.arch}`);
 
-  const contentsDir = path.join(outputDir, `mailspring-linux-${process.arch}`);
+  const contentsDir = path.join(outputDir, `wellspring-linux-${process.arch}`);
   const linuxAssetsDir = path.resolve(path.join(buildDir, 'resources', 'linux'));
   const rpmDir = path.join(outputDir, 'rpm');
   if (fs.existsSync(rpmDir)) {
@@ -438,14 +439,14 @@ async function createRpmInstaller() {
     description: packageJSON.description,
     productName: packageJSON.productName,
     desktopName: packageJSON.desktopName || `${packageJSON.name}.desktop`,
-    linuxShareDir: '/usr/local/share/mailspring',
+    linuxShareDir: '/usr/local/share/wellspring',
     linuxAssetsDir,
     contentsDir,
   };
 
-  writeFromTemplate(path.join(linuxAssetsDir, 'redhat', 'mailspring.spec.in'), templateData);
-  writeFromTemplate(path.join(linuxAssetsDir, 'Mailspring.desktop.in'), templateData);
-  writeFromTemplate(path.join(linuxAssetsDir, 'mailspring.metainfo.xml.in'), templateData);
+  writeFromTemplate(path.join(linuxAssetsDir, 'redhat', 'wellspring.spec.in'), templateData);
+  writeFromTemplate(path.join(linuxAssetsDir, 'wellspring.desktop.in'), templateData);
+  writeFromTemplate(path.join(linuxAssetsDir, 'wellspring.metainfo.xml.in'), templateData);
 
   await spawn({
     cmd: path.join(appDir, 'script', 'mkrpm'),

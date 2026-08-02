@@ -49,7 +49,7 @@ export class DefaultClientHelperWindows implements DCH {
     shell.openExternal('ms-settings:defaultapps?registeredAppUser=Mailspring').catch((err) => {
       AppEnv.showErrorDialog({
         title: localized('Failed to Open Settings'),
-        message: localized('Mailspring was unable to open Windows Settings.\n\n%@', err.message),
+        message: localized('Wellspring was unable to open Windows Settings.\n\n%@', err.message),
       });
     });
   }
@@ -94,7 +94,7 @@ export class DefaultClientHelperWindows implements DCH {
                 AppEnv.showErrorDialog({
                   title: localized('Failed to Open Settings'),
                   message: localized(
-                    'Mailspring was unable to open Windows Settings.\n\n%@',
+                    'Wellspring was unable to open Windows Settings.\n\n%@',
                     err.message
                   ),
                 });

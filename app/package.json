@@ -1,7 +1,7 @@
 {
-  "name": "mailspring",
-  "productName": "Mailspring",
-  "desktopName": "Mailspring.desktop",
+  "name": "wellspring",
+  "productName": "Wellspring",
+  "desktopName": "wellspring.desktop",
   "version": "1.23.0",
   "repository": {
     "type": "git",

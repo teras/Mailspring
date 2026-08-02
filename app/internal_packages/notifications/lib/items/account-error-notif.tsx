@@ -36,7 +36,7 @@ export default class AccountErrorNotification extends React.Component<
   _onContactSupport = (erroredAccount: Account) => {
     // De-Mailspring: file issues on our own tracker, and don't leak the account
     // email / raw sync error into an upstream (or public) URL.
-    let url = 'https://github.com/teras/Mailspring/issues/new';
+    let url = 'https://github.com/teras/Wellspring/issues/new';
     if (erroredAccount && erroredAccount.syncError != null) {
       url += `?title=${encodeURIComponent('Sync Error')}`;
     }

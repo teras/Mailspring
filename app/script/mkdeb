@@ -18,12 +18,12 @@ FILE_MODE=755
 
 TARGET_ROOT="`mktemp -d`"
 chmod $FILE_MODE "$TARGET_ROOT"
-TARGET="$TARGET_ROOT/mailspring-$VERSION-$ARCH"
+TARGET="$TARGET_ROOT/wellspring-$VERSION-$ARCH"
 
 mkdir -m $FILE_MODE -p "$TARGET/usr"
 mkdir -m $FILE_MODE -p "$TARGET/usr/share"
-cp -r "$APP_CONTENTS_DIRECTORY" "$TARGET/usr/share/mailspring"
-chmod +rx "$TARGET/usr/share/mailspring"
+cp -r "$APP_CONTENTS_DIRECTORY" "$TARGET/usr/share/wellspring"
+chmod +rx "$TARGET/usr/share/wellspring"
 
 mkdir -m $FILE_MODE -p "$TARGET/DEBIAN"
 cp "$OUTPUT_PATH/control" "$TARGET/DEBIAN/control"
@@ -32,43 +32,43 @@ cp "$LINUX_ASSETS_DIRECTORY/debian/postinst" "$TARGET/DEBIAN/postinst"
 cp "$LINUX_ASSETS_DIRECTORY/debian/postrm" "$TARGET/DEBIAN/postrm"
 
 mkdir -m $FILE_MODE -p "$TARGET/usr/bin"
-ln -s "../share/mailspring/mailspring" "$TARGET/usr/bin/mailspring"
-chmod +x "$TARGET/usr/bin/mailspring"
+ln -s "../share/wellspring/wellspring" "$TARGET/usr/bin/wellspring"
+chmod +x "$TARGET/usr/bin/wellspring"
 
 mkdir -m $FILE_MODE -p "$TARGET/usr/share/applications"
-cp "$OUTPUT_PATH/Mailspring.desktop" "$TARGET/usr/share/applications"
+cp "$OUTPUT_PATH/wellspring.desktop" "$TARGET/usr/share/applications"
 mkdir -m $FILE_MODE -p "$TARGET/usr/share/metainfo"
-cp "$OUTPUT_PATH/mailspring.metainfo.xml" "$TARGET/usr/share/metainfo"
+cp "$OUTPUT_PATH/wellspring.metainfo.xml" "$TARGET/usr/share/metainfo"
 
 mkdir -m $FILE_MODE -p "$TARGET/usr/share/pixmaps"
-cp "$ICON_FILE" "$TARGET/usr/share/pixmaps/mailspring.png"
+cp "$ICON_FILE" "$TARGET/usr/share/pixmaps/wellspring.png"
 
 mkdir -m $FILE_MODE -p "$TARGET/usr/share/icons/hicolor"
 for i in 256 128 64 32 16; do
   mkdir -p "$TARGET/usr/share/icons/hicolor/${i}x${i}/apps"
-  cp "$LINUX_ASSETS_DIRECTORY/icons/${i}.png" "$TARGET/usr/share/icons/hicolor/${i}x${i}/apps/mailspring.png"
+  cp "$LINUX_ASSETS_DIRECTORY/icons/${i}.png" "$TARGET/usr/share/icons/hicolor/${i}x${i}/apps/wellspring.png"
 done
 
-# Copy generated LICENSE.md to /usr/share/doc/mailspring/copyright
-mkdir -m $FILE_MODE -p "$TARGET/usr/share/doc/mailspring"
-cp "$TARGET/usr/share/mailspring/LICENSE" "$TARGET/usr/share/doc/mailspring/copyright"
+# Copy generated LICENSE.md to /usr/share/doc/wellspring/copyright
+mkdir -m $FILE_MODE -p "$TARGET/usr/share/doc/wellspring"
+cp "$TARGET/usr/share/wellspring/LICENSE" "$TARGET/usr/share/doc/wellspring/copyright"
 
 # Add lintian overrides
 mkdir -m $FILE_MODE -p "$TARGET/usr/share/lintian/overrides"
-cp "$ROOT/build/resources/linux/debian/lintian-overrides" "$TARGET/usr/share/lintian/overrides/mailspring"
+cp "$ROOT/build/resources/linux/debian/lintian-overrides" "$TARGET/usr/share/lintian/overrides/wellspring"
 
 # Remove group write from all files
 chmod -R g-w "$TARGET";
 
-# Remove execstack bit from mailspring executable (execstack is x86-only; it
+# Remove execstack bit from wellspring executable (execstack is x86-only; it
 # errors out with "architecture is not supported" on arm64, so gate on arch)
 if [[ "$ARCH" == "amd64" || "$ARCH" == "i386" ]] && command -v execstack &> /dev/null; then
-  execstack --clear-execstack "$TARGET/usr/share/mailspring/mailspring"
+  execstack --clear-execstack "$TARGET/usr/share/wellspring/wellspring"
 fi
 
 # Remove executable bit from .node files
 find "$TARGET" -type f -name "*.node" -exec chmod a-x {} \;
 
 fakeroot dpkg-deb -b "$TARGET"
-mv "$TARGET_ROOT/mailspring-$VERSION-$ARCH.deb" "$OUTPUT_PATH"
+mv "$TARGET_ROOT/wellspring-$VERSION-$ARCH.deb" "$OUTPUT_PATH"
 rm -rf "$TARGET_ROOT"
