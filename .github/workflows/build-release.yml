@@ -1,0 +1,426 @@
+# Fork release pipeline — independent of the upstream build-*.yaml workflows
+# (which push to Foundry376's private S3). This one is self-contained: every OS
+# job builds the mailsync binary from the submodule (our fork's commits aren't
+# on upstream S3), packages the app, and a final job publishes one GitHub
+# Release on our own repo. Modeled on the keydeck build-release.yml.
+name: Build Release (Fork)
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  # Resolve the version once. On a tag push it comes from the tag (v1.23.0 ->
+  # 1.23.0); a manual run builds "dev" and never publishes a release.
+  meta:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - id: v
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          else
+            VERSION="dev"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Building version: $VERSION"
+
+  build-linux:
+    needs: meta
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install system dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            software-properties-common \
+            autoconf automake build-essential clang cmake execstack fakeroot git \
+            libc-ares-dev libctemplate-dev libcurl4-openssl-dev libglib2.0-dev \
+            libicu-dev liblzma-dev libsasl2-dev libsasl2-modules libsasl2-modules-gssapi-mit \
+            libsecret-1-dev libssl-dev libnss3 libnss3-dev libtidy-dev libtool \
+            libxext-dev libxkbfile-dev libxml2-dev libxtst-dev pkg-config rpm \
+            uuid-dev xvfb
+
+      - name: Get mailsync revision
+        id: mailsync-rev
+        run: echo "rev=$(git rev-parse HEAD:mailsync)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache mailsync build
+        id: mailsync-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            app/mailsync
+            app/mailsync.bin
+            app/*.so*
+          key: mailsync-linux-x64-${{ steps.mailsync-rev.outputs.rev }}
+
+      - name: Build mailsync
+        if: steps.mailsync-cache.outputs.cache-hit != 'true'
+        run: ./mailsync/build.sh
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set product version
+        if: needs.meta.outputs.version != 'dev'
+        run: node -e "const f='app/package.json',p=require('./'+f);p.version=process.env.V;require('fs').writeFileSync(f,JSON.stringify(p,null,2)+'\n')"
+        env:
+          V: ${{ needs.meta.outputs.version }}
+
+      - name: Build
+        run: npm run build
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p out
+          cp app/dist/*.deb out/
+          find app/dist -name '*.rpm' -exec cp {} out/ \;
+          ls -la out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64
+          path: out/*
+
+  build-linux-arm64:
+    needs: meta
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install system dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            software-properties-common \
+            autoconf automake build-essential clang cmake execstack fakeroot git \
+            libc-ares-dev libctemplate-dev libcurl4-openssl-dev libglib2.0-dev \
+            libicu-dev liblzma-dev libsasl2-dev libsasl2-modules libsasl2-modules-gssapi-mit \
+            libsecret-1-dev libssl-dev libnss3 libnss3-dev libtidy-dev libtool \
+            libxext-dev libxkbfile-dev libxml2-dev libxtst-dev pkg-config rpm \
+            uuid-dev xvfb
+
+      - name: Get mailsync revision
+        id: mailsync-rev
+        run: echo "rev=$(git rev-parse HEAD:mailsync)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache mailsync build
+        id: mailsync-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            app/mailsync
+            app/mailsync.bin
+            app/*.so*
+          key: mailsync-linux-arm64-${{ steps.mailsync-rev.outputs.rev }}
+
+      - name: Build mailsync
+        if: steps.mailsync-cache.outputs.cache-hit != 'true'
+        run: ./mailsync/build.sh
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set product version
+        if: needs.meta.outputs.version != 'dev'
+        run: node -e "const f='app/package.json',p=require('./'+f);p.version=process.env.V;require('fs').writeFileSync(f,JSON.stringify(p,null,2)+'\n')"
+        env:
+          V: ${{ needs.meta.outputs.version }}
+
+      - name: Build
+        run: npm run build
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p out
+          cp app/dist/*.deb out/
+          find app/dist -name '*.rpm' -exec cp {} out/ \;
+          ls -la out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-arm64
+          path: out/*
+
+  build-macos:
+    needs: meta
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-26
+            arch: arm64
+          - runner: macos-26-intel
+            arch: x64
+    runs-on: ${{ matrix.runner }}
+    env:
+      APPLE_CERTIFICATE_P12: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_NOTARY_KEY_JSON: ${{ secrets.APPLE_NOTARY_KEY_JSON }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Get mailsync revision
+        id: mailsync-rev
+        run: echo "rev=$(git rev-parse HEAD:mailsync)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache mailsync build
+        id: mailsync-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            app/mailsync
+            app/mailsync.dSYM.zip
+          key: mailsync-macos-${{ steps.mailsync-rev.outputs.rev }}
+
+      # Universal (arm64 + x86_64) mailsync via xcodebuild. The project bakes in
+      # upstream's Apple Team (X9RJ36K9D4), which our Developer ID can't satisfy,
+      # so we disable signing here — the build.sh Run Script ad-hoc signs the
+      # binary and electron-osx-sign re-signs it with our identity as part of the
+      # app bundle below.
+      - name: Build mailsync
+        if: steps.mailsync-cache.outputs.cache-hit != 'true'
+        run: ./mailsync/build.sh
+        env:
+          XCODE_SIGN_OVERRIDE: CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= DEVELOPMENT_TEAM=
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set product version
+        if: needs.meta.outputs.version != 'dev'
+        run: node -e "const f='app/package.json',p=require('./'+f);p.version=process.env.V;require('fs').writeFileSync(f,JSON.stringify(p,null,2)+'\n')"
+        env:
+          V: ${{ needs.meta.outputs.version }}
+
+      # Import the Developer ID cert into a temporary keychain so electron-osx-sign
+      # (invoked by build.js when SIGN_BUILD=true) can find the signing identity.
+      # We do NOT set APPLE_ID, so build.js skips its own (app-specific-password)
+      # notarization path — we notarize with the App Store Connect API key below.
+      - name: Set up signing keychain
+        run: |
+          set -euo pipefail
+          KEYCHAIN_PWD=$(openssl rand -base64 32)
+          security create-keychain -p "$KEYCHAIN_PWD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PWD" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+          echo "$APPLE_CERTIFICATE_P12" | base64 --decode > certificate.p12
+          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PWD" build.keychain
+          rm certificate.p12
+          security find-identity -v -p codesigning build.keychain
+
+      - name: Build (signed)
+        run: SIGN_BUILD=true npm run build
+
+      # Reconstruct the notary API key from our JSON secret, then notarize the
+      # signed .zip, staple the ticket into the .app, and re-zip for distribution.
+      - name: Notarize and staple
+        run: |
+          set -euo pipefail
+          ISSUER=$(echo "$APPLE_NOTARY_KEY_JSON" | grep -o '"issuer_id"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"\([^"]*\)"$/\1/')
+          KEY_ID=$(echo "$APPLE_NOTARY_KEY_JSON" | grep -o '"key_id"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"\([^"]*\)"$/\1/')
+          KEY_BODY=$(echo "$APPLE_NOTARY_KEY_JSON" | grep -o '"private_key"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"\([^"]*\)"$/\1/')
+          KEY_PATH="$RUNNER_TEMP/AuthKey_${KEY_ID}.p8"
+          {
+            echo "-----BEGIN PRIVATE KEY-----"
+            echo "$KEY_BODY" | fold -w 64
+            echo "-----END PRIVATE KEY-----"
+          } > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+
+          ZIP=app/dist/Mailspring.zip
+          xcrun notarytool submit "$ZIP" --key "$KEY_PATH" --key-id "$KEY_ID" --issuer "$ISSUER" --wait
+
+          mkdir -p stage
+          ditto -x -k "$ZIP" stage/
+          xcrun stapler staple stage/Mailspring.app
+
+          mkdir -p out
+          ditto -c -k --keepParent stage/Mailspring.app "out/Mailspring-macOS-${{ matrix.arch }}.zip"
+          rm -f "$KEY_PATH"
+          ls -la out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.arch }}
+          path: out/*
+
+  # Windows: build the mailsync engine (32-bit, via vcpkg/MSBuild — the recipe
+  # mirrors the mailsync submodule's own build-windows.yml), stage mailsync.exe
+  # plus its runtime DLLs into app/ so electron-packager unpacks them next to the
+  # executable, then package and ship an unsigned .zip (we have no Windows cert).
+  build-windows:
+    needs: meta
+    runs-on: windows-2022
+    env:
+      VCPKG_DEFAULT_TRIPLET: x86-windows
+      VCPKG_DEFAULT_HOST_TRIPLET: x86-windows
+      VCPKG_OVERLAY_PORTS: ${{ github.workspace }}\mailsync\vcpkg-overlay-ports
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Get mailsync revision
+        id: mailsync-rev
+        shell: bash
+        run: echo "rev=$(git rev-parse HEAD:mailsync)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache mailsync build
+        id: mailsync-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            app/mailsync.exe
+            app/*.dll
+            app/*.pdb
+          key: mailsync-win-${{ steps.mailsync-rev.outputs.rev }}
+
+      - name: Setup MSBuild
+        if: steps.mailsync-cache.outputs.cache-hit != 'true'
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup vcpkg
+        if: steps.mailsync-cache.outputs.cache-hit != 'true'
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: '84bab45d415d22042bd0b9081aea57f362da3f35'
+          runVcpkgInstall: false
+          doNotCache: true
+
+      - name: Enable vcpkg MSBuild integration
+        if: steps.mailsync-cache.outputs.cache-hit != 'true'
+        run: vcpkg integrate install
+
+      - name: Restore vcpkg packages cache
+        if: steps.mailsync-cache.outputs.cache-hit != 'true'
+        uses: actions/cache@v4
+        with:
+          path: mailsync/vcpkg_installed
+          key: vcpkg-msbuild-x86-windows-${{ hashFiles('mailsync/vcpkg.json', 'mailsync/vcpkg-configuration.json', 'mailsync/vcpkg-overlay-ports/**') }}
+
+      - name: Install VC2010 runtime (msvcr100.dll)
+        if: steps.mailsync-cache.outputs.cache-hit != 'true'
+        shell: cmd
+        run: choco install -y vcredist2010
+
+      - name: Build mailsync (MSBuild)
+        if: steps.mailsync-cache.outputs.cache-hit != 'true'
+        shell: cmd
+        run: |
+          cd mailsync\Windows
+          msbuild.exe mailsync.sln /property:Configuration=Release;Platform=Win32 /p:VcpkgEnableManifest=true
+
+      - name: Stage mailsync and DLLs into app/
+        if: steps.mailsync-cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          Copy-Item "mailsync\Windows\Release\*" -Destination "app" -Recurse -Force
+          # SASL auth plugins (PLAIN/LOGIN, etc.) for SMTP
+          $sasl = "mailsync\vcpkg_installed\x86-windows\x86-windows\bin\sasl2"
+          if (Test-Path $sasl) { Copy-Item "$sasl\sasl*.dll" -Destination "app" -Force -ErrorAction SilentlyContinue }
+          # MSVC runtime DLLs required by some dependencies
+          foreach ($d in 'msvcr100.dll','msvcr120.dll','msvcp100.dll','msvcp120.dll','msvcp140.dll','vcruntime140.dll') {
+            Copy-Item "C:\Windows\SysWOW64\$d" "app\" -Force -ErrorAction SilentlyContinue
+          }
+          # UCRT DLLs (Windows 7/8 compatibility)
+          $ucrt = "C:\Program Files (x86)\Windows Kits\10\Redist\ucrt\DLLs\x86"
+          if (Test-Path $ucrt) { Copy-Item "$ucrt\*" "app\" -Force -ErrorAction SilentlyContinue }
+          # vcpkg ships zlib1.dll but dependents look for zlib.dll
+          if (Test-Path "app\zlib1.dll") { Copy-Item "app\zlib1.dll" "app\zlib.dll" -Force }
+          if (!(Test-Path "app\mailsync.exe")) { Write-Error "mailsync.exe not staged"; exit 1 }
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set product version
+        if: needs.meta.outputs.version != 'dev'
+        shell: bash
+        run: node -e "const f='app/package.json',p=require('./'+f);p.version=process.env.V;require('fs').writeFileSync(f,JSON.stringify(p,null,2)+'\n')"
+        env:
+          V: ${{ needs.meta.outputs.version }}
+
+      # Package only (no Squirrel installer — that step signs, and we have no
+      # Windows certificate). We ship the unpacked app zipped.
+      - name: Build
+        run: npm run build
+        env:
+          DEBUG: electron-packager
+
+      - name: Zip unsigned app
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path out | Out-Null
+          Compress-Archive -Path app/dist/mailspring-win32-x64/* -DestinationPath "out/Mailspring-Windows-x64.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64
+          path: out/*
+
+  # Publish one GitHub Release with every OS artifact. Only on a tag push — a
+  # manual run just leaves the artifacts on the workflow run for inspection.
+  release:
+    needs: [meta, build-linux, build-linux-arm64, build-macos, build-windows]
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          draft: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

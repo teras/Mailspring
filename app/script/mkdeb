@@ -60,8 +60,9 @@ cp "$ROOT/build/resources/linux/debian/lintian-overrides" "$TARGET/usr/share/lin
 # Remove group write from all files
 chmod -R g-w "$TARGET";
 
-# Remove execstack bit from mailspring executable (execstack is x86-only, skip on other archs)
-if command -v execstack &> /dev/null; then
+# Remove execstack bit from mailspring executable (execstack is x86-only; it
+# errors out with "architecture is not supported" on arm64, so gate on arch)
+if [[ "$ARCH" == "amd64" || "$ARCH" == "i386" ]] && command -v execstack &> /dev/null; then
   execstack --clear-execstack "$TARGET/usr/share/mailspring/mailspring"
 fi
 
