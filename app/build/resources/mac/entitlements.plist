@@ -1,19 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Developer ID (non-App-Store) distribution: the app ships without an
+     embedded provisioning profile, so it must NOT carry "restricted"
+     entitlements (com.apple.application-identifier,
+     com.apple.developer.team-identifier, keychain-access-groups,
+     com.apple.developer.usernotifications.*). Those are only valid when a
+     matching provisioning profile authorizes them; without one, amfid rejects
+     the signature ("No matching profile found") and the kernel kills the app
+     at launch with SIGKILL (Code Signature Invalid). Keep only the basic
+     com.apple.security.* entitlements the hardened runtime needs. -->
 <plist version="1.0">
 <dict>
-	<key>com.apple.application-identifier</key>
-	<string>X9RJ36K9D4.com.mailspring.mailspring</string>
-	<key>com.apple.developer.team-identifier</key>
-	<string>X9RJ36K9D4</string>
-	<key>keychain-access-groups</key>
-	<array>
-		<string>X9RJ36K9D4.*</string>
-	</array>
-	<key>com.apple.developer.usernotifications.communication</key>
-	<true/>
-	<key>com.apple.developer.usernotifications.time-sensitive</key>
-	<true/>
 	<key>com.apple.security.automation.apple-events</key>
 	<true/>
 	<key>com.apple.security.cs.allow-jit</key>

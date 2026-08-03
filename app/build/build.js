@@ -278,19 +278,18 @@ function buildPackagerOptions() {
     osxSign: process.env.SIGN_BUILD
       ? {
           platform: 'darwin',
-          // The provisioning profile is embedded once into the app bundle at
-          // Contents/embedded.provisionprofile. It must be set here at the
-          // top level — it is not a per-file option.
+          // Optional: only used for a provisioning-profile-based build. For
+          // plain Developer ID distribution this stays undefined and no
+          // profile is embedded — see the note in entitlements.plist for why
+          // neither the main nor the child entitlements may carry restricted
+          // entitlements in that case.
           provisioningProfile: process.env.APPLE_PROVISIONING_PROFILE_PATH,
           optionsForFile: filePath => {
-            // Only the main app bundle gets the full entitlements plist,
-            // which includes restricted entitlements (keychain-access-groups,
-            // com.apple.developer.*) that are validated against the embedded
-            // provisioning profile. All helper binaries (Electron helpers,
-            // mailsync, chrome_crashpad_handler, ShipIt, etc.) must be signed
-            // with only the basic com.apple.security.* entitlements — amfid
-            // will reject any helper that carries restricted entitlements it
-            // cannot match to a profile scoped to that binary.
+            // Main app bundle and helper binaries (Electron helpers, mailsync,
+            // chrome_crashpad_handler, ShipIt, etc.) are all signed with only
+            // the basic com.apple.security.* entitlements the hardened runtime
+            // needs. Neither carries restricted entitlements, since we ship
+            // without a provisioning profile to authorize them.
             // Note: electron-osx-sign passes the .app bundle path (not the
             // inner executable path) when signing the top-level app bundle.
             const isMainExecutable = filePath.endsWith('/Wellspring.app');
